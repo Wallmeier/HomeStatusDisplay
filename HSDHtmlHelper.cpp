@@ -57,11 +57,10 @@ String HSDHtmlHelper::getFooter() const
 String HSDHtmlHelper::getColorMappingTableHeader() const
 {
   return F(""
-  "<table width='40%' border='1' cellpadding='1' cellspacing='2'>"
+  "<table width='30%' border='1' cellpadding='1' cellspacing='2'>"
   " <tr style='background-color:#828282'>"
   "  <td><b><font size='+1'>Nr</font></b></td>"
   "  <td><b><font size='+1'>Message</font></b></td>"
-  "  <td><b><font size='+1'>Type</font></b></td>"
   "  <td><b><font size='+1'>Color</font></b></td>"
   "  <td><b><font size='+1'>Behavior</font></b></td>"
   " </tr>");
@@ -81,8 +80,6 @@ String HSDHtmlHelper::getColorMappingTableEntry(int entryNum, const HSDConfig::C
   html += entryNum;
   html += F("</td><td>");
   html += mapping->msg;
-  html += F("</td><td>");
-  html += type2String(mapping->type);
   html += F("</td><td>");
   html += F("<div class='hsdcolor' style='background-color:");
   html += color2htmlColor(mapping->color);
@@ -107,9 +104,6 @@ String HSDHtmlHelper::getColorMappingTableAddEntryForm(int newEntryNum, bool isF
   html += isFull ? newEntryNum - 1 : newEntryNum;
   html += F("' size='5' maxlength='3' placeholder='Nr'</td>");
   html += F("<td><input type='text' id='name' name='n' value='' size='20' maxlength='15' placeholder='name'></td>");
-  html += F("<td><select name='t'>");
-  html += getTypeOptions(HSDConfig::TYPE_WINDOW);
-  html += F("</select></td>");
   html += F("<td><select name='c'>");
   html += getColorOptions(HSDConfig::WHITE);
   html += F("</select></td>");
@@ -126,11 +120,10 @@ String HSDHtmlHelper::getColorMappingTableAddEntryForm(int newEntryNum, bool isF
 String HSDHtmlHelper::getDeviceMappingTableHeader() const
 {
   return F(""
-  "<table width='30%' border='1' cellpadding='1' cellspacing='2'>"
+  "<table width='20%' border='1' cellpadding='1' cellspacing='2'>"
   " <tr style='background-color:#828282'>"
   "  <td><b><font size='+1'>Nr</font></b></td>"  
   "  <td><b><font size='+1'>Device</font></b></td>"
-  "  <td><b><font size='+1'>Type</font></b></td>"
   "  <td><b><font size='+1'>Led</font></b></td>"
   " </tr>");
 }
@@ -150,8 +143,6 @@ String HSDHtmlHelper::getDeviceMappingTableEntry(int entryNum, const HSDConfig::
   html += entryNum;
   html += F("</td><td>");
   html += mapping->name;
-  html += F("</td><td>");
-  html += type2String(mapping->type);
   html += F("</td><td>");
   html += mapping->ledNumber;
   html += F("</td></tr>");
@@ -173,9 +164,6 @@ String HSDHtmlHelper::getDeviceMappingTableAddEntryForm(int newEntryNum, bool is
   html += isFull ? newEntryNum - 1 : newEntryNum;
   html += F("' size='5' maxlength='3' placeholder='Nr'</td>");
   html += F("<td><input type='text' id='name' name='n' value='' size='30' maxlength='25' placeholder='name'></td>");
-  html += F("<td><select name='t'>");
-  html += getTypeOptions(HSDConfig::TYPE_WINDOW);
-  html += F("</select></td>");
   html += F("<td><input type='text' id='led' name='l' value='");
   html += isFull ? newEntryNum - 1 : newEntryNum;
   html += F("' size='6' maxlength='3' placeholder='led nr'></td></tr></table>");
@@ -249,23 +237,6 @@ String HSDHtmlHelper::getBehaviorOptions(HSDConfig::Behavior selectedBehavior) c
   return html;
 }
 
-String HSDHtmlHelper::getTypeOptions(HSDConfig::deviceType selectedType) const
-{
-  String windowSelect = (selectedType == HSDConfig::TYPE_WINDOW) ? SELECTED_STRING : EMPTY_STRING;
-  String doorSelect   = (selectedType == HSDConfig::TYPE_DOOR)   ? SELECTED_STRING : EMPTY_STRING;
-  String lightSelect  = (selectedType == HSDConfig::TYPE_LIGHT)  ? SELECTED_STRING : EMPTY_STRING;
-  String alarmSelect  = (selectedType == HSDConfig::TYPE_ALARM)  ? SELECTED_STRING : EMPTY_STRING;
-
-  String html;
-  
-  html += F("<option "); html += windowSelect; html += F("value='"); html += HSDConfig::TYPE_WINDOW; html += F("'>Window</option>");
-  html += F("<option "); html += doorSelect;   html += F("value='"); html += HSDConfig::TYPE_DOOR;   html += F("'>Door</option>");
-  html += F("<option "); html += lightSelect;  html += F("value='"); html += HSDConfig::TYPE_LIGHT;  html += F("'>Light</option>");
-  html += F("<option "); html += alarmSelect;  html += F("value='"); html += HSDConfig::TYPE_ALARM;  html += F("'>Alarm</option>");
-  
-  return html;
-}
-
 String HSDHtmlHelper::ip2String(IPAddress ip) const
 {
   char buffer[20];
@@ -331,23 +302,6 @@ String HSDHtmlHelper::behavior2String(HSDConfig::Behavior behavior) const
 
   return behaviorString;
 }
-
-String HSDHtmlHelper::type2String(HSDConfig::deviceType type) const
-{
-  String typeString = F("Window");
-
-  switch(type)
-  {
-    case HSDConfig::TYPE_WINDOW: typeString = F("Window"); break;
-    case HSDConfig::TYPE_DOOR:   typeString = F("Door"); break;
-    case HSDConfig::TYPE_LIGHT:  typeString = F("Light"); break;
-    case HSDConfig::TYPE_ALARM:  typeString = F("Alarm"); break;
-    default: break;
-  }
-
-  return typeString; 
-}
-
 
 String HSDHtmlHelper::minutes2Uptime(unsigned long minutes) const
 {

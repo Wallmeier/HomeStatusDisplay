@@ -26,10 +26,9 @@ private:
   void mqttCallback(char* topic, byte* payload, unsigned int length);
 
   bool isStatusTopic(String& topic);
-  HSDConfig::deviceType getDeviceType(String& statusTopic);
   String getDevice(String& statusTopic);
 
-  void handleStatus(String device, HSDConfig::deviceType type, String msg);
+  void handleStatus(String device, String msg);
   void handleTest(String msg);
 
   void checkConnections();

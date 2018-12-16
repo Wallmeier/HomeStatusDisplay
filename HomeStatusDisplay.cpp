@@ -3,11 +3,6 @@
 // function declarations
 void handleMqttMessage(String topic, String msg);
 
-#define WINDOW_STRING (F("/window/"))
-#define DOOR_STRING (F("/door/"))
-#define LIGHT_STRING (F("/light/"))
-#define ALARM_STRING (F("/alarm/"))
-
 #define ONE_MINUTE_MILLIS (60000)
 
 int getFreeRamSize();
@@ -96,10 +91,9 @@ void HomeStatusDisplay::mqttCallback(char* topic, byte* payload, unsigned int le
   }
   else if(isStatusTopic(mqttTopicString))
   {
-    HSDConfig::deviceType type = getDeviceType(mqttTopicString);
     String device = getDevice(mqttTopicString);
 
-    handleStatus(device, type, mqttMsgString);
+    handleStatus(device, mqttMsgString);
   }
 }
 
@@ -109,30 +103,6 @@ bool HomeStatusDisplay::isStatusTopic(String& topic)
   int posOfLastSlashInStatusTopic = mqttStatusTopic.lastIndexOf("/");
 
   return topic.startsWith(mqttStatusTopic.substring(0, posOfLastSlashInStatusTopic)) ? true : false;
-}
-
-HSDConfig::deviceType HomeStatusDisplay::getDeviceType(String& statusTopic)
-{
-  HSDConfig::deviceType type = HSDConfig::TYPE_UNKNOWN;
-
-  if(statusTopic.indexOf(LIGHT_STRING) != -1)
-  {
-    type = HSDConfig::TYPE_LIGHT;
-  }
-  else if(statusTopic.indexOf(WINDOW_STRING) != -1)
-  {
-    type = HSDConfig::TYPE_WINDOW;
-  }
-  else if(statusTopic.indexOf(DOOR_STRING) != -1)
-  {
-    type = HSDConfig::TYPE_DOOR;
-  }
-  else if(statusTopic.indexOf(ALARM_STRING) != -1)
-  {
-    type = HSDConfig::TYPE_ALARM;
-  } 
-
-  return type;
 }
 
 String HomeStatusDisplay::getDevice(String& statusTopic)
@@ -157,13 +127,13 @@ void HomeStatusDisplay::handleTest(String msg)
   }
 }
 
-void HomeStatusDisplay::handleStatus(String device, HSDConfig::deviceType type, String msg)
+void HomeStatusDisplay::handleStatus(String device, String msg)
 { 
-  int ledNumber = m_config.getLedNumber(device, type);
+  int ledNumber = m_config.getLedNumber(device);
 
   if(ledNumber != -1)
   {
-    int colorMapIndex = m_config.getColorMapIndex(type, msg);
+    int colorMapIndex = m_config.getColorMapIndex(msg);
     
     if(colorMapIndex != -1)
     {
@@ -181,7 +151,7 @@ void HomeStatusDisplay::handleStatus(String device, HSDConfig::deviceType type, 
   }
   else
   {
-    Serial.println("No LED defined for device " + device + " of type " + String(type) + ", ignoring it");
+    Serial.println("No LED defined for device " + device + ", ignoring it");
   }
 }
 

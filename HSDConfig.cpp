@@ -182,12 +182,11 @@ bool HSDConfig::readColorMappingConfigFile()
       {
         JsonObject& entry = json[it->key]; 
 
-        if(entry.containsKey(JSON_KEY_COLORMAPPING_MSG) && entry.containsKey(JSON_KEY_COLORMAPPING_TYPE) &&
-           entry.containsKey(JSON_KEY_COLORMAPPING_COLOR) && entry.containsKey(JSON_KEY_COLORMAPPING_BEHAVIOR) )
+        if(entry.containsKey(JSON_KEY_COLORMAPPING_MSG) && entry.containsKey(JSON_KEY_COLORMAPPING_COLOR) &&
+           entry.containsKey(JSON_KEY_COLORMAPPING_BEHAVIOR) )
         {
           addColorMappingEntry(index,
                                entry[JSON_KEY_COLORMAPPING_MSG].as<char*>(), 
-                               (deviceType)(entry[JSON_KEY_COLORMAPPING_TYPE].as<int>()), 
                                (Color)(id2color(entry[JSON_KEY_COLORMAPPING_COLOR].as<int>())), 
                                (Behavior)(entry[JSON_KEY_COLORMAPPING_BEHAVIOR].as<int>())); 
 
@@ -237,12 +236,10 @@ bool HSDConfig::readDeviceMappingConfigFile()
       {
         JsonObject& entry = json[it->key]; 
 
-        if(entry.containsKey(JSON_KEY_DEVICEMAPPING_NAME) && entry.containsKey(JSON_KEY_DEVICEMAPPING_TYPE) &&
-           entry.containsKey(JSON_KEY_DEVICEMAPPING_LED) )
+        if(entry.containsKey(JSON_KEY_DEVICEMAPPING_NAME) && entry.containsKey(JSON_KEY_DEVICEMAPPING_LED) )
         {
           addDeviceMappingEntry(index,
                                 entry[JSON_KEY_DEVICEMAPPING_NAME].as<char*>(), 
-                                (deviceType)(entry[JSON_KEY_DEVICEMAPPING_TYPE].as<int>()), 
                                 entry[JSON_KEY_DEVICEMAPPING_LED].as<int>());
 
            index++;                               
@@ -305,7 +302,6 @@ void HSDConfig::writeColorMappingConfigFile()
       JsonObject& colorMappingEntry = json.createNestedObject(String(index));
   
       colorMappingEntry[JSON_KEY_COLORMAPPING_MSG] = mapping->msg;
-      colorMappingEntry[JSON_KEY_COLORMAPPING_TYPE] = (int)mapping->type;
       colorMappingEntry[JSON_KEY_COLORMAPPING_COLOR] = (int)color2id(mapping->color);
       colorMappingEntry[JSON_KEY_COLORMAPPING_BEHAVIOR] = (int)mapping->behavior;
     }
@@ -343,7 +339,6 @@ void HSDConfig::writeDeviceMappingConfigFile()
       JsonObject& deviceMappingEntry = json.createNestedObject(String(index));
   
       deviceMappingEntry[JSON_KEY_DEVICEMAPPING_NAME] = mapping->name;
-      deviceMappingEntry[JSON_KEY_DEVICEMAPPING_TYPE] = (int)mapping->type;
       deviceMappingEntry[JSON_KEY_DEVICEMAPPING_LED]  = (int)mapping->ledNumber;
     }
     else
@@ -395,14 +390,14 @@ void HSDConfig::onFileWriteError()
   Serial.println(F("Done.")); 
 }
 
-bool HSDConfig::addDeviceMappingEntry(int entryNum, String name, deviceType type, int ledNumber)
+bool HSDConfig::addDeviceMappingEntry(int entryNum, String name, int ledNumber)
 {
   bool success = false;
 
   Serial.print(F("Adding or editing device mapping entry at index ")); 
-  Serial.println(String(entryNum) + " with name " + name + ", type " + String(type) + ", LED number " + String(ledNumber));
+  Serial.println(String(entryNum) + " with name " + name + ", LED number " + String(ledNumber));
 
-  DeviceMapping mapping(name, type, ledNumber);
+  DeviceMapping mapping(name, ledNumber);
 
   if(m_cfgDeviceMapping.set(entryNum, mapping))
   {
@@ -446,14 +441,14 @@ bool HSDConfig::isDeviceMappingFull() const
   return m_cfgDeviceMapping.isFull();
 }
 
-bool HSDConfig::addColorMappingEntry(int entryNum, String msg, deviceType type, Color color, Behavior behavior)
+bool HSDConfig::addColorMappingEntry(int entryNum, String msg, Color color, Behavior behavior)
 {
   bool success = false;
 
   Serial.print(F("Adding or editing color mapping entry at index ")); 
-  Serial.println(String(entryNum) + ", new values: name " + msg + ", type " + String(type) + ", color " + String(color) + ", behavior " + String(behavior));
+  Serial.println(String(entryNum) + ", new values: name " + msg + ", color " + String(color) + ", behavior " + String(behavior));
 
-  ColorMapping mapping(msg, type, color, behavior);
+  ColorMapping mapping(msg, color, behavior);
 
   if(m_cfgColorMapping.set(entryNum, mapping))
   {
@@ -646,7 +641,7 @@ const HSDConfig::DeviceMapping* HSDConfig::getDeviceMapping(int index) const
     return m_cfgDeviceMapping.get(index);
 }
 
-int HSDConfig::getLedNumber(String deviceName, deviceType deviceType)
+int HSDConfig::getLedNumber(String deviceName)
 {
   int number = -1;
 
@@ -654,7 +649,7 @@ int HSDConfig::getLedNumber(String deviceName, deviceType deviceType)
   {
     const DeviceMapping* mapping = m_cfgDeviceMapping.get(i);
     
-    if(deviceName.equals(mapping->name) && (deviceType == mapping->type))
+    if(deviceName.equals(mapping->name))
     {
       number = mapping->ledNumber;
       break;
@@ -664,7 +659,7 @@ int HSDConfig::getLedNumber(String deviceName, deviceType deviceType)
   return number;
 }
 
-int HSDConfig::getColorMapIndex(deviceType deviceType, String msg)
+int HSDConfig::getColorMapIndex(String msg)
 {
   int index = -1;
 
@@ -672,7 +667,7 @@ int HSDConfig::getColorMapIndex(deviceType deviceType, String msg)
   {
     const ColorMapping* mapping = m_cfgColorMapping.get(i);
     
-    if(msg.equals(mapping->msg) && (deviceType == mapping->type))
+    if(msg.equals(mapping->msg))
     {
       index = i;
       break;

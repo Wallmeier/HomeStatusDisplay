@@ -37,8 +37,5 @@ private:
 
   String getColorOptions(HSDConfig::Color selectedColor) const;
   String getBehaviorOptions(HSDConfig::Behavior selectedBehavior) const;
-  String getTypeOptions(HSDConfig::deviceType selectedType) const;
-
-  String type2String(HSDConfig::deviceType type) const;
 };
 

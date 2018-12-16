@@ -14,11 +14,9 @@
 #define JSON_KEY_LED_PIN               (F("ledPin"))
 #define JSON_KEY_LED_BRIGHTNESS        (F("ledBrightness"))
 #define JSON_KEY_COLORMAPPING_MSG      (F("m"))
-#define JSON_KEY_COLORMAPPING_TYPE     (F("t"))
 #define JSON_KEY_COLORMAPPING_COLOR    (F("c"))
 #define JSON_KEY_COLORMAPPING_BEHAVIOR (F("b"))
 #define JSON_KEY_DEVICEMAPPING_NAME    (F("n"))
-#define JSON_KEY_DEVICEMAPPING_TYPE    (F("t"))
 #define JSON_KEY_DEVICEMAPPING_LED     (F("l"))
 
 class HSDConfig
@@ -30,19 +28,8 @@ public:
   static const int MAX_COLOR_MAPPING_MSG_LEN = 15;
   
   /*
-   * Enum which defines the types of devices which can send messages.
-   * If the same message (e.g. "on") can be received from different types
-   * of devices (e.g. light and alarm), different reaction can be done.
+   * Enum which defines the different LED behaviors.
    */
-  enum deviceType
-  {
-    TYPE_WINDOW,
-    TYPE_DOOR,
-    TYPE_LIGHT,
-    TYPE_ALARM,
-    TYPE_UNKNOWN
-  };
-
   enum Behavior
   {
     OFF,
@@ -72,58 +59,52 @@ public:
   };
 
   /*
-   * This struct is used for mapping a device of a specific device type 
-   * to a led number, that means a specific position on the led stripe
+   * This struct is used for mapping a device name to a led number, 
+   * that means a specific position on the led stripe
    */
   struct DeviceMapping
   { 
     DeviceMapping()
     {
       memset(name, 0, MAX_DEVICE_MAPPING_NAME_LEN);
-      type = TYPE_UNKNOWN;
       ledNumber = 0;       
     }
 
-    DeviceMapping(String n, deviceType t, int l)
+    DeviceMapping(String n, int l)
     {
       strncpy(name, n.c_str(), MAX_DEVICE_MAPPING_NAME_LEN);
       name[MAX_DEVICE_MAPPING_NAME_LEN] = '\0';
-      type = t;
       ledNumber = l;   
     }
     
     char name[MAX_DEVICE_MAPPING_NAME_LEN]; // name of the device
-    deviceType type;                        // type of the device
     int ledNumber;                          // led number on which reactions for this device are displayed
   };
 
   /*
-   * This struct is used for mapping a message for a specific device
-   * type to a led behavior (see LedSwitcher::ledState).
+   * This struct is used for mapping a message for a specific
+   * message to a led behavior (see LedSwitcher::ledState).
    */
   struct ColorMapping
   {
     ColorMapping()
     {
       memset(msg, 0, MAX_COLOR_MAPPING_MSG_LEN);
-      type = TYPE_UNKNOWN;
       color = NONE;
       behavior = OFF;
     }
     
-    ColorMapping(String m, deviceType t, Color c, Behavior b)
+    ColorMapping(String m, Color c, Behavior b)
     {
       strncpy(msg, m.c_str(), MAX_COLOR_MAPPING_MSG_LEN);
       msg[MAX_COLOR_MAPPING_MSG_LEN] = '\0';
-      type = t;
       color = c;
       behavior = b;
     }
     
     char msg[MAX_COLOR_MAPPING_MSG_LEN+1];  // message 
-    deviceType type;                        // type of the device
-    Color color;                            // led color for message from device type
-    Behavior behavior;                      // led behavior for message from device type
+    Color color;                            // led color for message
+    Behavior behavior;                      // led behavior for message
   };
 
   HSDConfig();
@@ -178,13 +159,13 @@ public:
   int getNumberOfDeviceMappingEntries() const;
   int getNumberOfColorMappingEntries();
   
-  bool addDeviceMappingEntry(int entryNum, String name, deviceType type, int ledNumber);
+  bool addDeviceMappingEntry(int entryNum, String name, int ledNumber);
   bool deleteColorMappingEntry(int entryNum);
   bool deleteAllDeviceMappingEntries();
   bool isDeviceMappingDirty() const;
   bool isDeviceMappingFull() const;
   
-  bool addColorMappingEntry(int entryNum, String msg, deviceType type, Color color, Behavior behavior);
+  bool addColorMappingEntry(int entryNum, String msg, Color color, Behavior behavior);
   bool deleteDeviceMappingEntry(int entryNum);
   bool deleteAllColorMappingEntries();
   bool isColorMappingDirty() const;
@@ -193,8 +174,8 @@ public:
   const DeviceMapping* getDeviceMapping(int index) const;
   const ColorMapping* getColorMapping(int index); 
     
-  int getLedNumber(String device, deviceType type);
-  int getColorMapIndex(deviceType deviceType, String msg);
+  int getLedNumber(String device);
+  int getColorMapIndex(String msg);
   Behavior getLedBehavior(int colorMapIndex);
   Color getLedColor(int colorMapIndex);
 
