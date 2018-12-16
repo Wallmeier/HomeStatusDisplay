@@ -215,6 +215,7 @@ String HSDHtmlHelper::getColorOptions(HSDConfig::Color selectedColor) const
   String redSelect    = (selectedColor == HSDConfig::RED)    ? SELECTED_STRING : EMPTY_STRING;
   String purpleSelect = (selectedColor == HSDConfig::PURPLE) ? SELECTED_STRING : EMPTY_STRING;
   String blueSelect   = (selectedColor == HSDConfig::BLUE)   ? SELECTED_STRING : EMPTY_STRING;
+  String cyanSelect   = (selectedColor == HSDConfig::CYAN)   ? SELECTED_STRING : EMPTY_STRING;
   String whiteSelect  = (selectedColor == HSDConfig::WHITE)  ? SELECTED_STRING : EMPTY_STRING;
 
   String html;
@@ -225,6 +226,7 @@ String HSDHtmlHelper::getColorOptions(HSDConfig::Color selectedColor) const
   html += F("<option "); html += redSelect;    html += F(" value='"); html += HSDConfig::color2id(HSDConfig::RED);    html += F("'>Red</option>");
   html += F("<option "); html += purpleSelect; html += F(" value='"); html += HSDConfig::color2id(HSDConfig::PURPLE); html += F("'>Purple</option>");
   html += F("<option "); html += blueSelect;   html += F(" value='"); html += HSDConfig::color2id(HSDConfig::BLUE);   html += F("'>Blue</option>");
+  html += F("<option "); html += cyanSelect;   html += F(" value='"); html += HSDConfig::color2id(HSDConfig::CYAN);   html += F("'>Cyan</option>");
   html += F("<option "); html += whiteSelect;  html += F(" value='"); html += HSDConfig::color2id(HSDConfig::WHITE);  html += F("'>White</option>");
 
   return html;
@@ -286,6 +288,7 @@ String HSDHtmlHelper::color2String(HSDConfig::Color color) const
     case HSDConfig::RED:    colorString = F("red"); break;
     case HSDConfig::PURPLE: colorString = F("purple"); break;
     case HSDConfig::BLUE:   colorString = F("blue"); break;
+    case HSDConfig::CYAN:   colorString = F("cyan"); break;
     case HSDConfig::WHITE:  colorString = F("white"); break;
     default: break;
   }
@@ -305,6 +308,7 @@ String HSDHtmlHelper::color2htmlColor(HSDConfig::Color color) const
     case HSDConfig::RED:    htmlcolor = F("#FF0000"); break;
     case HSDConfig::PURPLE: htmlcolor = F("#FF00FF"); break;
     case HSDConfig::BLUE:   htmlcolor = F("#0000FF"); break;
+    case HSDConfig::CYAN:   htmlcolor = F("#00FFFF"); break;
     case HSDConfig::WHITE:  htmlcolor = F("#FFFFFF"); break;
     default: break;
   }

@@ -13,7 +13,7 @@ static const int JSON_BUFFER_DEVICE_MAPPING_CONFIG_FILE = 4000; // 3908 exactly
 
 static const uint8_t DEFAULT_LED_BRIGHTNESS = 50;
 
-const constexpr HSDConfig::ColorTranslator HSDConfig::colorTranslator[8];
+const constexpr HSDConfig::ColorTranslator HSDConfig::colorTranslator[9];
 
 HSDConfig::HSDConfig()
 :

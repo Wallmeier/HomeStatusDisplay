@@ -56,11 +56,12 @@ public:
   {
     NONE   = 0x000000,
     GREEN  = 0x00FF00,
-    YELLOW = 0xFFFF00,
-    ORANGE = 0xFF5500,
+    YELLOW = 0xFFCC00,
+    ORANGE = 0xFF4400,
     RED    = 0xFF0000,
     PURPLE = 0xFF00FF,
     BLUE   = 0x0000FF,
+    CYAN   = 0x00FFFF,
     WHITE  = 0xFFFFFF
   };
 
@@ -223,7 +224,7 @@ public:
 
 private:
 
-  static const constexpr ColorTranslator colorTranslator[8] =
+  static const constexpr ColorTranslator colorTranslator[9] =
   {  
     {NONE,   0}, 
     {GREEN,  1},
@@ -232,7 +233,8 @@ private:
     {RED,    4},
     {PURPLE, 5},
     {BLUE,   6},
-    {WHITE,  7},
+    {CYAN,   7},
+    {WHITE,  8}
   };
 
   bool readMainConfigFile();
