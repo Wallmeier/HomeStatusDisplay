@@ -188,20 +188,25 @@ void HSDWebserver::deliverStatusPage()
     
     for(int ledNr = 0; ledNr < m_config.getNumberOfLeds(); ledNr++)
     {
-      HSDConfig::Color color = m_leds.getColor(ledNr);
+      uint32_t color = m_leds.getColor(ledNr);
       HSDConfig::Behavior behavior = m_leds.getBehavior(ledNr);
 
-      if( (HSDConfig::NONE != color) && (HSDConfig::OFF != behavior) )
+      if( (m_config.getDefaultColor("NONE") != color) && (HSDConfig::OFF != behavior) )
       {
+        String colorName = m_config.getDefaultColor(color);
+        if (colorName == "")
+        {
+          colorName = m_config.hex2string(color);
+        }
         html += F("<p><div class='hsdcolor' style='background-color:");
-        html += m_html.color2htmlColor(color);
-        html += F("';></div>"); 
+        html += m_config.hex2string(color);
+        html += F("';></div> "); 
         html += F("LED number <b>");
         html += ledNr;
         html += F("</b> is <b>");
         html += m_html.behavior2String(behavior);
         html += F("</b> with color <b>");
-        html += m_html.color2String(color);      
+        html += colorName;
         html += F("</b><br/></p>");
 
         ledOnCount++;
@@ -262,10 +267,19 @@ void HSDWebserver::deliverColorMappingPage()
   for(uint32_t i = 0; i < m_config.getNumberOfColorMappingEntries(); i++)
   {
     const HSDConfig::ColorMapping* mapping = m_config.getColorMapping(i);
-    html += m_html.getColorMappingTableEntry(i, mapping);
+    html += m_html.getColorMappingTableEntry(i, mapping, m_config.hex2string(mapping->color));
   }
 
   html += m_html.getColorMappingTableFooter();
+
+  html += F("<p>Default colors you can use instead of HEX colors:<br>");
+  for(uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
+    String temp = m_config.DefaultColor[i].key;
+    temp.toLowerCase();
+    html += temp;
+    html += F(" ");
+  }
+  html += F("</p>");  
 
   if(m_config.isColorMappingFull())
   {
@@ -332,9 +346,14 @@ bool HSDWebserver::addColorMappingEntry()
   {
     if(m_server.arg("n") != "")
     {
+      uint32_t color = m_config.getDefaultColor(m_server.arg("c"));
+      if (color == 0)
+      {
+        color = m_config.string2hex(m_server.arg("c"));
+      }
       success = m_config.addColorMappingEntry(m_server.arg("i").toInt(),
                                               m_server.arg("n"), 
-                                              (HSDConfig::Color)(HSDConfig::id2color(m_server.arg("c").toInt())), 
+                                              color, 
                                               (HSDConfig::Behavior)(m_server.arg("b").toInt()));
     }
     else

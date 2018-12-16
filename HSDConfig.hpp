@@ -19,6 +19,8 @@
 #define JSON_KEY_DEVICEMAPPING_NAME    (F("n"))
 #define JSON_KEY_DEVICEMAPPING_LED     (F("l"))
 
+#define NUMBER_OF_DEFAULT_COLORS       9
+
 class HSDConfig
 {
   
@@ -39,23 +41,26 @@ public:
     FLICKERING
   };
 
-  enum Color
+  /*
+   * Defintion of default color names and hex values in a map like structure.
+   */
+  struct Map
   {
-    NONE   = 0x000000,
-    GREEN  = 0x00FF00,
-    YELLOW = 0xFFCC00,
-    ORANGE = 0xFF4400,
-    RED    = 0xFF0000,
-    PURPLE = 0xFF00FF,
-    BLUE   = 0x0000FF,
-    CYAN   = 0x00FFFF,
-    WHITE  = 0xFFFFFF
+    char* key;
+    uint32_t value; 
   };
-
-  struct ColorTranslator
-  {
-    Color color;
-    uint32_t id; 
+   
+  static const constexpr Map DefaultColor[NUMBER_OF_DEFAULT_COLORS] =
+  {  
+    {"NONE",   0x000000}, 
+    {"GREEN",  0x00FF00},
+    {"YELLOW", 0xFFCC00},
+    {"ORANGE", 0xFF4400},
+    {"RED",    0xFF0000},
+    {"PURPLE", 0xFF00FF},
+    {"BLUE",   0x0000FF},
+    {"CYAN",   0x00FFFF},
+    {"WHITE",  0xFFFFFF}
   };
 
   /*
@@ -90,11 +95,11 @@ public:
     ColorMapping()
     {
       memset(msg, 0, MAX_COLOR_MAPPING_MSG_LEN);
-      color = NONE;
+      color = 0x000000;
       behavior = OFF;
     }
     
-    ColorMapping(String m, Color c, Behavior b)
+    ColorMapping(String m, uint32_t c, Behavior b)
     {
       strncpy(msg, m.c_str(), MAX_COLOR_MAPPING_MSG_LEN);
       msg[MAX_COLOR_MAPPING_MSG_LEN] = '\0';
@@ -103,7 +108,7 @@ public:
     }
     
     char msg[MAX_COLOR_MAPPING_MSG_LEN+1];  // message 
-    Color color;                            // led color for message
+    uint32_t color;                         // led color for message
     Behavior behavior;                      // led behavior for message
   };
 
@@ -165,7 +170,7 @@ public:
   bool isDeviceMappingDirty() const;
   bool isDeviceMappingFull() const;
   
-  bool addColorMappingEntry(int entryNum, String msg, Color color, Behavior behavior);
+  bool addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior);
   bool deleteDeviceMappingEntry(int entryNum);
   bool deleteAllColorMappingEntries();
   bool isColorMappingDirty() const;
@@ -177,46 +182,14 @@ public:
   int getLedNumber(String device);
   int getColorMapIndex(String msg);
   Behavior getLedBehavior(int colorMapIndex);
-  Color getLedColor(int colorMapIndex);
+  uint32_t getLedColor(int colorMapIndex);
 
-  static uint32_t color2id(Color color)
-  {
-    for(uint32_t index = 0; index < 8; index++)
-    {
-      if(colorTranslator[index].color == color)
-      {
-        return colorTranslator[index].id;
-      }
-    }
-    return 0;
-  }
-
-  static Color id2color(uint32_t id)
-  {
-    for(uint32_t index = 0; index < 8; index++)
-    {
-      if(colorTranslator[index].id == id)
-      {
-        return colorTranslator[index].color;
-      }
-    }
-    return NONE;
-  }
+  uint32_t getDefaultColor(String key) const;
+  String getDefaultColor(uint32_t value) const;
+  String hex2string(uint32_t value) const;
+  uint32_t string2hex(String value) const;
 
 private:
-
-  static const constexpr ColorTranslator colorTranslator[9] =
-  {  
-    {NONE,   0}, 
-    {GREEN,  1},
-    {YELLOW, 2},
-    {ORANGE, 3},
-    {RED,    4},
-    {PURPLE, 5},
-    {BLUE,   6},
-    {CYAN,   7},
-    {WHITE,  8}
-  };
 
   bool readMainConfigFile();
   void printMainConfigFile(JsonObject& json);

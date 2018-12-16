@@ -36,7 +36,7 @@ void HSDLeds::begin()
   m_stripe.begin();
 }
 
-void HSDLeds::set(uint32_t ledNum, HSDConfig::Behavior behavior, HSDConfig::Color color)
+void HSDLeds::set(uint32_t ledNum, HSDConfig::Behavior behavior, uint32_t color)
 { 
   if(ledNum < m_numLeds)
   {
@@ -47,7 +47,7 @@ void HSDLeds::set(uint32_t ledNum, HSDConfig::Behavior behavior, HSDConfig::Colo
   }
 }
 
-void HSDLeds::setAll(HSDConfig::Behavior behavior, HSDConfig::Color color)
+void HSDLeds::setAll(HSDConfig::Behavior behavior, uint32_t color)
 {
   for(uint32_t i=0; i < m_numLeds; i++)
   {
@@ -57,9 +57,9 @@ void HSDLeds::setAll(HSDConfig::Behavior behavior, HSDConfig::Color color)
   updateStripe();
 }
 
-HSDConfig::Color HSDLeds::getColor(uint32_t ledNum) const
+uint32_t HSDLeds::getColor(uint32_t ledNum) const
 {
-  HSDConfig::Color color = HSDConfig::NONE;
+  uint32_t color = m_config.getDefaultColor("NONE");
 
   if(ledNum < m_numLeds)
   {
@@ -94,7 +94,7 @@ void HSDLeds::updateStripe()
     }
     else
     {
-      m_stripe.setPixelColor(i, HSDConfig::NONE);
+      m_stripe.setPixelColor(i, m_config.getDefaultColor("NONE"));
     }
   }
   
@@ -106,7 +106,7 @@ void HSDLeds::clear()
   for(uint32_t i=0; i < m_numLeds; i++)
   {
     m_pLedState[i].behavior = HSDConfig::OFF;
-    m_pLedState[i].color = HSDConfig::NONE;
+    m_pLedState[i].color = m_config.getDefaultColor("NONE");
   }
   
   updateStripe();
@@ -172,7 +172,7 @@ void HSDLeds::test(uint32_t type)
     for(uint32_t led = 0; led < m_numLeds/3; led++)
     {
       m_pLedState[led].behavior = HSDConfig::ON;
-      m_pLedState[led].color = HSDConfig::GREEN;
+      m_pLedState[led].color = m_config.getDefaultColor("GREEN");
     }
     updateStripe();
   }
@@ -181,7 +181,7 @@ void HSDLeds::test(uint32_t type)
     for(uint32_t led = m_numLeds/3; led < m_numLeds/3*2; led++)
     {
       m_pLedState[led].behavior = HSDConfig::ON;
-      m_pLedState[led].color = HSDConfig::GREEN;
+      m_pLedState[led].color = m_config.getDefaultColor("GREEN");
     }
     updateStripe();
   }
@@ -190,7 +190,7 @@ void HSDLeds::test(uint32_t type)
     for(uint32_t led = m_numLeds/3*2; led < m_numLeds; led++)
     {
       m_pLedState[led].behavior = HSDConfig::ON;
-      m_pLedState[led].color = HSDConfig::GREEN;
+      m_pLedState[led].color = m_config.getDefaultColor("GREEN");
     }
     updateStripe();
   }
@@ -199,13 +199,13 @@ void HSDLeds::test(uint32_t type)
     for(uint32_t led = 0; led < m_numLeds; led++)
     {
       m_pLedState[led].behavior = HSDConfig::ON;
-      m_pLedState[led].color = HSDConfig::GREEN;
+      m_pLedState[led].color = m_config.getDefaultColor("GREEN");
     }
     updateStripe();
   }
   else if(type == 5)
   {
-    HSDConfig::Color colors[] = {HSDConfig::RED, HSDConfig::GREEN, HSDConfig::BLUE};
+    uint32_t colors[] = {m_config.getDefaultColor("RED"), m_config.getDefaultColor("GREEN"), m_config.getDefaultColor("BLUE")};
 
     for(uint32_t led = 0; led < m_numLeds/3; led++)
     {
@@ -225,13 +225,13 @@ void HSDLeds::test(uint32_t type)
       }
 
       m_pLedState[led].behavior = HSDConfig::OFF;
-      m_pLedState[led].color = HSDConfig::NONE;
+      m_pLedState[led].color = m_config.getDefaultColor("NONE");
 
       m_pLedState[led + m_numLeds/3].behavior = HSDConfig::OFF;
-      m_pLedState[led + m_numLeds/3].color = HSDConfig::NONE;
+      m_pLedState[led + m_numLeds/3].color = m_config.getDefaultColor("NONE");
 
       m_pLedState[led + m_numLeds/3*2].behavior = HSDConfig::OFF;
-      m_pLedState[led + m_numLeds/3*2].color = HSDConfig::NONE;
+      m_pLedState[led + m_numLeds/3*2].color = m_config.getDefaultColor("NONE");
   
       updateStripe();
       delay(5);

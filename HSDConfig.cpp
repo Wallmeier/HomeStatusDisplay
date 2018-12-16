@@ -13,7 +13,7 @@ static const int JSON_BUFFER_DEVICE_MAPPING_CONFIG_FILE = 4000; // 3908 exactly
 
 static const uint8_t DEFAULT_LED_BRIGHTNESS = 50;
 
-const constexpr HSDConfig::ColorTranslator HSDConfig::colorTranslator[9];
+const constexpr HSDConfig::Map HSDConfig::DefaultColor[];
 
 HSDConfig::HSDConfig()
 :
@@ -187,7 +187,7 @@ bool HSDConfig::readColorMappingConfigFile()
         {
           addColorMappingEntry(index,
                                entry[JSON_KEY_COLORMAPPING_MSG].as<char*>(), 
-                               (Color)(id2color(entry[JSON_KEY_COLORMAPPING_COLOR].as<int>())), 
+                               entry[JSON_KEY_COLORMAPPING_COLOR].as<uint32_t>(), 
                                (Behavior)(entry[JSON_KEY_COLORMAPPING_BEHAVIOR].as<int>())); 
 
           index++;
@@ -302,7 +302,7 @@ void HSDConfig::writeColorMappingConfigFile()
       JsonObject& colorMappingEntry = json.createNestedObject(String(index));
   
       colorMappingEntry[JSON_KEY_COLORMAPPING_MSG] = mapping->msg;
-      colorMappingEntry[JSON_KEY_COLORMAPPING_COLOR] = (int)color2id(mapping->color);
+      colorMappingEntry[JSON_KEY_COLORMAPPING_COLOR] = mapping->color;
       colorMappingEntry[JSON_KEY_COLORMAPPING_BEHAVIOR] = (int)mapping->behavior;
     }
     else
@@ -441,7 +441,7 @@ bool HSDConfig::isDeviceMappingFull() const
   return m_cfgDeviceMapping.isFull();
 }
 
-bool HSDConfig::addColorMappingEntry(int entryNum, String msg, Color color, Behavior behavior)
+bool HSDConfig::addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior)
 {
   bool success = false;
 
@@ -682,8 +682,46 @@ HSDConfig::Behavior HSDConfig::getLedBehavior(int colorMapIndex)
   return m_cfgColorMapping.get(colorMapIndex)->behavior;
 }
 
-HSDConfig::Color HSDConfig::getLedColor(int colorMapIndex)
+uint32_t HSDConfig::getLedColor(int colorMapIndex)
 {
   return m_cfgColorMapping.get(colorMapIndex)->color;
+}
+
+uint32_t HSDConfig::getDefaultColor(String key) const
+{
+  key.toUpperCase();
+  for(uint8_t i = 0; i < NUMBER_OF_DEFAULT_COLORS; i++) {
+      if (String(HSDConfig::DefaultColor[i].key) == key)
+      {
+        return HSDConfig::DefaultColor[i].value;
+      }
+  }
+  return 0;
+}
+
+String HSDConfig::getDefaultColor(uint32_t value) const
+{
+  for(uint8_t i = 0; i < NUMBER_OF_DEFAULT_COLORS; i++) {
+      if (HSDConfig::DefaultColor[i].value == value)
+      {
+        return String(HSDConfig::DefaultColor[i].key);
+      }
+  }
+  return "";
+}
+
+String HSDConfig::hex2string(uint32_t value) const
+{
+  char buf[6];
+  sprintf(buf, "%06X", value);
+  return "#" + String(buf);
+}
+
+uint32_t HSDConfig::string2hex(String value) const
+{
+  value.trim();
+  value.replace("%23", "");
+  value.replace("#", "");
+  return strtoul(value.c_str(), nullptr, 16);
 }
 

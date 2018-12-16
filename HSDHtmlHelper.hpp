@@ -15,7 +15,7 @@ public:
   String getFooter() const;
 
   String getColorMappingTableHeader() const;
-  String getColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping) const;
+  String getColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping, String colorString) const;
   String getColorMappingTableFooter() const;
   String getColorMappingTableAddEntryForm(int newEntryNum, bool isFull) const;
 
@@ -29,13 +29,11 @@ public:
 
   String minutes2Uptime(unsigned long minutes) const;
   String ip2String(IPAddress ip) const;
-  String color2htmlColor(HSDConfig::Color color) const;
   String behavior2String(HSDConfig::Behavior behavior) const;
-  String color2String(HSDConfig::Color color) const;
     
 private:
 
-  String getColorOptions(HSDConfig::Color selectedColor) const;
   String getBehaviorOptions(HSDConfig::Behavior selectedBehavior) const;
+  String getColorOptions() const;
 };
 

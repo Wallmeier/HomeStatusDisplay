@@ -14,10 +14,10 @@ public:
   void update();
   void clear();
   
-  void set(uint32_t ledNum, HSDConfig::Behavior behavior, HSDConfig::Color color);
-  void setAll(HSDConfig::Behavior behavior, HSDConfig::Color color);
+  void set(uint32_t ledNum, HSDConfig::Behavior behavior, uint32_t color);
+  void setAll(HSDConfig::Behavior behavior, uint32_t color);
 
-  HSDConfig::Color getColor(uint32_t ledNum) const;
+  uint32_t getColor(uint32_t ledNum) const;
   HSDConfig::Behavior getBehavior(uint32_t ledNum) const;
 
   void test(uint32_t type);
@@ -27,7 +27,7 @@ private:
   struct LedState
   {
     HSDConfig::Behavior behavior;
-    HSDConfig::Color color;
+    uint32_t color;
   };
   
   static const uint32_t blinkOnTime = 500;

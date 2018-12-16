@@ -57,7 +57,7 @@ String HSDHtmlHelper::getFooter() const
 String HSDHtmlHelper::getColorMappingTableHeader() const
 {
   return F(""
-  "<table width='30%' border='1' cellpadding='1' cellspacing='2'>"
+  "<table border='1' cellpadding='1' cellspacing='2'>"
   " <tr style='background-color:#828282'>"
   "  <td><b><font size='+1'>Nr</font></b></td>"
   "  <td><b><font size='+1'>Message</font></b></td>"
@@ -66,7 +66,7 @@ String HSDHtmlHelper::getColorMappingTableHeader() const
   " </tr>");
 }
 
-String HSDHtmlHelper::getColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping) const
+String HSDHtmlHelper::getColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping, String colorString) const
 {
   String html;
   if(entryNum % 2 == 0)
@@ -82,8 +82,10 @@ String HSDHtmlHelper::getColorMappingTableEntry(int entryNum, const HSDConfig::C
   html += mapping->msg;
   html += F("</td><td>");
   html += F("<div class='hsdcolor' style='background-color:");
-  html += color2htmlColor(mapping->color);
-  html += F("';></div></td><td>"); 
+  html += colorString;
+  html += F("';></div> ");
+  html += colorString;
+  html += F("</td><td>"); 
   html += behavior2String(mapping->behavior);
   html += F("</td></tr>");
   
@@ -104,9 +106,9 @@ String HSDHtmlHelper::getColorMappingTableAddEntryForm(int newEntryNum, bool isF
   html += isFull ? newEntryNum - 1 : newEntryNum;
   html += F("' size='5' maxlength='3' placeholder='Nr'</td>");
   html += F("<td><input type='text' id='name' name='n' value='' size='20' maxlength='15' placeholder='name'></td>");
-  html += F("<td><select name='c'>");
-  html += getColorOptions(HSDConfig::WHITE);
-  html += F("</select></td>");
+  html += F("<td><input type='text' id='color' name='c' value='' size='10' maxlength='7' placeholder='#ffaabb' list='colorOptions'>");
+  html += getColorOptions();
+  html += F("</td>");
   html += F("<td><select name='b'>");
   html += getBehaviorOptions(HSDConfig::ON);
   html += F("</select></td></tr></table>");  
@@ -120,7 +122,7 @@ String HSDHtmlHelper::getColorMappingTableAddEntryForm(int newEntryNum, bool isF
 String HSDHtmlHelper::getDeviceMappingTableHeader() const
 {
   return F(""
-  "<table width='20%' border='1' cellpadding='1' cellspacing='2'>"
+  "<table border='1' cellpadding='1' cellspacing='2'>"
   " <tr style='background-color:#828282'>"
   "  <td><b><font size='+1'>Nr</font></b></td>"  
   "  <td><b><font size='+1'>Device</font></b></td>"
@@ -195,29 +197,24 @@ String HSDHtmlHelper::getSaveForm() const
   return html;
 }
 
-String HSDHtmlHelper::getColorOptions(HSDConfig::Color selectedColor) const
+String HSDHtmlHelper::getColorOptions() const
 {
-  String greenSelect  = (selectedColor == HSDConfig::GREEN)  ? SELECTED_STRING : EMPTY_STRING;
-  String yellowSelect = (selectedColor == HSDConfig::YELLOW) ? SELECTED_STRING : EMPTY_STRING;
-  String orangeSelect = (selectedColor == HSDConfig::ORANGE) ? SELECTED_STRING : EMPTY_STRING;
-  String redSelect    = (selectedColor == HSDConfig::RED)    ? SELECTED_STRING : EMPTY_STRING;
-  String purpleSelect = (selectedColor == HSDConfig::PURPLE) ? SELECTED_STRING : EMPTY_STRING;
-  String blueSelect   = (selectedColor == HSDConfig::BLUE)   ? SELECTED_STRING : EMPTY_STRING;
-  String cyanSelect   = (selectedColor == HSDConfig::CYAN)   ? SELECTED_STRING : EMPTY_STRING;
-  String whiteSelect  = (selectedColor == HSDConfig::WHITE)  ? SELECTED_STRING : EMPTY_STRING;
-
   String html;
-
-  html += F("<option "); html += greenSelect;  html += F(" value='"); html += HSDConfig::color2id(HSDConfig::GREEN);  html += F("'>Green</option>");
-  html += F("<option "); html += yellowSelect; html += F(" value='"); html += HSDConfig::color2id(HSDConfig::YELLOW); html += F("'>Yellow</option>");
-  html += F("<option "); html += orangeSelect; html += F(" value='"); html += HSDConfig::color2id(HSDConfig::ORANGE); html += F("'>Orange</option>");
-  html += F("<option "); html += redSelect;    html += F(" value='"); html += HSDConfig::color2id(HSDConfig::RED);    html += F("'>Red</option>");
-  html += F("<option "); html += purpleSelect; html += F(" value='"); html += HSDConfig::color2id(HSDConfig::PURPLE); html += F("'>Purple</option>");
-  html += F("<option "); html += blueSelect;   html += F(" value='"); html += HSDConfig::color2id(HSDConfig::BLUE);   html += F("'>Blue</option>");
-  html += F("<option "); html += cyanSelect;   html += F(" value='"); html += HSDConfig::color2id(HSDConfig::CYAN);   html += F("'>Cyan</option>");
-  html += F("<option "); html += whiteSelect;  html += F(" value='"); html += HSDConfig::color2id(HSDConfig::WHITE);  html += F("'>White</option>");
+  
+  html += F("<datalist id='colorOptions'>");
+  for(uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
+    String temp = HSDConfig::DefaultColor[i].key;
+    temp.toLowerCase();
+    html += F("<option value='");
+    html += temp;
+    html += F("'>");
+    html += temp;
+    html += F("</option>");
+  }
+  html += F("</datalist>");  
 
   return html;
+
 }
 
 String HSDHtmlHelper::getBehaviorOptions(HSDConfig::Behavior selectedBehavior) const
@@ -245,46 +242,6 @@ String HSDHtmlHelper::ip2String(IPAddress ip) const
   sprintf(buffer, "%d.%d.%d.%d", ip[0],ip[1],ip[2],ip[3]);
   
   return String(buffer);
-}
-
-String HSDHtmlHelper::color2String(HSDConfig::Color color) const
-{
-  String colorString = F("none");
-
-  switch(color)
-  {
-    case HSDConfig::GREEN:  colorString = F("green"); break;
-    case HSDConfig::YELLOW: colorString = F("yellow"); break;
-    case HSDConfig::ORANGE: colorString = F("orange"); break;
-    case HSDConfig::RED:    colorString = F("red"); break;
-    case HSDConfig::PURPLE: colorString = F("purple"); break;
-    case HSDConfig::BLUE:   colorString = F("blue"); break;
-    case HSDConfig::CYAN:   colorString = F("cyan"); break;
-    case HSDConfig::WHITE:  colorString = F("white"); break;
-    default: break;
-  }
-
-  return colorString;
-}
-
-String HSDHtmlHelper::color2htmlColor(HSDConfig::Color color) const
-{
-  String htmlcolor = F("#000000");
-
-  switch(color)
-  {
-    case HSDConfig::GREEN:  htmlcolor = F("#00FF00"); break;
-    case HSDConfig::YELLOW: htmlcolor = F("#FFFF00"); break;
-    case HSDConfig::ORANGE: htmlcolor = F("#FF5500"); break;
-    case HSDConfig::RED:    htmlcolor = F("#FF0000"); break;
-    case HSDConfig::PURPLE: htmlcolor = F("#FF00FF"); break;
-    case HSDConfig::BLUE:   htmlcolor = F("#0000FF"); break;
-    case HSDConfig::CYAN:   htmlcolor = F("#00FFFF"); break;
-    case HSDConfig::WHITE:  htmlcolor = F("#FFFFFF"); break;
-    default: break;
-  }
-
-  return htmlcolor;
 }
 
 String HSDHtmlHelper::behavior2String(HSDConfig::Behavior behavior) const
