@@ -54,11 +54,9 @@ void HSDWifi::handleConnection()
     }
     else
     {
-      unsigned long currentMillis = millis();
-      
-      if( (currentMillis - m_millisLastConnectTry) >= m_retryDelay)
+      if( (millis() - m_millisLastConnectTry) >= m_retryDelay)
       {
-        m_millisLastConnectTry = currentMillis; 
+        m_millisLastConnectTry = millis(); 
       
         if(m_numConnectRetriesDone == 0)
         {

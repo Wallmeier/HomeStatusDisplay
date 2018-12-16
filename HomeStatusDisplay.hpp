@@ -18,6 +18,7 @@ public:
   
 private:
 
+  unsigned long uptime = 0;
   unsigned long calcUptime();
 
   static const int MQTT_MSG_MAX_LEN = 50;

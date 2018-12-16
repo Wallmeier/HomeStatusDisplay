@@ -51,11 +51,9 @@ void HSDMqtt::handle()
   }
   else if(!m_connectFailure) 
   {
-    unsigned long currentMillis = millis();
-
-    if( (currentMillis - m_millisLastConnectTry) >= m_retryDelay)
+    if( (millis() - m_millisLastConnectTry) >= m_retryDelay)
     {
-      m_millisLastConnectTry = currentMillis; 
+      m_millisLastConnectTry = millis(); 
 
       if(m_numConnectRetriesDone < m_maxConnectRetries)
       {

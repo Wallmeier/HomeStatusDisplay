@@ -114,11 +114,9 @@ void HSDLeds::clear()
 
 void HSDLeds::update()
 {
-  unsigned long currentMillis = millis();
-
-  handleBlink(currentMillis);
-  handleFlash(currentMillis);
-  handleFlicker(currentMillis);
+  handleBlink(millis());
+  handleFlash(millis());
+  handleFlicker(millis());
 
   updateStripe();
 }

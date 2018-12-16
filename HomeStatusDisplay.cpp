@@ -43,7 +43,7 @@ void HomeStatusDisplay::begin(const char* version, const char* identifier)
 
 void HomeStatusDisplay::work()
 {
-  unsigned long uptime = calcUptime();
+  uptime = calcUptime();
     
   checkConnections();
 
@@ -64,12 +64,10 @@ void HomeStatusDisplay::work()
 
 unsigned long HomeStatusDisplay::calcUptime()
 {
-  unsigned long currentMillis = millis();
-
-  if(currentMillis - m_oneMinuteTimerLast >= ONE_MINUTE_MILLIS)
+  if(millis() - m_oneMinuteTimerLast >= ONE_MINUTE_MILLIS)
   {
     m_uptime++;
-    m_oneMinuteTimerLast = currentMillis;
+    m_oneMinuteTimerLast = millis();
 
     Serial.println("Uptime: " + String(m_uptime) + "min");
   }
