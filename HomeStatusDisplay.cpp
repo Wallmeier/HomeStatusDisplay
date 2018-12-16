@@ -35,7 +35,8 @@ void HomeStatusDisplay::begin(const char* version, const char* identifier)
   m_webServer.begin();
   m_leds.begin();
   m_wifi.begin();
-  m_mqttHandler.begin(); 
+  m_mqttHandler.begin();
+  m_clock.begin();
 
   Serial.print(F("Free RAM: ")); Serial.println(ESP.getFreeHeap());
 }
@@ -55,6 +56,8 @@ void HomeStatusDisplay::work()
   }
   
   m_leds.update();
+
+  m_clock.handle();
 
   delay(100);
 }

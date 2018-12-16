@@ -5,6 +5,7 @@
 #include "HSDWebserver.hpp"
 #include "HSDLeds.hpp"
 #include "HSDMqtt.hpp"
+#include "HSDClock.hpp"
 
 class HomeStatusDisplay
 {
@@ -39,6 +40,7 @@ private:
   HSDWebserver m_webServer;
   HSDMqtt m_mqttHandler;
   HSDLeds m_leds;
+  HSDClock m_clock;
 
   bool m_lastWifiConnectionState;
   bool m_lastMqttConnectionState;
