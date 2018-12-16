@@ -148,6 +148,10 @@ void HSDWebserver::deliverStatusPage()
   html += m_html.minutes2Uptime(m_deviceUptimeMinutes);
   html += F("</p>");
 
+  html += F("<p>Device free RAM: ");
+  html += String(ESP.getFreeHeap());
+  html += F(" Bytes</p>");
+
   if (WiFi.status() == WL_CONNECTED)
   {
     html += F("<p>Device is connected to WLAN <b>");
