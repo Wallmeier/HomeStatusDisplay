@@ -13,6 +13,12 @@
 #define JSON_KEY_LED_COUNT             (F("ledCount"))
 #define JSON_KEY_LED_PIN               (F("ledPin"))
 #define JSON_KEY_LED_BRIGHTNESS        (F("ledBrightness"))
+#define JSON_KEY_CLOCK_PIN_CLK         (F("clockCLK"))
+#define JSON_KEY_CLOCK_PIN_DIO         (F("clockDIO"))
+#define JSON_KEY_CLOCK_BRIGHTNESS      (F("clockBrightness"))
+#define JSON_KEY_CLOCK_TIME_ZONE       (F("clockTZ"))
+#define JSON_KEY_CLOCK_NTP_SERVER      (F("clockServer"))
+#define JSON_KEY_CLOCK_NTP_INTERVAL    (F("clockInterval"))
 #define JSON_KEY_COLORMAPPING_MSG      (F("m"))
 #define JSON_KEY_COLORMAPPING_COLOR    (F("c"))
 #define JSON_KEY_COLORMAPPING_BEHAVIOR (F("b"))
@@ -148,14 +154,32 @@ public:
   const char* getMqttWillTopic() const;
   bool setMqttWillTopic(const char* topic);
 
-  int getNumberOfLeds() const;
-  bool setNumberOfLeds(uint32_t numberOfLeds);
+  uint8_t getNumberOfLeds() const;
+  bool setNumberOfLeds(uint8_t numberOfLeds);
 
-  int getLedDataPin() const;
-  bool setLedDataPin(int dataPin);
+  uint8_t getLedDataPin() const;
+  bool setLedDataPin(uint8_t dataPin);
 
   uint8_t getLedBrightness() const;
   bool setLedBrightness(uint8_t brightness);
+
+  uint8_t getClockPinCLK() const;
+  bool setClockPinCLK(uint8_t dataPin);
+
+  uint8_t getClockPinDIO() const;
+  bool setClockPinDIO(uint8_t dataPin);
+
+  uint8_t getClockBrightness() const;
+  bool setClockBrightness(uint8_t brightness);
+
+  uint8_t getClockTimeZone() const;
+  bool setClockTimeZone(uint8_t zone);
+
+  const char* getClockNTPServer() const;
+  bool setClockNTPServer(const char* server);
+
+  uint16_t getClockNTPInterval() const;
+  bool setClockNTPInterval(uint16_t minutes);
 
   void resetMainConfigData();
   void resetDeviceMappingConfigData();
@@ -211,6 +235,7 @@ private:
   static const int MAX_MQTT_STATUS_TOPIC_LEN = 50;
   static const int MAX_MQTT_TEST_TOPIC_LEN   = 50;
   static const int MAX_MQTT_WILL_TOPIC_LEN   = 50;
+  static const int MAX_CLOCK_NTP_SERVER_LEN  = 50;
 
   static const int MAX_COLOR_MAP_ENTRIES  = 30;
   static const int MAX_DEVICE_MAP_ENTRIES = 35;
@@ -230,9 +255,16 @@ private:
   char m_cfgMqttTestTopic[MAX_MQTT_TEST_TOPIC_LEN + 1];
   char m_cfgMqttWillTopic[MAX_MQTT_WILL_TOPIC_LEN + 1];
   
-  int m_cfgNumberOfLeds;
-  int m_cfgLedDataPin;
+  uint8_t m_cfgNumberOfLeds;
+  uint8_t m_cfgLedDataPin;
   uint8_t m_cfgLedBrightness;
+
+  uint8_t m_cfgClockPinCLK;
+  uint8_t m_cfgClockPinDIO;
+  uint8_t m_cfgClockBrightness;
+  int8_t m_cfgClockTimeZone;
+  char m_cfgClockNTPServer[MAX_CLOCK_NTP_SERVER_LEN + 1];
+  uint16_t m_cfgClockNTPInterval;
 
   HSDConfigFile m_mainConfigFile;
   HSDConfigFile m_colorMappingConfigFile;

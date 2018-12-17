@@ -1,36 +1,31 @@
 #include "HSDClock.hpp"
 #include <ESP8266WiFi.h>
 
-// NTP Time Configuration
-#define TIME_ZONE                1       // (utc+) TZ in hours
-#define NTP_UPDATE_INTERVAL_SEC  20*60   // Update time from NTP server every 20 min
-
-// TM1637 Display Ports
-#define CLK D5
-#define DIO D7
-
-HSDClock::HSDClock()
+HSDClock::HSDClock(const HSDConfig& config)
 :
-m_tm1637(CLK,DIO)
+m_config(config),
+m_tm1637(0,0)
 {
 }
 
 void HSDClock::begin()
 {
-  configTime(TIME_ZONE*3600, 0, "pool.ntp.org");
+  m_tm1637 = TM1637(m_config.getClockPinCLK(), m_config.getClockPinDIO());
+  
+  configTime(m_config.getClockTimeZone()*3600, 0, m_config.getClockNTPServer());
 
-  m_tm1637.set(3);  // set brightness 2
+  m_tm1637.set(m_config.getClockBrightness());  // set brightness
   m_tm1637.init();
 }
 
 void HSDClock::handle()
 {
-  if (WiFi.status() == WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED && m_config.getClockPinCLK() != m_config.getClockPinDIO())
   {
     time(&now);
-    if (difftime(now, last_ntp_update) > NTP_UPDATE_INTERVAL_SEC)
+    if (difftime(now, last_ntp_update) > m_config.getClockNTPInterval()*60)
     {
-      configTime(TIME_ZONE*3600, 0, "pool.ntp.org");
+      configTime(m_config.getClockTimeZone()*3600, 0, m_config.getClockNTPServer());
       last_ntp_update = now;
     }
     timeinfo = localtime(&now);

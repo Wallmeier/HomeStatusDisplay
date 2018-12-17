@@ -37,14 +37,14 @@ void HSDWebserver::deliverRootPage()
   bool needSave = updateMainConfig();
   
   String html;
-  html.reserve(3000);
+  html.reserve(4000);
   
   html = m_html.getHeader("General configuration", m_config.getHost(), m_config.getVersion());
 
   html += F("<form><font face='Verdana,Arial,Helvetica'>");
   
   html += F(
-  "<table width='30%' border='0' cellpadding='0' cellspacing='2'>"
+  "<table width='400px' border='0' cellpadding='0' cellspacing='2'>"
   " <tr>"
   "  <td><b><font size='+1'>General</font></b></td>"
   "  <td></td>"
@@ -115,11 +115,41 @@ void HSDWebserver::deliverRootPage()
   html += F("<tr><td>Brightness</td>");
   html += F("<td><input type='text' id='ledBrightness' name='ledBrightness' value='");
   html += String(m_config.getLedBrightness());
-  html += F("' size='30' maxlength='5' placeholder='0-255'></td></tr></table>"); 
+  html += F("' size='30' maxlength='5' placeholder='0-255'></td>"); 
+  
+  html += F(""
+  " <tr>"
+  "  <td><b><font size='+1'>Clock</font></b> (leave empty if not desired)</td>"
+  "  <td></td>"
+  " </tr>"
+  " <tr>"
+  "  <td>CLK pin</td>");
+  html += "  <td><input type='text' id='clockCLK' name='clockCLK' value='" + String(m_config.getClockPinCLK()) + "' size='30' maxlength='5' placeholder='0'></td></tr>";
+  html += F("<tr><td>DIO pin</td>");
+  html += F("<td><input type='text' id='clockDIO' name='clockDIO' value='");
+  html += String(m_config.getClockPinDIO());
+  html += F("' size='30' maxlength='5' placeholder='0'></td></tr>");
+  html += F("<tr><td>Brightness</td>");
+  html += F("<td><input type='text' id='clockBrightness' name='clockBrightness' value='");
+  html += String(m_config.getClockBrightness());
+  html += F("' size='30' maxlength='5' placeholder='0-8'></td></tr>"); 
+  html += F("<tr><td>Time zone</td>");
+  html += F("<td><input type='text' id='clockTZ' name='clockTZ' value='");
+  html += String(m_config.getClockTimeZone());
+  html += F("' size='30' maxlength='5' placeholder='1'></td></tr>"); 
+  html += F("<tr><td>NTP server</td>");
+  html += F("<td><input type='text' id='clockServer' name='clockServer' value='");
+  html += String(m_config.getClockNTPServer());
+  html += F("' size='30' maxlength='50' placeholder='pool.ntp.org'></td></tr>");
+  html += F("<tr><td>NTP update interval (min.)</td>");
+  html += F("<td><input type='text' id='clockInterval' name='clockInterval' value='");
+  html += String(m_config.getClockNTPInterval());
+  html += F("' size='30' maxlength='10' placeholder='20'></td></tr></table>");
   
   html += F("<input type='submit' class='button' value='Save'>");
 
   html += F("</form></font></body></html>");
+
   
   Serial.print(F("Page size: "));
   Serial.println(html.length());
@@ -588,6 +618,57 @@ bool HSDWebserver::updateMainConfig()
     }
   }
 
+  if (m_server.hasArg(JSON_KEY_CLOCK_PIN_CLK)) 
+  {
+    int pin = m_server.arg(JSON_KEY_CLOCK_PIN_CLK).toInt();
+    
+    if(pin > 0)
+    {
+      needSave |= m_config.setClockPinCLK(pin);
+    }
+  }
+
+  if (m_server.hasArg(JSON_KEY_CLOCK_PIN_DIO)) 
+  {
+    int pin = m_server.arg(JSON_KEY_CLOCK_PIN_DIO).toInt();
+    
+    if(pin > 0)
+    {
+      needSave |= m_config.setClockPinDIO(pin);
+    }
+  }
+
+  if (m_server.hasArg(JSON_KEY_CLOCK_BRIGHTNESS)) 
+  {
+    int brightness = m_server.arg(JSON_KEY_CLOCK_BRIGHTNESS).toInt();
+    
+    if(brightness >= 0 && brightness < 9)
+    {
+      needSave |= m_config.setClockBrightness(brightness);
+    }
+  }
+
+  if (m_server.hasArg(JSON_KEY_CLOCK_TIME_ZONE)) 
+  {
+    int tz = m_server.arg(JSON_KEY_CLOCK_TIME_ZONE).toInt();
+    needSave |= m_config.setClockTimeZone(tz);
+  }
+
+  if (m_server.hasArg(JSON_KEY_CLOCK_NTP_SERVER)) 
+  {
+    needSave |= m_config.setClockNTPServer(m_server.arg(JSON_KEY_CLOCK_NTP_SERVER).c_str());
+  }
+
+  if (m_server.hasArg(JSON_KEY_CLOCK_NTP_INTERVAL)) 
+  {
+    int interval = m_server.arg(JSON_KEY_CLOCK_NTP_INTERVAL).toInt();
+    
+    if(interval > 0)
+    {
+      needSave |= m_config.setClockNTPInterval(interval);
+    }
+  }
+  
   return needSave;
 }
 

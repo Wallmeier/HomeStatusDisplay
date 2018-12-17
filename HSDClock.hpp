@@ -1,12 +1,14 @@
 #pragma once
 
+#include "HSDConfig.hpp"
 #include <TM1637.h>
 #include <time.h>
 
 class HSDClock
 {
 public:
-  HSDClock();
+
+  HSDClock(const HSDConfig& config);
 
   void begin();
   void handle();
@@ -15,6 +17,9 @@ public:
   struct tm * timeinfo;
 
 private:
+
+  const HSDConfig& m_config;
+
   uint8_t new_time;
   uint8_t old_time;
   time_t last_ntp_update;

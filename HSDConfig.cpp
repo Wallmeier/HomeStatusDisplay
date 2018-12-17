@@ -2,8 +2,8 @@
 #include <FS.h>
 #include <ArduinoJson.h>
 
-static const int MAX_SIZE_MAIN_CONFIG_FILE = 400;
-static const int JSON_BUFFER_MAIN_CONFIG_FILE = 500;
+static const int MAX_SIZE_MAIN_CONFIG_FILE = 500;
+static const int JSON_BUFFER_MAIN_CONFIG_FILE = 600;
 
 static const int MAX_SIZE_COLOR_MAPPING_CONFIG_FILE = 1500;     // 1401 exactly
 static const int JSON_BUFFER_COLOR_MAPPING_CONFIG_FILE = 3800;  // 3628 exactly
@@ -70,6 +70,13 @@ void HSDConfig::resetMainConfigData()
   setNumberOfLeds(0);
   setLedDataPin(0);
   setLedBrightness(DEFAULT_LED_BRIGHTNESS);
+
+  setClockPinCLK(0);
+  setClockPinCLK(0);
+  setClockBrightness(4);
+  setClockTimeZone(1);
+  setClockNTPServer("pool.ntp.org");
+  setClockNTPInterval(20);
 }
 
 void HSDConfig::resetColorMappingConfigData()
@@ -107,8 +114,10 @@ bool HSDConfig::readMainConfigFile()
       Serial.println(F(""));
 
       if(json.containsKey(JSON_KEY_HOST) && json.containsKey(JSON_KEY_WIFI_SSID) && json.containsKey(JSON_KEY_WIFI_PSK) && 
-         json.containsKey(JSON_KEY_MQTT_SERVER) && json.containsKey(JSON_KEY_MQTT_STATUS_TOPIC) && json.containsKey(JSON_KEY_MQTT_TEST_TOPIC) && json.containsKey(JSON_KEY_MQTT_WILL_TOPIC) &&
-         json.containsKey(JSON_KEY_LED_COUNT) && json.containsKey(JSON_KEY_LED_PIN))
+         json.containsKey(JSON_KEY_MQTT_SERVER) && json.containsKey(JSON_KEY_MQTT_STATUS_TOPIC) && json.containsKey(JSON_KEY_MQTT_TEST_TOPIC) && 
+         json.containsKey(JSON_KEY_MQTT_WILL_TOPIC) && json.containsKey(JSON_KEY_LED_COUNT) && json.containsKey(JSON_KEY_LED_PIN) && 
+         json.containsKey(JSON_KEY_CLOCK_PIN_CLK) && json.containsKey(JSON_KEY_CLOCK_PIN_DIO) && json.containsKey(JSON_KEY_CLOCK_BRIGHTNESS) &&
+         json.containsKey(JSON_KEY_CLOCK_TIME_ZONE) && json.containsKey(JSON_KEY_CLOCK_NTP_SERVER) && json.containsKey(JSON_KEY_CLOCK_NTP_INTERVAL))
       {
         Serial.println(F("Config data is complete."));
 
@@ -122,6 +131,12 @@ bool HSDConfig::readMainConfigFile()
         setNumberOfLeds(json[JSON_KEY_LED_COUNT]);
         setLedDataPin(json[JSON_KEY_LED_PIN]);
         setLedBrightness(json[JSON_KEY_LED_BRIGHTNESS]);
+        setClockPinCLK(json[JSON_KEY_CLOCK_PIN_CLK]);
+        setClockPinDIO(json[JSON_KEY_CLOCK_PIN_DIO]);
+        setClockBrightness(json[JSON_KEY_CLOCK_BRIGHTNESS]);
+        setClockTimeZone(json[JSON_KEY_CLOCK_TIME_ZONE]);
+        setClockNTPServer(json[JSON_KEY_CLOCK_NTP_SERVER]);
+        setClockNTPInterval(json[JSON_KEY_CLOCK_NTP_INTERVAL]);
 
         success = true;
       }
@@ -153,6 +168,12 @@ void HSDConfig::printMainConfigFile(JsonObject& json)
   Serial.print  (F("  • ledCount        : ")); Serial.println((const char*)(json[JSON_KEY_LED_COUNT]));
   Serial.print  (F("  • ledPin          : ")); Serial.println((const char*)(json[JSON_KEY_LED_PIN]));
   Serial.print  (F("  • ledBrightness   : ")); Serial.println((const char*)(json[JSON_KEY_LED_BRIGHTNESS]));
+  Serial.print  (F("  • clockPinCLK     : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_PIN_CLK]));
+  Serial.print  (F("  • clockPinDIO     : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_PIN_DIO]));
+  Serial.print  (F("  • clockBrightness : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_BRIGHTNESS]));
+  Serial.print  (F("  • clockTimeZone   : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_TIME_ZONE]));
+  Serial.print  (F("  • clockNTPServer  : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_NTP_SERVER]));
+  Serial.print  (F("  • clockNTPInterval: ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_NTP_INTERVAL]));
 }
 
 bool HSDConfig::readColorMappingConfigFile()
@@ -276,6 +297,12 @@ void HSDConfig::writeMainConfigFile()
   json[JSON_KEY_LED_COUNT] = m_cfgNumberOfLeds;
   json[JSON_KEY_LED_PIN] = m_cfgLedDataPin;
   json[JSON_KEY_LED_BRIGHTNESS] = m_cfgLedBrightness;
+  json[JSON_KEY_CLOCK_PIN_CLK] = m_cfgClockPinCLK;
+  json[JSON_KEY_CLOCK_PIN_DIO] = m_cfgClockPinDIO;
+  json[JSON_KEY_CLOCK_BRIGHTNESS] = m_cfgClockBrightness;
+  json[JSON_KEY_CLOCK_TIME_ZONE] = m_cfgClockTimeZone;
+  json[JSON_KEY_CLOCK_NTP_SERVER] = m_cfgClockNTPServer;
+  json[JSON_KEY_CLOCK_NTP_INTERVAL] = m_cfgClockNTPInterval;
 
   if(!m_mainConfigFile.write(&json))
   {
@@ -576,7 +603,7 @@ bool HSDConfig::setMqttTestTopic(const char* topic)
   return true;
 }
 
-int HSDConfig::getNumberOfLeds() const
+uint8_t HSDConfig::getNumberOfLeds() const
 {
   return m_cfgNumberOfLeds;
 }
@@ -593,18 +620,18 @@ bool HSDConfig::setMqttWillTopic(const char* topic)
   return true;
 }
 
-bool HSDConfig::setNumberOfLeds(uint32_t numberOfLeds)
+bool HSDConfig::setNumberOfLeds(uint8_t numberOfLeds)
 {
   m_cfgNumberOfLeds = numberOfLeds;
   return true;
 }
 
-int HSDConfig::getLedDataPin() const
+uint8_t HSDConfig::getLedDataPin() const
 {
   return m_cfgLedDataPin;
 }
 
-bool HSDConfig::setLedDataPin(int dataPin)
+bool HSDConfig::setLedDataPin(uint8_t dataPin)
 {
   m_cfgLedDataPin = dataPin;
   return true;
@@ -618,6 +645,73 @@ uint8_t HSDConfig::getLedBrightness() const
 bool HSDConfig::setLedBrightness(uint8_t brightness)
 {
   m_cfgLedBrightness = brightness;
+  return true;
+}
+
+uint8_t HSDConfig::getClockPinCLK() const
+{
+  return m_cfgClockPinCLK;
+}
+
+bool HSDConfig::setClockPinCLK(uint8_t dataPin)
+{
+  m_cfgClockPinCLK = dataPin;
+  return true;
+}
+
+uint8_t HSDConfig::getClockPinDIO() const
+{
+  return m_cfgClockPinDIO;
+}
+
+bool HSDConfig::setClockPinDIO(uint8_t dataPin)
+{
+  m_cfgClockPinDIO = dataPin;
+  return true;
+}
+
+uint8_t HSDConfig::getClockBrightness() const
+{
+  return m_cfgClockBrightness;
+}
+
+bool HSDConfig::setClockBrightness(uint8_t brightness)
+{
+  m_cfgClockBrightness = brightness;
+  return true;
+}
+
+uint8_t HSDConfig::getClockTimeZone() const
+{
+  return m_cfgClockTimeZone;
+}
+
+bool HSDConfig::setClockTimeZone(uint8_t zone)
+{
+  m_cfgClockTimeZone = zone;
+  return true;
+}
+
+const char* HSDConfig::getClockNTPServer() const
+{
+  return m_cfgClockNTPServer;
+}
+
+bool HSDConfig::setClockNTPServer(const char* server)
+{
+  strncpy(m_cfgClockNTPServer, server, MAX_CLOCK_NTP_SERVER_LEN);
+  m_cfgClockNTPServer[MAX_CLOCK_NTP_SERVER_LEN] = '\0';
+  return true;
+}
+
+uint16_t HSDConfig::getClockNTPInterval() const
+{
+  return m_cfgClockNTPInterval;
+}
+
+bool HSDConfig::setClockNTPInterval(uint16_t minutes)
+{
+  m_cfgClockNTPInterval = minutes;
   return true;
 }
 
