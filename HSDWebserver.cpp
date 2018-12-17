@@ -52,7 +52,7 @@ void HSDWebserver::deliverRootPage()
   " <tr>"
   "  <td>Name</td>");
   
-  html += F("  <td><input type='text' id='host' name='host' value='");
+  html += F("  <td><input type='text' name='host' value='");
   html += String(m_config.getHost());
   html += F("' size='30' maxlength='40' placeholder='host'></td></tr>");
 
@@ -64,11 +64,11 @@ void HSDWebserver::deliverRootPage()
   " <tr>"
   "  <td>SSID</td>");
   
-  html += F("<td><input type='text' id='wifiSSID' name='wifiSSID' value='");
+  html += F("<td><input type='text' name='wifiSSID' value='");
   html += String(m_config.getWifiSSID());
   html += F("' size='30' maxlength='40' placeholder='SSID'></td>");
   html += F("</tr><tr><td>Password</td>");
-  html += F("  <td><input type='password' id='wifiPSK' name='wifiPSK' value='");
+  html += F("  <td><input type='password' name='wifiPSK' value='");
   html += String(m_config.getWifiPSK());
   html += F("' size='30' maxlength='40' placeholder='Password'></td></tr>");
 
@@ -79,23 +79,23 @@ void HSDWebserver::deliverRootPage()
   " </tr>"
   " <tr>"
   "  <td>Server</td>");
-  html += F("  <td><input type='text' id='mqttServer' name='mqttServer' value='");
+  html += F("  <td><input type='text' name='mqttServer' value='");
   html += String(m_config.getMqttServer());
   html += F("' size='30' maxlength='40' placeholder='IP or hostname'></td></tr><tr><td>Status topic</td>");
   
-  html += F("  <td><input type='text' id='mqttStatusTopic' name='mqttStatusTopic' value='");
+  html += F("  <td><input type='text' name='mqttStatusTopic' value='");
   html += String(m_config.getMqttStatusTopic());
   html += F("' size='30' maxlength='40' placeholder='#'></td>"
   " </tr>"
   " <tr>"
   "  <td>Test topic</td>"
-  "  <td><input type='text' id='mqttTestTopic' name='mqttTestTopic' value='");
+  "  <td><input type='text' name='mqttTestTopic' value='");
   html += String(m_config.getMqttTestTopic());
   html += F("' size='30' maxlength='40' placeholder='#'></td>"
   " </tr>"
   " <tr>"
   "  <td>Will topic</td>"
-  "  <td><input type='text' id='mqttWillTopic' name='mqttWillTopic' value='");
+  "  <td><input type='text' name='mqttWillTopic' value='");
   html += String(m_config.getMqttWillTopic());
   html += F("' size='30' maxlength='40' placeholder='#'></td></tr>");
 
@@ -106,14 +106,14 @@ void HSDWebserver::deliverRootPage()
   " </tr>"
   " <tr>"
   "  <td>Number of LEDs</td>");
-  html += "  <td><input type='text' id='ledCount' name='ledCount' value='" + String(m_config.getNumberOfLeds()) + "' size='30' maxlength='40' placeholder='0'></td></tr>";
+  html += "  <td><input type='text' name='ledCount' value='" + String(m_config.getNumberOfLeds()) + "' size='30' maxlength='40' placeholder='0'></td></tr>";
   html += F("<tr><td>LED pin</td>");
-  html += F("<td><input type='text' id='ledPin' name='ledPin' value='");
+  html += F("<td><input type='text' name='ledPin' value='");
   html += String(m_config.getLedDataPin());
   html += F("' size='30' maxlength='40' placeholder='0'></td></tr>");
 
   html += F("<tr><td>Brightness</td>");
-  html += F("<td><input type='text' id='ledBrightness' name='ledBrightness' value='");
+  html += F("<td><input type='text' name='ledBrightness' value='");
   html += String(m_config.getLedBrightness());
   html += F("' size='30' maxlength='5' placeholder='0-255'></td>"); 
   
@@ -124,25 +124,25 @@ void HSDWebserver::deliverRootPage()
   " </tr>"
   " <tr>"
   "  <td>CLK pin</td>");
-  html += "  <td><input type='text' id='clockCLK' name='clockCLK' value='" + String(m_config.getClockPinCLK()) + "' size='30' maxlength='5' placeholder='0'></td></tr>";
+  html += "  <td><input type='text' name='clockCLK' value='" + String(m_config.getClockPinCLK()) + "' size='30' maxlength='5' placeholder='0'></td></tr>";
   html += F("<tr><td>DIO pin</td>");
-  html += F("<td><input type='text' id='clockDIO' name='clockDIO' value='");
+  html += F("<td><input type='text' name='clockDIO' value='");
   html += String(m_config.getClockPinDIO());
   html += F("' size='30' maxlength='5' placeholder='0'></td></tr>");
   html += F("<tr><td>Brightness</td>");
-  html += F("<td><input type='text' id='clockBrightness' name='clockBrightness' value='");
+  html += F("<td><input type='text' name='clockBrightness' value='");
   html += String(m_config.getClockBrightness());
   html += F("' size='30' maxlength='5' placeholder='0-8'></td></tr>"); 
   html += F("<tr><td>Time zone</td>");
-  html += F("<td><input type='text' id='clockTZ' name='clockTZ' value='");
+  html += F("<td><input type='text' name='clockTZ' value='");
   html += String(m_config.getClockTimeZone());
   html += F("' size='30' maxlength='5' placeholder='1'></td></tr>"); 
   html += F("<tr><td>NTP server</td>");
-  html += F("<td><input type='text' id='clockServer' name='clockServer' value='");
+  html += F("<td><input type='text' name='clockServer' value='");
   html += String(m_config.getClockNTPServer());
   html += F("' size='30' maxlength='50' placeholder='pool.ntp.org'></td></tr>");
   html += F("<tr><td>NTP update interval (min.)</td>");
-  html += F("<td><input type='text' id='clockInterval' name='clockInterval' value='");
+  html += F("<td><input type='text' name='clockInterval' value='");
   html += String(m_config.getClockNTPInterval());
   html += F("' size='30' maxlength='10' placeholder='20'></td></tr></table>");
   
@@ -153,7 +153,7 @@ void HSDWebserver::deliverRootPage()
   
   Serial.print(F("Page size: "));
   Serial.println(html.length());
-  
+
   m_server.send(200, F("text/html"), html);
 
   if(needSave)

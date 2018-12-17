@@ -31,13 +31,13 @@ String HSDHtmlHelper::getHeader(const char* title, const char* host, const char*
   header += F("</font><font size='-3'>V");
   header += String(version);
   header += F("</font>");
-  header += F("<form><p><input type='button' class='button' onclick=\"location.href='./'\"  value='Status'>");
-  header += F("<input type='submit' class='button'value='Reboot' id='reset' name='reset'>");
-  header += F("<input type='button' class='button'onclick=\"location.href='./update'\"  value='Update Firmware'></p>");
+  header += F("<form><p><input type='button' class='button' onclick=\"location.href='./'\" value='Status'>");
+  header += F("<input type='submit' class='button' value='Reboot' name='reset'>");
+  header += F("<input type='button' class='button' onclick=\"location.href='./update'\" value='Update Firmware'></p>");
   
-  header += F("<p><input type='button' class='button'onclick=\"location.href='./cfgmain'\"  value='General'>");
-  header += F("<input type='button' class='button'onclick=\"location.href='./cfgcolormapping'\"  value='Color mapping'>");
-  header += F("<input type='button' class='button'onclick=\"location.href='./cfgdevicemapping'\"  value='Device mapping'></p></form>");
+  header += F("<p><input type='button' class='button' onclick=\"location.href='./cfgmain'\" value='General'>");
+  header += F("<input type='button' class='button' onclick=\"location.href='./cfgcolormapping'\" value='Color mapping'>");
+  header += F("<input type='button' class='button' onclick=\"location.href='./cfgdevicemapping'\" value='Device mapping'></p></form>");
   
   header += F("<h4>"); 
   header += title;
@@ -102,11 +102,11 @@ String HSDHtmlHelper::getColorMappingTableAddEntryForm(int newEntryNum, bool isF
   String html;
   
   html += F("<form><table><tr>");
-  html += F("<td><input type='text' id='number' name='i' value='");
+  html += F("<td><input type='text' name='i' value='");
   html += isFull ? newEntryNum - 1 : newEntryNum;
   html += F("' size='5' maxlength='3' placeholder='Nr'</td>");
-  html += F("<td><input type='text' id='name' name='n' value='' size='20' maxlength='15' placeholder='name'></td>");
-  html += F("<td><input type='text' id='color' name='c' value='' size='10' maxlength='7' placeholder='#ffaabb' list='colorOptions'>");
+  html += F("<td><input type='text' name='n' value='' size='20' maxlength='15' placeholder='message name'></td>");
+  html += F("<td><input type='text' name='c' value='' size='10' maxlength='7' placeholder='#ffaabb' list='colorOptions'>");
   html += getColorOptions();
   html += F("</td>");
   html += F("<td><select name='b'>");
@@ -114,7 +114,7 @@ String HSDHtmlHelper::getColorMappingTableAddEntryForm(int newEntryNum, bool isF
   html += F("</select></td></tr></table>");  
   html += F("<input type='submit' class='button' value='");
   html += isFull ? F("Edit") : F("Add/Edit");
-  html += F("' id='add' name='add'></form>");
+  html += F("' name='add'></form>");
 
   return html;
 }
@@ -162,16 +162,16 @@ String HSDHtmlHelper::getDeviceMappingTableAddEntryForm(int newEntryNum, bool is
   String html;
   
   html += F("<form><table><tr>");
-  html += F("<td><input type='text' id='number' name='i' value='");
+  html += F("<td><input type='text' name='i' value='");
   html += isFull ? newEntryNum - 1 : newEntryNum;
   html += F("' size='5' maxlength='3' placeholder='Nr'</td>");
-  html += F("<td><input type='text' id='name' name='n' value='' size='30' maxlength='25' placeholder='name'></td>");
-  html += F("<td><input type='text' id='led' name='l' value='");
+  html += F("<td><input type='text' name='n' value='' size='30' maxlength='25' placeholder='device name'></td>");
+  html += F("<td><input type='text' name='l' value='");
   html += isFull ? newEntryNum - 1 : newEntryNum;
   html += F("' size='6' maxlength='3' placeholder='led nr'></td></tr></table>");
   html += F("<input type='submit' class='button' value='");
   html += isFull ? F("Edit") : F("Add/Edit");
-  html += F("' id='add' name='add'></form>");
+  html += F("' name='add'></form>");
 
   return html;
 }
@@ -180,9 +180,9 @@ String HSDHtmlHelper::getDeleteForm() const
 {
   String html;
   
-  html += F("<form><input type='text' id='number' name='i' value='' size='5' maxlength='3' placeholder='Nr'><br/>");
-  html += F("<input type='submit' class='button' value='Delete' id='delete' name='delete'>");
-  html += F("<input type='submit' class='button' value='Delete all' id='deleteall' name='deleteall'></form>");
+  html += F("<form><input type='text' name='i' value='' size='5' maxlength='3' placeholder='Nr'><br/>");
+  html += F("<input type='submit' class='button' value='Delete' name='delete'>");
+  html += F("<input type='submit' class='button' value='Delete all' name='deleteall'></form>");
   
   return html;  
 }
@@ -191,8 +191,8 @@ String HSDHtmlHelper::getSaveForm() const
 {
   String html;
   
-  html += F("<form><input type='submit' class='buttonr' value='Save' id='save' name='save'>");   
-  html += F("<form><input type='submit' class='buttonr' value='Undo' id='undo' name='undo'></form>");   
+  html += F("<form><input type='submit' class='buttonr' value='Save' name='save'>");   
+  html += F("<form><input type='submit' class='buttonr' value='Undo' name='undo'></form>");   
 
   return html;
 }
