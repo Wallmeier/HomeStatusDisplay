@@ -227,6 +227,16 @@ bool HSDConfig::readColorMappingConfigFile()
     writeColorMappingConfigFile();
   }
 
+  // load default color mapping
+  if (!success || m_cfgColorMapping.size() == 0)
+  {
+    for(uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
+      String temp = String(DefaultColor[i].key);
+      temp.toLowerCase();
+      addColorMappingEntry(i-1, temp, DefaultColor[i].value, ON);
+    }
+  }
+
   m_cfgColorMappingDirty = false;
 }
 
