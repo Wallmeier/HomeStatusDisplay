@@ -144,6 +144,13 @@ void HomeStatusDisplay::handleStatus(String device, String msg)
       Serial.println("Set led number " + String(ledNumber) + " to behavior " + String(behavior) + " with color " + m_config.hex2string(color));
       m_leds.set(ledNumber, behavior, color);
     }
+    else if(msg.length() > 3 && msg[0] == '#')  // allow MQTT broker to directly set LED color with HEX strings
+    {
+      uint32_t color = m_config.string2hex(msg);
+
+      Serial.println("Received HEX " + String(msg) + " and set led number " + String(ledNumber) + " with this color ON");
+      m_leds.set(ledNumber, HSDConfig::ON, color);
+    }
     else
     {
       Serial.println("Unknown message " + msg + " for led number " + String(ledNumber) + ", set to OFF");
