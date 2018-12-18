@@ -5,7 +5,10 @@
 #include "HSDWebserver.hpp"
 #include "HSDLeds.hpp"
 #include "HSDMqtt.hpp"
+
+#ifdef CLOCK_ENABLED
 #include "HSDClock.hpp"
+#endif
 
 class HomeStatusDisplay
 {
@@ -40,7 +43,9 @@ private:
   HSDWebserver m_webServer;
   HSDMqtt m_mqttHandler;
   HSDLeds m_leds;
+  #ifdef CLOCK_ENABLED
   HSDClock m_clock;
+  #endif
 
   bool m_lastWifiConnectionState;
   bool m_lastMqttConnectionState;

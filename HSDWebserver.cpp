@@ -117,6 +117,7 @@ void HSDWebserver::deliverRootPage()
   html += String(m_config.getLedBrightness());
   html += F("' size='30' maxlength='5' placeholder='0-255'></td></tr>"); 
   
+  #ifdef CLOCK_ENABLED
   html += F(""
   " <tr>"
   "  <td><b><font size='+1'>Clock</font></b> (leave empty if not desired)</td>"
@@ -144,8 +145,11 @@ void HSDWebserver::deliverRootPage()
   html += F("<tr><td>NTP update interval (min.)</td>");
   html += F("<td><input type='text' name='clockInterval' value='");
   html += String(m_config.getClockNTPInterval());
-  html += F("' size='30' maxlength='10' placeholder='20'></td></tr></table>");
-  
+  html += F("' size='30' maxlength='10' placeholder='20'></td></tr>");
+  #endif
+
+  html += F("</table>");
+
   html += F("<input type='submit' class='button' value='Save'>");
 
   html += F("</form></font></body></html>");

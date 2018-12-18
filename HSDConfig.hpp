@@ -3,6 +3,9 @@
 #include "HSDConfigFile.hpp"
 #include "PreAllocatedLinkedList.hpp"
 
+// comment out next line if you do not need the clock module
+#define CLOCK_ENABLED
+
 #define JSON_KEY_HOST                  (F("host"))
 #define JSON_KEY_WIFI_SSID             (F("wifiSSID"))
 #define JSON_KEY_WIFI_PSK              (F("wifiPSK"))
