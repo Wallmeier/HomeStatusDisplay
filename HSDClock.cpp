@@ -4,7 +4,7 @@
 HSDClock::HSDClock(const HSDConfig& config)
 :
 m_config(config),
-m_tm1637(0,0)
+m_tm1637(242,242)  // default constructor missing, initialise with unrealistic pin
 {
 }
 
