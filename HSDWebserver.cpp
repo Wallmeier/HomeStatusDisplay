@@ -115,7 +115,7 @@ void HSDWebserver::deliverRootPage()
   html += F("<tr><td>Brightness</td>");
   html += F("<td><input type='text' name='ledBrightness' value='");
   html += String(m_config.getLedBrightness());
-  html += F("' size='30' maxlength='5' placeholder='0-255'></td>"); 
+  html += F("' size='30' maxlength='5' placeholder='0-255'></td></tr>"); 
   
   html += F(""
   " <tr>"
