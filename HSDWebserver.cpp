@@ -224,6 +224,7 @@ void HSDWebserver::deliverStatusPage()
     {
       uint32_t color = m_leds.getColor(ledNr);
       HSDConfig::Behavior behavior = m_leds.getBehavior(ledNr);
+      String device = m_config.getDevice(ledNr);
 
       if( (m_config.getDefaultColor("NONE") != color) && (HSDConfig::OFF != behavior) )
       {
@@ -234,9 +235,11 @@ void HSDWebserver::deliverStatusPage()
         }
         html += F("<p><div class='hsdcolor' style='background-color:");
         html += m_config.hex2string(color);
-        html += F("';></div> "); 
-        html += F("LED number <b>");
+        html += F("';></div>&nbsp;"); 
+        html += F("LED <b>");
         html += ledNr;
+        html += F("</b> for <b>");
+        html += device;
         html += F("</b> is <b>");
         html += m_html.behavior2String(behavior);
         html += F("</b> with color <b>");

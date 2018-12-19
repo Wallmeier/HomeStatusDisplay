@@ -207,10 +207,11 @@ public:
   const ColorMapping* getColorMapping(int index); 
     
   int getLedNumber(String device);
+  String getDevice(int ledNumber);
   int getColorMapIndex(String msg);
   Behavior getLedBehavior(int colorMapIndex);
   uint32_t getLedColor(int colorMapIndex);
-
+  
   uint32_t getDefaultColor(String key) const;
   String getDefaultColor(uint32_t value) const;
   String hex2string(uint32_t value) const;

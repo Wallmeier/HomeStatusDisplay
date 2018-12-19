@@ -747,38 +747,47 @@ const HSDConfig::DeviceMapping* HSDConfig::getDeviceMapping(int index) const
 
 int HSDConfig::getLedNumber(String deviceName)
 {
-  int number = -1;
-
   for(int i = 0; i < m_cfgDeviceMapping.size(); i++)
   {
     const DeviceMapping* mapping = m_cfgDeviceMapping.get(i);
     
     if(deviceName.equals(mapping->name))
     {
-      number = mapping->ledNumber;
-      break;
+      return mapping->ledNumber;
     }
   }
 
-  return number;
+  return -1;
+}
+
+String HSDConfig::getDevice(int ledNumber)
+{
+  for(int i = 0; i < m_cfgDeviceMapping.size(); i++)
+  {
+    const DeviceMapping* mapping = m_cfgDeviceMapping.get(i);
+    
+    if(ledNumber == mapping->ledNumber)
+    {
+      return mapping->name;
+    }
+  }
+
+  return "";
 }
 
 int HSDConfig::getColorMapIndex(String msg)
 {
-  int index = -1;
-
   for(int i = 0; i < m_cfgColorMapping.size(); i++)
   {
     const ColorMapping* mapping = m_cfgColorMapping.get(i);
     
     if(msg.equals(mapping->msg))
     {
-      index = i;
-      break;
+      return i;
     }
   }
   
-  return index;
+  return -1;
 }
 
 HSDConfig::Behavior HSDConfig::getLedBehavior(int colorMapIndex)
