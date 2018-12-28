@@ -13,7 +13,8 @@ m_numConnectRetriesDone(0),
 m_retryDelay(500),
 m_millisLastConnectTry(0),
 m_accessPointActive(false),
-m_lastConnectStatus(false)
+m_lastConnectStatus(false),
+m_wasConnected(false)
 {
   
 }
@@ -35,6 +36,8 @@ void HSDWifi::handleConnection()
       Serial.print(F("WiFi connected with IP "));
       Serial.print(WiFi.localIP());
       Serial.println(F("."));
+
+      m_wasConnected = true;
       
       m_numConnectRetriesDone = 0;
     }
@@ -76,8 +79,16 @@ void HSDWifi::handleConnection()
         else
         {
           Serial.println(F("Failed to connect WiFi."));
-          
-          m_connectFailure = true;
+
+          // if successfully connected before reboot otherwise start access point
+          if(m_wasConnected)
+          {
+            ESP.restart();
+          }
+          else
+          {
+            m_connectFailure = true;
+          }
         }   
       }   
     }

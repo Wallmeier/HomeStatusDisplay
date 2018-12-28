@@ -24,5 +24,6 @@ private:
   unsigned long m_millisLastConnectTry;
   bool m_accessPointActive;
   bool m_lastConnectStatus;
+  bool m_wasConnected;
 };
 
