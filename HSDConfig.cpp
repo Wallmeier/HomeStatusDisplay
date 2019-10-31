@@ -74,7 +74,7 @@ void HSDConfig::resetMainConfigData()
   setClockPinCLK(0);
   setClockPinCLK(0);
   setClockBrightness(4);
-  setClockTimeZone(1);
+  setClockTimeZone("CET-1CEST,M3.5.0/2,M10.5.0/3");
   setClockNTPServer("pool.ntp.org");
   setClockNTPInterval(20);
 }
@@ -691,14 +691,15 @@ bool HSDConfig::setClockBrightness(uint8_t brightness)
   return true;
 }
 
-uint8_t HSDConfig::getClockTimeZone() const
+const char* HSDConfig::getClockTimeZone() const
 {
   return m_cfgClockTimeZone;
 }
 
-bool HSDConfig::setClockTimeZone(uint8_t zone)
+bool HSDConfig::setClockTimeZone(const char* zone)
 {
-  m_cfgClockTimeZone = zone;
+  strncpy(m_cfgClockTimeZone, zone, MAX_CLOCK_TIMEZONE_LEN);
+  m_cfgClockNTPServer[MAX_CLOCK_TIMEZONE_LEN] = '\0';
   return true;
 }
 
@@ -837,4 +838,3 @@ uint32_t HSDConfig::string2hex(String value) const
   value.replace("#", "");
   return strtoul(value.c_str(), nullptr, 16);
 }
-

@@ -2,7 +2,7 @@
 
 #include "HSDConfig.hpp"
 #include <TM1637.h>
-#include <time.h>
+#include <ezTime.h>
 
 class HSDClock
 {
@@ -13,8 +13,7 @@ public:
   void begin();
   void handle();
 
-  time_t now;
-  struct tm * timeinfo;
+  Timezone local;
 
 private:
 
@@ -27,4 +26,3 @@ private:
   int8_t TimeDisp[4];
   TM1637 m_tm1637;
 };
-

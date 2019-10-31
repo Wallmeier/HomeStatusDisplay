@@ -5,8 +5,6 @@ void handleMqttMessage(String topic, String msg);
 
 #define ONE_MINUTE_MILLIS (60000)
 
-int getFreeRamSize();
-
 HomeStatusDisplay::HomeStatusDisplay()
 :
 m_webServer(m_config, m_leds, m_mqttHandler),
@@ -71,7 +69,17 @@ unsigned long HomeStatusDisplay::calcUptime()
     m_uptime++;
     m_oneMinuteTimerLast = millis();
 
-    Serial.println("Uptime: " + String(m_uptime) + "min");
+    Serial.println("Uptime: " + String(m_uptime) + " min");
+
+    if(m_mqttHandler.connected())
+    {
+      uint32_t free;
+      uint16_t max;
+      uint8_t frag;
+      ESP.getHeapStats(&free, &max, &frag);
+
+      m_mqttHandler.publish("HomeStatusDisplayStat", String(m_uptime, DEC) + " m," + String(free, DEC) + "," + String(max, DEC) + "," + String(frag, DEC));
+    }
   }
 
   return m_uptime;

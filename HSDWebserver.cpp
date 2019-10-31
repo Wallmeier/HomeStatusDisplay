@@ -137,15 +137,15 @@ void HSDWebserver::deliverRootPage()
   html += F("<tr><td>Time zone</td>");
   html += F("<td><input type='text' name='clockTZ' value='");
   html += String(m_config.getClockTimeZone());
-  html += F("' size='30' maxlength='5' placeholder='1'></td></tr>"); 
+  html += F("' size='30' maxlength='40' placeholder='CET-1CEST,M3.5.0/2,M10.5.0/3'></td></tr>"); 
   html += F("<tr><td>NTP server</td>");
   html += F("<td><input type='text' name='clockServer' value='");
   html += String(m_config.getClockNTPServer());
-  html += F("' size='30' maxlength='50' placeholder='pool.ntp.org'></td></tr>");
+  html += F("' size='30' maxlength='40' placeholder='pool.ntp.org'></td></tr>");
   html += F("<tr><td>NTP update interval (min.)</td>");
   html += F("<td><input type='text' name='clockInterval' value='");
   html += String(m_config.getClockNTPInterval());
-  html += F("' size='30' maxlength='10' placeholder='20'></td></tr>");
+  html += F("' size='30' maxlength='5' placeholder='20'></td></tr>");
   #endif
 
   html += F("</table>");
@@ -182,9 +182,18 @@ void HSDWebserver::deliverStatusPage()
   html += m_html.minutes2Uptime(m_deviceUptimeMinutes);
   html += F("</p>");
 
-  html += F("<p>Device free RAM: ");
-  html += String(ESP.getFreeHeap());
-  html += F(" Bytes</p>");
+  uint32_t free;
+  uint16_t max;
+  uint8_t frag;
+  ESP.getHeapStats(&free, &max, &frag);
+
+  html += F("<p>Device RAM stats (free, max, frag) [Bytes]: ");
+  html += String(free) + ", " + String(max) + ", " + String(frag);
+  html += F("</p>");
+
+  html += F("<p>Device voltage: ");
+  html += String(ESP.getVcc());
+  html += F(" mV</p>");
 
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -657,8 +666,7 @@ bool HSDWebserver::updateMainConfig()
 
   if (m_server.hasArg(JSON_KEY_CLOCK_TIME_ZONE)) 
   {
-    int tz = m_server.arg(JSON_KEY_CLOCK_TIME_ZONE).toInt();
-    needSave |= m_config.setClockTimeZone(tz);
+    needSave |= m_config.setClockTimeZone(m_server.arg(JSON_KEY_CLOCK_TIME_ZONE).c_str());
   }
 
   if (m_server.hasArg(JSON_KEY_CLOCK_NTP_SERVER)) 
@@ -678,4 +686,3 @@ bool HSDWebserver::updateMainConfig()
   
   return needSave;
 }
-

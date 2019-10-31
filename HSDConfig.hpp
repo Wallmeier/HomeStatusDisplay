@@ -175,8 +175,8 @@ public:
   uint8_t getClockBrightness() const;
   bool setClockBrightness(uint8_t brightness);
 
-  uint8_t getClockTimeZone() const;
-  bool setClockTimeZone(uint8_t zone);
+  const char* getClockTimeZone() const;
+  bool setClockTimeZone(const char* zone);
 
   const char* getClockNTPServer() const;
   bool setClockNTPServer(const char* server);
@@ -239,7 +239,8 @@ private:
   static const int MAX_MQTT_STATUS_TOPIC_LEN = 50;
   static const int MAX_MQTT_TEST_TOPIC_LEN   = 50;
   static const int MAX_MQTT_WILL_TOPIC_LEN   = 50;
-  static const int MAX_CLOCK_NTP_SERVER_LEN  = 50;
+  static const int MAX_CLOCK_TIMEZONE_LEN    = 40;
+  static const int MAX_CLOCK_NTP_SERVER_LEN  = 40;
 
   static const int MAX_COLOR_MAP_ENTRIES  = 30;
   static const int MAX_DEVICE_MAP_ENTRIES = 35;
@@ -266,7 +267,7 @@ private:
   uint8_t m_cfgClockPinCLK;
   uint8_t m_cfgClockPinDIO;
   uint8_t m_cfgClockBrightness;
-  int8_t m_cfgClockTimeZone;
+  char m_cfgClockTimeZone[MAX_CLOCK_TIMEZONE_LEN + 1];
   char m_cfgClockNTPServer[MAX_CLOCK_NTP_SERVER_LEN + 1];
   uint16_t m_cfgClockNTPInterval;
 
@@ -274,4 +275,3 @@ private:
   HSDConfigFile m_colorMappingConfigFile;
   HSDConfigFile m_deviceMappingConfigFile;
 };
-

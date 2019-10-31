@@ -1,6 +1,8 @@
+ADC_MODE(ADC_VCC)
+
 #include "HomeStatusDisplay.hpp"
 
-static const char* VERSION = "0.7";
+static const char* VERSION = "0.8";
 static const char* IDENTIFIER = "HomeStatusDisplay";
 
 HomeStatusDisplay display;
@@ -14,4 +16,3 @@ void loop()
 {     
   display.work();
 }
-
