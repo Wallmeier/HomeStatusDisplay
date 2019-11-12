@@ -7,6 +7,10 @@ m_config(config),
 m_leds(leds),
 m_mqtt(mqtt),
 m_html(),
+#ifdef SENSOR_ENABLED
+m_lastHum(0),
+m_lastTemp(0),
+#endif // SENSOR_ENABLED
 m_deviceUptimeMinutes(0)
 {
   m_updateServer.setup(&m_server);
@@ -147,6 +151,29 @@ void HSDWebserver::deliverRootPage()
   html += String(m_config.getClockNTPInterval());
   html += F("' size='30' maxlength='5' placeholder='20'></td></tr>");
   #endif
+  
+  #ifdef SENSOR_ENABLED
+  html += F(""
+  " <tr>"
+  "  <td><b><font size='+1'>Sensor</font></b></td>"
+  "  <td>(Sonoff SI7021)</td>"
+  " </tr>"
+  " <tr>"
+  "  <td>Enabled</td>");
+  html += F("  <td><input type='checkbox' name='sensorEnabled'");
+  if (m_config.getSensorEnabled()) {
+    html += F(" checked");
+  }
+  html += F("></td></tr>");
+  html += F("<tr><td>Data pin</td>");
+  html += F("<td><input type='text' name='sensorPin' value='");
+  html += String(m_config.getSensorPin());
+  html += F("' size='30' maxlength='5' placeholder='0'></td></tr>");
+  html += F("<tr><td>Sensor update interval (min.)</td>");
+  html += F("<td><input type='text' name='sensorInterval' value='");
+  html += String(m_config.getSensorInterval());
+  html += F("' size='30' maxlength='5' placeholder='5'></td></tr>");  
+  #endif
 
   html += F("</table>");
 
@@ -195,6 +222,16 @@ void HSDWebserver::deliverStatusPage()
   html += String(ESP.getVcc());
   html += F(" mV</p>");
 
+#ifdef SENSOR_ENABLED
+  if (m_config.getSensorEnabled()) {
+     html += F("<p>Sensor: Temp ");
+     html += String(m_lastTemp, 1);
+     html += F("&deg;C, Hum ");
+     html += String(m_lastHum, 1);
+     html += F("%</p>");
+  }
+#endif // SENSOR_ENABLED  
+  
   if (WiFi.status() == WL_CONNECTED)
   {
     html += F("<p>Device is connected to WLAN <b>");
@@ -683,6 +720,26 @@ bool HSDWebserver::updateMainConfig()
       needSave |= m_config.setClockNTPInterval(interval);
     }
   }
+
+#ifdef SENSOR_ENABLED
+  if (m_server.hasArg(JSON_KEY_SENSOR_PIN))
+  {
+    needSave |= m_config.setSensorEnabled(m_server.hasArg(JSON_KEY_SENSOR_ENABLED));
+    needSave |= m_config.setSensorPin(m_server.arg(JSON_KEY_SENSOR_PIN).toInt());
+  }
+  
+  if (m_server.hasArg(JSON_KEY_SENSOR_INTERVAL))
+  {
+    needSave |= m_config.setSensorInterval(m_server.arg(JSON_KEY_SENSOR_INTERVAL).toInt());
+  }
+#endif // SENSOR_ENABLED  
   
   return needSave;
 }
+
+#ifdef SENSOR_ENABLED
+void HSDWebserver::setSensorData(float& temp, float& hum) {
+  m_lastTemp = temp;
+  m_lastHum = hum;
+}
+#endif // SENSOR_ENABLED  

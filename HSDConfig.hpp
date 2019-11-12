@@ -5,6 +5,9 @@
 
 // comment out next line if you do not need the clock module
 #define CLOCK_ENABLED
+// #undef CLOCK_ENABLED
+// comment out next line if you do not need the sensor module (Sonoff SI7021)
+#define SENSOR_ENABLED
 
 #define JSON_KEY_HOST                  (F("host"))
 #define JSON_KEY_WIFI_SSID             (F("wifiSSID"))
@@ -22,6 +25,11 @@
 #define JSON_KEY_CLOCK_TIME_ZONE       (F("clockTZ"))
 #define JSON_KEY_CLOCK_NTP_SERVER      (F("clockServer"))
 #define JSON_KEY_CLOCK_NTP_INTERVAL    (F("clockInterval"))
+#ifdef SENSOR_ENABLED
+#define JSON_KEY_SENSOR_ENABLED        (F("sensorEnabled"))
+#define JSON_KEY_SENSOR_PIN            (F("sensorPin"))
+#define JSON_KEY_SENSOR_INTERVAL       (F("sensorInterval"))
+#endif // SENSOR_ENABLED
 #define JSON_KEY_COLORMAPPING_MSG      (F("m"))
 #define JSON_KEY_COLORMAPPING_COLOR    (F("c"))
 #define JSON_KEY_COLORMAPPING_BEHAVIOR (F("b"))
@@ -183,6 +191,17 @@ public:
 
   uint16_t getClockNTPInterval() const;
   bool setClockNTPInterval(uint16_t minutes);
+  
+#ifdef SENSOR_ENABLED  
+  bool getSensorEnabled() const;
+  bool setSensorEnabled(bool enabled);
+  
+  uint8_t getSensorPin() const;
+  bool setSensorPin(uint8_t pin);
+  
+  uint16_t getSensorInterval() const;
+  bool setSensorInterval(uint16_t interval);
+#endif // SENSOR_ENABLED  
 
   void resetMainConfigData();
   void resetDeviceMappingConfigData();
@@ -270,6 +289,12 @@ private:
   char m_cfgClockTimeZone[MAX_CLOCK_TIMEZONE_LEN + 1];
   char m_cfgClockNTPServer[MAX_CLOCK_NTP_SERVER_LEN + 1];
   uint16_t m_cfgClockNTPInterval;
+
+#ifdef SENSOR_ENABLED
+  bool m_cfgSensorEnabled;
+  uint8_t m_cfgSensorPin;
+  uint16_t m_cfgSensorInterval;
+#endif // SENSOR_ENABLED  
 
   HSDConfigFile m_mainConfigFile;
   HSDConfigFile m_colorMappingConfigFile;
