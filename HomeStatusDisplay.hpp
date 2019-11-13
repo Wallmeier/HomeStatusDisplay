@@ -10,6 +10,10 @@
 #include "HSDClock.hpp"
 #endif
 
+#ifdef SENSOR_ENABLED
+#include "HSDSensor.hpp"
+#endif
+
 class HomeStatusDisplay
 {
 public:
@@ -45,6 +49,9 @@ private:
   HSDLeds m_leds;
   #ifdef CLOCK_ENABLED
   HSDClock m_clock;
+  #endif
+  #ifdef SENSOR_ENABLED
+  HSDSensor m_sensor;
   #endif
 
   bool m_lastWifiConnectionState;

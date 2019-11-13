@@ -2,8 +2,8 @@
 #include <FS.h>
 #include <ArduinoJson.h>
 
-static const int MAX_SIZE_MAIN_CONFIG_FILE = 500;
-static const int JSON_BUFFER_MAIN_CONFIG_FILE = 600;
+static const int MAX_SIZE_MAIN_CONFIG_FILE = 700;
+static const int JSON_BUFFER_MAIN_CONFIG_FILE = 800;
 
 static const int MAX_SIZE_COLOR_MAPPING_CONFIG_FILE = 1500;     // 1401 exactly
 static const int JSON_BUFFER_COLOR_MAPPING_CONFIG_FILE = 3800;  // 3628 exactly
@@ -79,6 +79,12 @@ void HSDConfig::resetMainConfigData()
   setClockTimeZone("CET-1CEST,M3.5.0/2,M10.5.0/3");
   setClockNTPServer("pool.ntp.org");
   setClockNTPInterval(20);
+
+#ifdef SENSOR_ENABLED  
+  setSensorEnabled(false);
+  setSensorPin(0);
+  setSensorInterval(5);
+#endif // SENSOR_ENABLED  
 }
 
 void HSDConfig::resetColorMappingConfigData()
@@ -143,6 +149,18 @@ bool HSDConfig::readMainConfigFile()
         setClockNTPServer(json[JSON_KEY_CLOCK_NTP_SERVER]);
         setClockNTPInterval(json[JSON_KEY_CLOCK_NTP_INTERVAL]);
 
+#ifdef SENSOR_ENABLED
+        if (json.containsKey(JSON_KEY_SENSOR_ENABLED)) {
+          setSensorEnabled(json[JSON_KEY_SENSOR_ENABLED]);
+        }
+        if (json.containsKey(JSON_KEY_SENSOR_PIN)) {
+          setSensorPin(json[JSON_KEY_SENSOR_PIN]);
+        }
+        if (json.containsKey(JSON_KEY_SENSOR_INTERVAL)) {
+          setSensorInterval(json[JSON_KEY_SENSOR_INTERVAL]);   
+        }
+#endif // SENSOR_ENABLED
+        
         success = true;
       }
     } 
@@ -181,6 +199,11 @@ void HSDConfig::printMainConfigFile(JsonObject& json)
   Serial.print  (F("  • clockTimeZone   : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_TIME_ZONE]));
   Serial.print  (F("  • clockNTPServer  : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_NTP_SERVER]));
   Serial.print  (F("  • clockNTPInterval: ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_NTP_INTERVAL]));
+#ifdef SENSOR_ENABLED  
+  Serial.print  (F("  • sensorEnabled   : ")); Serial.println((const char*)(json[JSON_KEY_SENSOR_ENABLED]));
+  Serial.print  (F("  • sensorPin       : ")); Serial.println((const char*)(json[JSON_KEY_SENSOR_PIN]));
+  Serial.print  (F("  • sensorInterval  : ")); Serial.println((const char*)(json[JSON_KEY_SENSOR_INTERVAL]));
+#endif // SENSOR_ENABLED  
 }
 
 bool HSDConfig::readColorMappingConfigFile()
@@ -322,6 +345,11 @@ void HSDConfig::writeMainConfigFile()
   json[JSON_KEY_CLOCK_TIME_ZONE] = m_cfgClockTimeZone;
   json[JSON_KEY_CLOCK_NTP_SERVER] = m_cfgClockNTPServer;
   json[JSON_KEY_CLOCK_NTP_INTERVAL] = m_cfgClockNTPInterval;
+#ifdef SENSOR_ENABLED  
+  json[JSON_KEY_SENSOR_ENABLED] = m_cfgSensorEnabled;
+  json[JSON_KEY_SENSOR_PIN] = m_cfgSensorPin;
+  json[JSON_KEY_SENSOR_INTERVAL] = m_cfgSensorInterval;
+#endif  
 
   if(!m_mainConfigFile.write(&json))
   {
@@ -758,6 +786,56 @@ bool HSDConfig::setClockNTPInterval(uint16_t minutes)
   m_cfgClockNTPInterval = minutes;
   return true;
 }
+
+#ifdef SENSOR_ENABLED
+bool HSDConfig::getSensorEnabled() const
+{
+  return m_cfgSensorEnabled;
+}
+
+bool HSDConfig::setSensorEnabled(bool enabled)
+{
+  if (m_cfgSensorEnabled != enabled) 
+  {
+    m_cfgSensorEnabled = enabled;
+    return true;   
+  } else {
+    return false;
+  }
+}
+
+uint8_t HSDConfig::getSensorPin() const
+{
+  return m_cfgSensorPin;
+}
+
+bool HSDConfig::setSensorPin(uint8_t pin)
+{
+  if (m_cfgSensorPin != pin)
+  {
+    m_cfgSensorPin = pin;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+uint16_t HSDConfig::getSensorInterval() const
+{
+  return m_cfgSensorInterval;   
+}
+
+bool HSDConfig::setSensorInterval(uint16_t interval)
+{
+  if (m_cfgSensorInterval != interval) 
+  {
+    m_cfgSensorInterval = interval;
+    return true;
+  } else {
+    return false;
+  }
+}
+#endif // SENSOR_ENABLED
 
 int HSDConfig::getNumberOfColorMappingEntries()
 {

@@ -16,6 +16,9 @@ public:
 
   void begin();
   void handleClient(unsigned long deviceUptime);
+#ifdef SENSOR_ENABLED
+  void setSensorData(float& temp, float& hum);
+#endif // SENSOR_ENABLED  
 
 private:
 
@@ -50,4 +53,9 @@ private:
   const HSDMqtt& m_mqtt;
   unsigned long m_deviceUptimeMinutes;
   const HSDHtmlHelper m_html;
+  
+#ifdef SENSOR_ENABLED
+  float m_lastHum;
+  float m_lastTemp;
+#endif  
 };

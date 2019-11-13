@@ -1,5 +1,7 @@
 #include "HomeStatusDisplay.hpp"
 
+#include <ArduinoJson.h>
+
 // function declarations
 void handleMqttMessage(String topic, String msg);
 
@@ -13,6 +15,9 @@ m_mqttHandler(m_config, std::bind(&HomeStatusDisplay::mqttCallback, this, std::p
 m_leds(m_config),
 #ifdef CLOCK_ENABLED
 m_clock(m_config),
+#endif
+#ifdef SENSOR_ENABLED
+m_sensor(m_config),
 #endif
 m_lastWifiConnectionState(false),
 m_lastMqttConnectionState(false),
@@ -34,6 +39,9 @@ void HomeStatusDisplay::begin(const char* version, const char* identifier)
   m_mqttHandler.begin();
   #ifdef CLOCK_ENABLED
   m_clock.begin();
+  #endif
+  #ifdef SENSOR_ENABLED
+  m_sensor.begin();
   #endif
 
   Serial.print(F("Free RAM: ")); Serial.println(ESP.getFreeHeap());
@@ -64,6 +72,9 @@ void HomeStatusDisplay::work()
 
 unsigned long HomeStatusDisplay::calcUptime()
 {
+#ifdef SENSOR_ENABLED
+  static uint16_t sensorMinutes = -1;
+#endif  
   if(millis() - m_oneMinuteTimerLast >= ONE_MINUTE_MILLIS)
   {
     m_uptime++;
@@ -80,6 +91,36 @@ unsigned long HomeStatusDisplay::calcUptime()
 
       m_mqttHandler.publish("HomeStatusDisplayStat", String(m_uptime, DEC) + " m," + String(free, DEC) + "," + String(max, DEC) + "," + String(frag, DEC));
     }
+    
+    #ifdef SENSOR_ENABLED
+    if (m_config.getSensorEnabled()) {
+      sensorMinutes++;
+      if (sensorMinutes >= m_config.getSensorInterval()) {
+        sensorMinutes = 0;
+        float temp, hum;
+        if (m_sensor.readSensor(temp, hum)) {
+          m_webServer.setSensorData(temp, hum);
+          Serial.print(F("Sensor: Temp "));
+          Serial.print(temp, 1);
+          Serial.print(F("°C, Hum "));
+          Serial.print(hum, 1);
+          Serial.println(F("%"));
+          
+          if (m_mqttHandler.connected()) {
+            DynamicJsonBuffer jsonBuffer;
+            JsonObject& json = jsonBuffer.createObject();
+            json["Temp"] = temp;
+            json["Hum"] = hum;
+            String jsonStr;
+            json.printTo(jsonStr);
+            m_mqttHandler.publish("HomeStatusDisplaySensor", jsonStr);
+          }
+        } else {
+          Serial.println(F("Sensor failed"));
+        }
+      }
+    }
+    #endif
   }
 
   return m_uptime;
@@ -217,5 +258,3 @@ void HomeStatusDisplay::checkConnections()
     m_leds.setAll(HSDConfig::ON, m_config.getDefaultColor("RED"));
   }
 }
-
-
