@@ -1,21 +1,23 @@
-#pragma once
+#ifndef HSDSENSOR_H
+#define HSDSENSOR_H
 
 #include "HSDConfig.hpp"
 
-class HSDSensor
-{
+class HSDSensor {
 public:
-  HSDSensor(const HSDConfig& config);
-  void begin();
-  bool readSensor(float& temp, float& hum);
+    HSDSensor(const HSDConfig& config);
+    
+    void begin();
+    bool readSensor(float& temp, float& hum);
 
 private:
-  int32_t expectPulse(bool level) const;
-  bool read();
+    int32_t expectPulse(bool level) const;
+    bool read();
 
-  const HSDConfig& m_config;
-  uint8_t m_data[5];
-  uint32_t m_maxCycles;
-  uint8_t m_pin;
+    const HSDConfig& m_config;
+    uint8_t          m_data[5];
+    uint32_t         m_maxCycles;
+    uint8_t          m_pin;
 };
   
+#endif // HSDSENSOR_H
