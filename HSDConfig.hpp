@@ -1,13 +1,13 @@
-#pragma once
+#ifndef HSDCONFIG_H
+#define HSDCONFIG_H
 
 #include "HSDConfigFile.hpp"
 #include "PreAllocatedLinkedList.hpp"
 
 // comment out next line if you do not need the clock module
-#define CLOCK_ENABLED
-// #undef CLOCK_ENABLED
+#define HSD_CLOCK_ENABLED
 // comment out next line if you do not need the sensor module (Sonoff SI7021)
-#define SENSOR_ENABLED
+#define HSD_SENSOR_ENABLED
 
 #define JSON_KEY_HOST                  (F("host"))
 #define JSON_KEY_WIFI_SSID             (F("wifiSSID"))
@@ -27,11 +27,11 @@
 #define JSON_KEY_CLOCK_TIME_ZONE       (F("clockTZ"))
 #define JSON_KEY_CLOCK_NTP_SERVER      (F("clockServer"))
 #define JSON_KEY_CLOCK_NTP_INTERVAL    (F("clockInterval"))
-#ifdef SENSOR_ENABLED
+#ifdef HSD_SENSOR_ENABLED
 #define JSON_KEY_SENSOR_ENABLED        (F("sensorEnabled"))
 #define JSON_KEY_SENSOR_PIN            (F("sensorPin"))
 #define JSON_KEY_SENSOR_INTERVAL       (F("sensorInterval"))
-#endif // SENSOR_ENABLED
+#endif // HSD_SENSOR_ENABLED
 #define JSON_KEY_COLORMAPPING_MSG      (F("m"))
 #define JSON_KEY_COLORMAPPING_COLOR    (F("c"))
 #define JSON_KEY_COLORMAPPING_BEHAVIOR (F("b"))
@@ -40,275 +40,239 @@
 
 #define NUMBER_OF_DEFAULT_COLORS       9
 
-class HSDConfig
-{
-  
+class HSDConfig {
 public:
+    static const int MAX_DEVICE_MAPPING_NAME_LEN = 25;
+    static const int MAX_COLOR_MAPPING_MSG_LEN = 15;
 
-  static const int MAX_DEVICE_MAPPING_NAME_LEN = 25;
-  static const int MAX_COLOR_MAPPING_MSG_LEN = 15;
-  
-  /*
-   * Enum which defines the different LED behaviors.
-   */
-  enum Behavior
-  {
-    OFF,
-    ON,
-    BLINKING,
-    FLASHING,
-    FLICKERING
-  };
+    /*
+     * Enum which defines the different LED behaviors.
+     */
+    enum Behavior {
+        OFF,
+        ON,
+        BLINKING,
+        FLASHING,
+        FLICKERING
+    };
 
-  /*
-   * Defintion of default color names and hex values in a map like structure.
-   */
-  struct Map
-  {
-    char* key;
-    uint32_t value; 
-  };
-   
-  static const constexpr Map DefaultColor[NUMBER_OF_DEFAULT_COLORS] =
-  {  
-    {"NONE",   0x000000}, 
-    {"GREEN",  0x00FF00},
-    {"YELLOW", 0xFFCC00},
-    {"ORANGE", 0xFF4400},
-    {"RED",    0xFF0000},
-    {"PURPLE", 0xFF00FF},
-    {"BLUE",   0x0000FF},
-    {"CYAN",   0x00FFFF},
-    {"WHITE",  0xFFFFFF}
-  };
+    /*
+     * Defintion of default color names and hex values in a map like structure.
+     */
+    struct Map {
+        char*    key;
+        uint32_t value;
+    };
 
-  /*
-   * This struct is used for mapping a device name to a led number, 
-   * that means a specific position on the led stripe
-   */
-  struct DeviceMapping
-  { 
-    DeviceMapping()
-    {
-      memset(name, 0, MAX_DEVICE_MAPPING_NAME_LEN);
-      ledNumber = 0;       
-    }
+    static const constexpr Map DefaultColor[NUMBER_OF_DEFAULT_COLORS] = {
+        {"NONE",   0x000000},
+        {"GREEN",  0x00FF00},
+        {"YELLOW", 0xFFCC00},
+        {"ORANGE", 0xFF4400},
+        {"RED",    0xFF0000},
+        {"PURPLE", 0xFF00FF},
+        {"BLUE",   0x0000FF},
+        {"CYAN",   0x00FFFF},
+        {"WHITE",  0xFFFFFF}
+    };
 
-    DeviceMapping(String n, int l)
-    {
-      strncpy(name, n.c_str(), MAX_DEVICE_MAPPING_NAME_LEN);
-      name[MAX_DEVICE_MAPPING_NAME_LEN] = '\0';
-      ledNumber = l;   
-    }
-    
-    char name[MAX_DEVICE_MAPPING_NAME_LEN]; // name of the device
-    int ledNumber;                          // led number on which reactions for this device are displayed
-  };
+    /*
+     * This struct is used for mapping a device name to a led number, that means a specific position on the led stripe
+     */
+    struct DeviceMapping {
+        DeviceMapping() {
+            memset(name, 0, MAX_DEVICE_MAPPING_NAME_LEN);
+            ledNumber = 0;
+        }
 
-  /*
-   * This struct is used for mapping a message for a specific
-   * message to a led behavior (see LedSwitcher::ledState).
-   */
-  struct ColorMapping
-  {
-    ColorMapping()
-    {
-      memset(msg, 0, MAX_COLOR_MAPPING_MSG_LEN);
-      color = 0x000000;
-      behavior = OFF;
-    }
-    
-    ColorMapping(String m, uint32_t c, Behavior b)
-    {
-      strncpy(msg, m.c_str(), MAX_COLOR_MAPPING_MSG_LEN);
-      msg[MAX_COLOR_MAPPING_MSG_LEN] = '\0';
-      color = c;
-      behavior = b;
-    }
-    
-    char msg[MAX_COLOR_MAPPING_MSG_LEN+1];  // message 
-    uint32_t color;                         // led color for message
-    Behavior behavior;                      // led behavior for message
-  };
+        DeviceMapping(String n, int l) {
+            strncpy(name, n.c_str(), MAX_DEVICE_MAPPING_NAME_LEN);
+            name[MAX_DEVICE_MAPPING_NAME_LEN] = '\0';
+            ledNumber = l;
+        }
 
-  HSDConfig();
+        int  ledNumber;                         // led number on which reactions for this device are displayed
+        char name[MAX_DEVICE_MAPPING_NAME_LEN]; // name of the device
+    };
 
-  void begin(const char* version, const char* defaultIdentifier);
+    /*
+     * This struct is used for mapping a message for a specific
+     * message to a led behavior (see LedSwitcher::ledState).
+     */
+    struct ColorMapping {
+        ColorMapping() {
+            memset(msg, 0, MAX_COLOR_MAPPING_MSG_LEN);
+            color = 0x000000;
+            behavior = OFF;
+        }
 
-  void saveMain();
-  
-  void saveColorMapping();
-  void updateColorMapping();
-  
-  void saveDeviceMapping();
-  void updateDeviceMapping();
+        ColorMapping(String m, uint32_t c, Behavior b) {
+            strncpy(msg, m.c_str(), MAX_COLOR_MAPPING_MSG_LEN);
+            msg[MAX_COLOR_MAPPING_MSG_LEN] = '\0';
+            color = c;
+            behavior = b;
+        }
 
-  const char* getVersion() const;
-  bool setVersion(const char* version);
+        Behavior behavior;                           // led behavior for message
+        uint32_t color;                              // led color for message
+        char     msg[MAX_COLOR_MAPPING_MSG_LEN + 1]; // message
+    };
 
-  const char* getHost() const;
-  bool setHost(const char* host);
+    HSDConfig();
 
-  const char* getWifiSSID() const;
-  bool setWifiSSID(const char* ssid);
-
-  const char* getWifiPSK() const;
-  bool setWifiPSK(const char* psk);
-
-  const char* getMqttServer() const;
-  bool setMqttServer(const char* ip);
-
-  const char* getMqttUser() const;
-  bool setMqttUser(const char* user);
-
-  const char* getMqttPassword() const;
-  bool setMqttPassword(const char* pwd);
-
-  const char* getMqttStatusTopic() const;
-  bool setMqttStatusTopic(const char* topic);
-
-  const char* getMqttTestTopic() const;
-  bool setMqttTestTopic(const char* topic);
-
-  const char* getMqttWillTopic() const;
-  bool setMqttWillTopic(const char* topic);
-
-  uint8_t getNumberOfLeds() const;
-  bool setNumberOfLeds(uint8_t numberOfLeds);
-
-  uint8_t getLedDataPin() const;
-  bool setLedDataPin(uint8_t dataPin);
-
-  uint8_t getLedBrightness() const;
-  bool setLedBrightness(uint8_t brightness);
-
-  uint8_t getClockPinCLK() const;
-  bool setClockPinCLK(uint8_t dataPin);
-
-  uint8_t getClockPinDIO() const;
-  bool setClockPinDIO(uint8_t dataPin);
-
-  uint8_t getClockBrightness() const;
-  bool setClockBrightness(uint8_t brightness);
-
-  const char* getClockTimeZone() const;
-  bool setClockTimeZone(const char* zone);
-
-  const char* getClockNTPServer() const;
-  bool setClockNTPServer(const char* server);
-
-  uint16_t getClockNTPInterval() const;
-  bool setClockNTPInterval(uint16_t minutes);
-  
-#ifdef SENSOR_ENABLED  
-  bool getSensorEnabled() const;
-  bool setSensorEnabled(bool enabled);
-  
-  uint8_t getSensorPin() const;
-  bool setSensorPin(uint8_t pin);
-  
-  uint16_t getSensorInterval() const;
-  bool setSensorInterval(uint16_t interval);
-#endif // SENSOR_ENABLED  
-
-  void resetMainConfigData();
-  void resetDeviceMappingConfigData();
-  void resetColorMappingConfigData();
-
-  int getNumberOfDeviceMappingEntries() const;
-  int getNumberOfColorMappingEntries();
-  
-  bool addDeviceMappingEntry(int entryNum, String name, int ledNumber);
-  bool deleteColorMappingEntry(int entryNum);
-  bool deleteAllDeviceMappingEntries();
-  bool isDeviceMappingDirty() const;
-  bool isDeviceMappingFull() const;
-  
-  bool addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior);
-  bool deleteDeviceMappingEntry(int entryNum);
-  bool deleteAllColorMappingEntries();
-  bool isColorMappingDirty() const;
-  bool isColorMappingFull() const;
-  
-  const DeviceMapping* getDeviceMapping(int index) const;
-  const ColorMapping* getColorMapping(int index); 
-    
-  int getLedNumber(String device);
-  String getDevice(int ledNumber);
-  int getColorMapIndex(String msg);
-  Behavior getLedBehavior(int colorMapIndex);
-  uint32_t getLedColor(int colorMapIndex);
-  
-  uint32_t getDefaultColor(String key) const;
-  String getDefaultColor(uint32_t value) const;
-  String hex2string(uint32_t value) const;
-  uint32_t string2hex(String value) const;
+    bool                        addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior);
+    bool                        addDeviceMappingEntry(int entryNum, String name, int ledNumber);
+    void                        begin(const char* version, const char* defaultIdentifier);
+    void                        deleteAllColorMappingEntries();
+    void                        deleteAllDeviceMappingEntries();
+    bool                        deleteColorMappingEntry(int entryNum);
+    bool                        deleteDeviceMappingEntry(int entryNum);
+#ifdef HSD_CLOCK_ENABLED
+    inline uint8_t              getClockBrightness() const { return m_cfgClockBrightness; }
+    inline uint16_t             getClockNTPInterval() const { return m_cfgClockNTPInterval; }
+    inline const char*          getClockNTPServer() const { return m_cfgClockNTPServer; }
+    inline uint8_t              getClockPinCLK() const { return m_cfgClockPinCLK; }
+    inline uint8_t              getClockPinDIO() const { return m_cfgClockPinDIO; }
+    inline const char*          getClockTimeZone() const { return m_cfgClockTimeZone; }
+#endif // HSD_CLOCK_ENABLED
+    int                         getColorMapIndex(const String& msg) const;
+    inline const ColorMapping*  getColorMapping(int index) { return m_cfgColorMapping.get(index); }
+    uint32_t                    getDefaultColor(String key) const;
+    String                      getDefaultColor(uint32_t value) const;
+    String                      getDevice(int ledNumber) const;
+    inline const DeviceMapping* getDeviceMapping(int index) const { return m_cfgDeviceMapping.get(index); }
+    inline const char*          getHost() const { return m_cfgHost; }
+    inline Behavior             getLedBehavior(int colorMapIndex) const { return m_cfgColorMapping.get(colorMapIndex)->behavior; }
+    inline uint8_t              getLedBrightness() const { return m_cfgLedBrightness; }
+    inline uint32_t             getLedColor(int colorMapIndex) const { return m_cfgColorMapping.get(colorMapIndex)->color; }
+    inline uint8_t              getLedDataPin() const { return m_cfgLedDataPin; }
+    int                         getLedNumber(const String& device) const;
+    inline const char*          getMqttPassword() const { return m_cfgMqttPassword; }
+    inline const char*          getMqttServer() const { return m_cfgMqttServer; }
+    inline const char*          getMqttStatusTopic() const { return m_cfgMqttStatusTopic; }
+    inline const char*          getMqttTestTopic() const { return m_cfgMqttTestTopic; }
+    inline const char*          getMqttUser() const { return m_cfgMqttUser; }
+    inline const char*          getMqttWillTopic() const { return m_cfgMqttWillTopic; }
+    inline int                  getNumberOfColorMappingEntries() const { return m_cfgColorMapping.size(); }
+    inline int                  getNumberOfDeviceMappingEntries() const { return m_cfgDeviceMapping.size(); }
+    inline uint8_t              getNumberOfLeds() const { return m_cfgNumberOfLeds; }
+#ifdef HSD_SENSOR_ENABLED
+    inline bool                 getSensorEnabled() const { return m_cfgSensorEnabled; }
+    inline uint16_t             getSensorInterval() const { return m_cfgSensorInterval; }
+    inline uint8_t              getSensorPin() const { return m_cfgSensorPin; }
+#endif // HSD_SENSOR_ENABLED
+    inline const char*          getVersion() const { return m_cfgVersion; }
+    inline const char*          getWifiPSK() const { return m_cfgWifiPSK; }
+    inline const char*          getWifiSSID() const { return m_cfgWifiSSID; }
+    String                      hex2string(uint32_t value) const;
+    inline bool                 isColorMappingDirty() const { return m_cfgColorMappingDirty; }
+    inline bool                 isColorMappingFull() const { return m_cfgColorMapping.isFull(); }
+    inline bool                 isDeviceMappingDirty() const { return m_cfgDeviceMappingDirty; }
+    inline bool                 isDeviceMappingFull() const { return m_cfgDeviceMapping.isFull(); }
+    inline void                 saveColorMapping() { writeColorMappingConfigFile(); }
+    inline void                 saveDeviceMapping() { writeDeviceMappingConfigFile(); }
+    inline void                 saveMain() { writeMainConfigFile(); }
+#ifdef HSD_CLOCK_ENABLED
+    inline bool                 setClockBrightness(uint8_t brightness) { return setValue<uint8_t>(m_cfgClockBrightness, brightness); }
+    inline bool                 setClockNTPInterval(uint16_t minutes) { return setValue<uint16_t>(m_cfgClockNTPInterval, minutes); }
+    inline bool                 setClockNTPServer(const char* server) { return setStringValue(m_cfgClockNTPServer, MAX_CLOCK_NTP_SERVER_LEN, server); }
+    inline bool                 setClockPinCLK(uint8_t dataPin) { return setValue<uint8_t>(m_cfgClockPinCLK, dataPin); }
+    inline bool                 setClockPinDIO(uint8_t dataPin) { return setValue<uint8_t>(m_cfgClockPinDIO, dataPin); }
+    inline bool                 setClockTimeZone(const char* zone) { return setStringValue(m_cfgClockTimeZone, MAX_CLOCK_TIMEZONE_LEN, zone); }
+#endif // HSD_CLOCK_ENABLED
+    inline bool                 setHost(const char* host) { return setStringValue(m_cfgHost, MAX_HOST_LEN, host); }
+    inline bool                 setLedBrightness(uint8_t brightness) { return setValue<uint8_t>(m_cfgLedBrightness, brightness); }
+    inline bool                 setLedDataPin(uint8_t dataPin) { return setValue<uint8_t>(m_cfgLedDataPin, dataPin); }
+    inline bool                 setMqttPassword(const char* pwd) { return setStringValue(m_cfgMqttPassword, MAX_MQTT_PASSWORD_LEN, pwd); }
+    inline bool                 setMqttServer(const char* ip) { return setStringValue(m_cfgMqttServer, MAX_MQTT_SERVER_LEN, ip); }
+    inline bool                 setMqttStatusTopic(const char* topic) { return setStringValue(m_cfgMqttStatusTopic, MAX_MQTT_STATUS_TOPIC_LEN, topic); }
+    inline bool                 setMqttTestTopic(const char* topic) { return setStringValue(m_cfgMqttTestTopic, MAX_MQTT_TEST_TOPIC_LEN, topic); }
+    inline bool                 setMqttUser(const char* user) { return setStringValue(m_cfgMqttUser, MAX_MQTT_USER_LEN, user); }
+    inline bool                 setMqttWillTopic(const char* topic) { return setStringValue(m_cfgMqttWillTopic, MAX_MQTT_WILL_TOPIC_LEN, topic); }
+    inline bool                 setNumberOfLeds(uint8_t numberOfLeds) { return setValue<uint8_t>(m_cfgNumberOfLeds, numberOfLeds); }
+#ifdef HSD_SENSOR_ENABLED
+    inline bool                 setSensorEnabled(bool enabled) { setValue<bool>(m_cfgSensorEnabled, enabled); }
+    inline bool                 setSensorInterval(uint16_t interval) { setValue<uint16_t>(m_cfgSensorInterval, interval); }
+    inline bool                 setSensorPin(uint8_t pin) { setValue<uint8_t>(m_cfgSensorPin, pin); }
+#endif // HSD_SENSOR_ENABLED
+    inline bool                 setVersion(const char* version) { return setStringValue(m_cfgVersion, MAX_VERSION_LEN, version); }
+    inline bool                 setWifiPSK(const char* psk) { return setStringValue(m_cfgWifiPSK, MAX_WIFI_PSK_LEN, psk); }
+    inline bool                 setWifiSSID(const char* ssid) { return setStringValue(m_cfgWifiSSID, MAX_WIFI_SSID_LEN, ssid); }
+    uint32_t                    string2hex(String value) const;
+    inline void                 updateColorMapping() { readColorMappingConfigFile(); }
+    inline void                 updateDeviceMapping() { readDeviceMappingConfigFile(); }
 
 private:
+    void onFileWriteError();
+    void printMainConfigFile(JsonObject& json);
+    bool readColorMappingConfigFile();
+    bool readDeviceMappingConfigFile();
+    bool readMainConfigFile();
+    void resetColorMappingConfigData();
+    void resetDeviceMappingConfigData();
+    void resetMainConfigData();
+    bool setStringValue(char* val, int maxLen, const char* newValue) const;
+    template <class T>
+    bool setValue(T& val, const T& newValue) const {
+        if (val != newValue) {
+            val = newValue;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    void writeColorMappingConfigFile();
+    void writeDeviceMappingConfigFile();
+    void writeMainConfigFile();
 
-  bool readMainConfigFile();
-  void printMainConfigFile(JsonObject& json);
-  void writeMainConfigFile();
+    static const int MAX_CLOCK_NTP_SERVER_LEN  = 40;
+    static const int MAX_CLOCK_TIMEZONE_LEN    = 40;
+    static const int MAX_COLOR_MAP_ENTRIES     = 30;
+    static const int MAX_DEVICE_MAP_ENTRIES    = 35;
+    static const int MAX_HOST_LEN              = 30;
+    static const int MAX_MQTT_PASSWORD_LEN     = 50;
+    static const int MAX_MQTT_SERVER_LEN       = 20;
+    static const int MAX_MQTT_STATUS_TOPIC_LEN = 50;
+    static const int MAX_MQTT_TEST_TOPIC_LEN   = 50;
+    static const int MAX_MQTT_USER_LEN         = 20;
+    static const int MAX_MQTT_WILL_TOPIC_LEN   = 50;
+    static const int MAX_VERSION_LEN           = 20;
+    static const int MAX_WIFI_PSK_LEN          = 30;
+    static const int MAX_WIFI_SSID_LEN         = 30;
 
-  bool readColorMappingConfigFile();
-  void writeColorMappingConfigFile();
-
-  bool readDeviceMappingConfigFile();
-  void writeDeviceMappingConfigFile();
-
-  void onFileWriteError();
-
-  static const int MAX_VERSION_LEN           = 20;
-  static const int MAX_HOST_LEN              = 30;
-  static const int MAX_WIFI_SSID_LEN         = 30;
-  static const int MAX_WIFI_PSK_LEN          = 30;
-  static const int MAX_MQTT_SERVER_LEN       = 20;
-  static const int MAX_MQTT_USER_LEN         = 20;
-  static const int MAX_MQTT_PASSWORD_LEN     = 50;
-  static const int MAX_MQTT_STATUS_TOPIC_LEN = 50;
-  static const int MAX_MQTT_TEST_TOPIC_LEN   = 50;
-  static const int MAX_MQTT_WILL_TOPIC_LEN   = 50;
-  static const int MAX_CLOCK_TIMEZONE_LEN    = 40;
-  static const int MAX_CLOCK_NTP_SERVER_LEN  = 40;
-
-  static const int MAX_COLOR_MAP_ENTRIES  = 30;
-  static const int MAX_DEVICE_MAP_ENTRIES = 35;
-
-  PreAllocatedLinkedList<ColorMapping> m_cfgColorMapping;
-  bool m_cfgColorMappingDirty;
-
-  PreAllocatedLinkedList<DeviceMapping> m_cfgDeviceMapping;
-  bool m_cfgDeviceMappingDirty;
-  
-  char m_cfgVersion[MAX_VERSION_LEN + 1];
-  char m_cfgHost[MAX_HOST_LEN + 1];
-  char m_cfgWifiSSID[MAX_WIFI_SSID_LEN + 1];
-  char m_cfgWifiPSK[MAX_WIFI_PSK_LEN + 1];
-  char m_cfgMqttServer[MAX_MQTT_SERVER_LEN + 1];
-  char m_cfgMqttUser[MAX_MQTT_USER_LEN + 1];
-  char m_cfgMqttPassword[MAX_MQTT_PASSWORD_LEN + 1];
-  char m_cfgMqttStatusTopic[MAX_MQTT_STATUS_TOPIC_LEN + 1];
-  char m_cfgMqttTestTopic[MAX_MQTT_TEST_TOPIC_LEN + 1];
-  char m_cfgMqttWillTopic[MAX_MQTT_WILL_TOPIC_LEN + 1];
-  
-  uint8_t m_cfgNumberOfLeds;
-  uint8_t m_cfgLedDataPin;
-  uint8_t m_cfgLedBrightness;
-
-  uint8_t m_cfgClockPinCLK;
-  uint8_t m_cfgClockPinDIO;
-  uint8_t m_cfgClockBrightness;
-  char m_cfgClockTimeZone[MAX_CLOCK_TIMEZONE_LEN + 1];
-  char m_cfgClockNTPServer[MAX_CLOCK_NTP_SERVER_LEN + 1];
-  uint16_t m_cfgClockNTPInterval;
-
-#ifdef SENSOR_ENABLED
-  bool m_cfgSensorEnabled;
-  uint8_t m_cfgSensorPin;
-  uint16_t m_cfgSensorInterval;
-#endif // SENSOR_ENABLED  
-
-  HSDConfigFile m_mainConfigFile;
-  HSDConfigFile m_colorMappingConfigFile;
-  HSDConfigFile m_deviceMappingConfigFile;
+#ifdef HSD_CLOCK_ENABLED
+    uint8_t                               m_cfgClockBrightness;
+    uint16_t                              m_cfgClockNTPInterval;
+    char                                  m_cfgClockNTPServer[MAX_CLOCK_NTP_SERVER_LEN + 1];
+    uint8_t                               m_cfgClockPinCLK;
+    uint8_t                               m_cfgClockPinDIO;
+    char                                  m_cfgClockTimeZone[MAX_CLOCK_TIMEZONE_LEN + 1];
+#endif // HSD_CLOCK_ENABLED
+    PreAllocatedLinkedList<ColorMapping>  m_cfgColorMapping;
+    bool                                  m_cfgColorMappingDirty;
+    PreAllocatedLinkedList<DeviceMapping> m_cfgDeviceMapping;
+    bool                                  m_cfgDeviceMappingDirty;
+    char                                  m_cfgHost[MAX_HOST_LEN + 1];
+    uint8_t                               m_cfgLedBrightness;
+    uint8_t                               m_cfgLedDataPin;
+    char                                  m_cfgMqttPassword[MAX_MQTT_PASSWORD_LEN + 1];
+    char                                  m_cfgMqttServer[MAX_MQTT_SERVER_LEN + 1];
+    char                                  m_cfgMqttStatusTopic[MAX_MQTT_STATUS_TOPIC_LEN + 1];
+    char                                  m_cfgMqttTestTopic[MAX_MQTT_TEST_TOPIC_LEN + 1];
+    char                                  m_cfgMqttUser[MAX_MQTT_USER_LEN + 1];
+    char                                  m_cfgMqttWillTopic[MAX_MQTT_WILL_TOPIC_LEN + 1];
+    uint8_t                               m_cfgNumberOfLeds;
+#ifdef HSD_SENSOR_ENABLED
+    bool                                  m_cfgSensorEnabled;
+    uint16_t                              m_cfgSensorInterval;
+    uint8_t                               m_cfgSensorPin;
+#endif // HSD_SENSOR_ENABLED
+    char                                  m_cfgVersion[MAX_VERSION_LEN + 1];
+    char                                  m_cfgWifiPSK[MAX_WIFI_PSK_LEN + 1];
+    char                                  m_cfgWifiSSID[MAX_WIFI_SSID_LEN + 1];
+    HSDConfigFile                         m_colorMappingConfigFile;
+    HSDConfigFile                         m_deviceMappingConfigFile;
+    HSDConfigFile                         m_mainConfigFile;
 };
+
+#endif // HSDCONFIG_H

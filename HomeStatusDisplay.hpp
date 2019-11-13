@@ -6,11 +6,11 @@
 #include "HSDLeds.hpp"
 #include "HSDMqtt.hpp"
 
-#ifdef CLOCK_ENABLED
+#ifdef HSD_CLOCK_ENABLED
 #include "HSDClock.hpp"
 #endif
 
-#ifdef SENSOR_ENABLED
+#ifdef HSD_SENSOR_ENABLED
 #include "HSDSensor.hpp"
 #endif
 
@@ -47,10 +47,10 @@ private:
   HSDWebserver m_webServer;
   HSDMqtt m_mqttHandler;
   HSDLeds m_leds;
-  #ifdef CLOCK_ENABLED
+  #ifdef HSD_CLOCK_ENABLED
   HSDClock m_clock;
   #endif
-  #ifdef SENSOR_ENABLED
+  #ifdef HSD_SENSOR_ENABLED
   HSDSensor m_sensor;
   #endif
 

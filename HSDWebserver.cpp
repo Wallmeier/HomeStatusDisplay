@@ -7,10 +7,10 @@ m_config(config),
 m_leds(leds),
 m_mqtt(mqtt),
 m_html(),
-#ifdef SENSOR_ENABLED
+#ifdef HSD_SENSOR_ENABLED
 m_lastHum(0),
 m_lastTemp(0),
-#endif // SENSOR_ENABLED
+#endif // HSD_SENSOR_ENABLED
 m_deviceUptimeMinutes(0)
 {
   m_updateServer.setup(&m_server);
@@ -126,7 +126,7 @@ void HSDWebserver::deliverRootPage()
   html += String(m_config.getLedBrightness());
   html += F("' size='30' maxlength='5' placeholder='0-255'></td></tr>"); 
   
-  #ifdef CLOCK_ENABLED
+#ifdef HSD_CLOCK_ENABLED
   html += F(""
   " <tr>"
   "  <td><b><font size='+1'>Clock</font></b> (leave empty if not desired)</td>"
@@ -155,9 +155,9 @@ void HSDWebserver::deliverRootPage()
   html += F("<td><input type='text' name='clockInterval' value='");
   html += String(m_config.getClockNTPInterval());
   html += F("' size='30' maxlength='5' placeholder='20'></td></tr>");
-  #endif
+#endif // HSD_
   
-  #ifdef SENSOR_ENABLED
+  #ifdef HSD_SENSOR_ENABLED
   html += F(""
   " <tr>"
   "  <td><b><font size='+1'>Sensor</font></b></td>"
@@ -227,7 +227,7 @@ void HSDWebserver::deliverStatusPage()
   html += String(ESP.getVcc());
   html += F(" mV</p>");
 
-#ifdef SENSOR_ENABLED
+#ifdef HSD_SENSOR_ENABLED
   if (m_config.getSensorEnabled()) {
      html += F("<p>Sensor: Temp ");
      html += String(m_lastTemp, 1);
@@ -235,7 +235,7 @@ void HSDWebserver::deliverStatusPage()
      html += String(m_lastHum, 1);
      html += F("%</p>");
   }
-#endif // SENSOR_ENABLED  
+#endif // HSD_SENSOR_ENABLED  
   
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -738,7 +738,7 @@ bool HSDWebserver::updateMainConfig()
     }
   }
 
-#ifdef SENSOR_ENABLED
+#ifdef HSD_SENSOR_ENABLED
   if (m_server.hasArg(JSON_KEY_SENSOR_PIN))
   {
     needSave |= m_config.setSensorEnabled(m_server.hasArg(JSON_KEY_SENSOR_ENABLED));
@@ -749,14 +749,14 @@ bool HSDWebserver::updateMainConfig()
   {
     needSave |= m_config.setSensorInterval(m_server.arg(JSON_KEY_SENSOR_INTERVAL).toInt());
   }
-#endif // SENSOR_ENABLED  
+#endif // HSD_SENSOR_ENABLED  
   
   return needSave;
 }
 
-#ifdef SENSOR_ENABLED
+#ifdef HSD_SENSOR_ENABLED
 void HSDWebserver::setSensorData(float& temp, float& hum) {
   m_lastTemp = temp;
   m_lastHum = hum;
 }
-#endif // SENSOR_ENABLED  
+#endif // HSD_SENSOR_ENABLED  

@@ -13,10 +13,10 @@ m_webServer(m_config, m_leds, m_mqttHandler),
 m_wifi(m_config),
 m_mqttHandler(m_config, std::bind(&HomeStatusDisplay::mqttCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)),
 m_leds(m_config),
-#ifdef CLOCK_ENABLED
+#ifdef HSD_CLOCK_ENABLED
 m_clock(m_config),
 #endif
-#ifdef SENSOR_ENABLED
+#ifdef HSD_SENSOR_ENABLED
 m_sensor(m_config),
 #endif
 m_lastWifiConnectionState(false),
@@ -37,10 +37,10 @@ void HomeStatusDisplay::begin(const char* version, const char* identifier)
   m_leds.begin();
   m_wifi.begin();
   m_mqttHandler.begin();
-  #ifdef CLOCK_ENABLED
+  #ifdef HSD_CLOCK_ENABLED
   m_clock.begin();
   #endif
-  #ifdef SENSOR_ENABLED
+  #ifdef HSD_SENSOR_ENABLED
   m_sensor.begin();
   #endif
 
@@ -63,7 +63,7 @@ void HomeStatusDisplay::work()
   
   m_leds.update();
 
-  #ifdef CLOCK_ENABLED
+  #ifdef HSD_CLOCK_ENABLED
   m_clock.handle();
   #endif
 
@@ -72,7 +72,7 @@ void HomeStatusDisplay::work()
 
 unsigned long HomeStatusDisplay::calcUptime()
 {
-#ifdef SENSOR_ENABLED
+#ifdef HSD_SENSOR_ENABLED
   static uint16_t sensorMinutes = -1;
 #endif  
   if(millis() - m_oneMinuteTimerLast >= ONE_MINUTE_MILLIS)
@@ -92,7 +92,7 @@ unsigned long HomeStatusDisplay::calcUptime()
       m_mqttHandler.publish("HomeStatusDisplayStat", String(m_uptime, DEC) + " m," + String(free, DEC) + "," + String(max, DEC) + "," + String(frag, DEC));
     }
     
-    #ifdef SENSOR_ENABLED
+    #ifdef HSD_SENSOR_ENABLED
     if (m_config.getSensorEnabled()) {
       sensorMinutes++;
       if (sensorMinutes >= m_config.getSensorInterval()) {
