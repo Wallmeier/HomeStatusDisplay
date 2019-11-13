@@ -1,28 +1,22 @@
-#pragma once
+#ifndef HSDCLOCK_H
+#define HSDCLOCK_H
 
 #include "HSDConfig.hpp"
 #include <TM1637.h>
 #include <ezTime.h>
 
-class HSDClock
-{
+class HSDClock {
 public:
+    HSDClock(const HSDConfig& config);
 
-  HSDClock(const HSDConfig& config);
-
-  void begin();
-  void handle();
-
-  Timezone local;
+    void begin();
+    void handle();
 
 private:
-
-  const HSDConfig& m_config;
-
-  uint8_t new_time;
-  uint8_t old_time;
-  time_t last_ntp_update;
-
-  int8_t TimeDisp[4];
-  TM1637 m_tm1637;
+    const HSDConfig& m_config;
+    Timezone         m_local;
+    uint8_t          m_oldTime;
+    TM1637           m_tm1637;
 };
+
+#endif // HSDCLOCK_H
