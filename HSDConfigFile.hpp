@@ -1,21 +1,18 @@
-#pragma once
+#ifndef HSDCONFIGFILE_H
+#define HSDCONFIGFILE_H
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-class HSDConfigFile
-{
-  
+class HSDConfigFile {
 public:
+    HSDConfigFile(const String& fileName);
 
-  HSDConfigFile(String fileName);
-  virtual ~HSDConfigFile();
+    bool read(char* buffer, int bufSize);
+    bool write(JsonObject* data);
 
-  bool read(char* buffer, int bufSize);
-  bool write(JsonObject* data);
-  
 private:
-  
-  String m_fileName;
+    String m_fileName;
 };
 
+#endif // HSDCONFIGFILE_H
