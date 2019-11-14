@@ -94,12 +94,14 @@ void HSDWebserver::deliverRootPage()
   html += F("' size='30' maxlength='50' placeholder='Password'></td></tr><tr><td>Status topic</td>");  
   html += F("  <td><input type='text' name='mqttStatusTopic' value='");
   html += String(m_config.getMqttStatusTopic());
+#ifdef MQTT_TEST_TOPIC  
   html += F("' size='30' maxlength='40' placeholder='#'></td>"
   " </tr>"
   " <tr>"
   "  <td>Test topic</td>"
   "  <td><input type='text' name='mqttTestTopic' value='");
   html += String(m_config.getMqttTestTopic());
+#endif // MQTT_TEST_TOPIC  
   html += F("' size='30' maxlength='40' placeholder='#'></td>"
   " </tr>"
   " <tr>"
@@ -647,12 +649,12 @@ bool HSDWebserver::updateMainConfig()
   {
     needSave |= m_config.setMqttStatusTopic(m_server.arg(JSON_KEY_MQTT_STATUS_TOPIC).c_str());
   }
-  
-  if (m_server.hasArg(JSON_KEY_MQTT_TEST_TOPIC)) 
-  {
-    needSave |= m_config.setMqttTestTopic(m_server.arg(JSON_KEY_MQTT_TEST_TOPIC).c_str());
-  }
 
+#ifdef MQTT_TEST_TOPIC  
+    if (m_server.hasArg(JSON_KEY_MQTT_TEST_TOPIC)) 
+        needSave |= m_config.setMqttTestTopic(m_server.arg(JSON_KEY_MQTT_TEST_TOPIC).c_str());
+#endif // MQTT_TEST_TOPIC
+    
   if (m_server.hasArg(JSON_KEY_MQTT_WILL_TOPIC)) 
   {
     needSave |= m_config.setMqttWillTopic(m_server.arg(JSON_KEY_MQTT_WILL_TOPIC).c_str());

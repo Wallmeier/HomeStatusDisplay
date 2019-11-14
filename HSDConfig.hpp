@@ -9,6 +9,8 @@
 // comment out next line if you do not need the sensor module (Sonoff SI7021)
 #define HSD_SENSOR_ENABLED
 
+// #define MQTT_TEST_TOPIC
+
 #define JSON_KEY_HOST                  (F("host"))
 #define JSON_KEY_WIFI_SSID             (F("wifiSSID"))
 #define JSON_KEY_WIFI_PSK              (F("wifiPSK"))
@@ -27,11 +29,9 @@
 #define JSON_KEY_CLOCK_TIME_ZONE       (F("clockTZ"))
 #define JSON_KEY_CLOCK_NTP_SERVER      (F("clockServer"))
 #define JSON_KEY_CLOCK_NTP_INTERVAL    (F("clockInterval"))
-#ifdef HSD_SENSOR_ENABLED
 #define JSON_KEY_SENSOR_ENABLED        (F("sensorEnabled"))
 #define JSON_KEY_SENSOR_PIN            (F("sensorPin"))
 #define JSON_KEY_SENSOR_INTERVAL       (F("sensorInterval"))
-#endif // HSD_SENSOR_ENABLED
 #define JSON_KEY_COLORMAPPING_MSG      (F("m"))
 #define JSON_KEY_COLORMAPPING_COLOR    (F("c"))
 #define JSON_KEY_COLORMAPPING_BEHAVIOR (F("b"))
@@ -150,7 +150,9 @@ public:
     inline const char*          getMqttPassword() const { return m_cfgMqttPassword; }
     inline const char*          getMqttServer() const { return m_cfgMqttServer; }
     inline const char*          getMqttStatusTopic() const { return m_cfgMqttStatusTopic; }
+#ifdef MQTT_TEST_TOPIC
     inline const char*          getMqttTestTopic() const { return m_cfgMqttTestTopic; }
+#endif    
     inline const char*          getMqttUser() const { return m_cfgMqttUser; }
     inline const char*          getMqttWillTopic() const { return m_cfgMqttWillTopic; }
     inline int                  getNumberOfColorMappingEntries() const { return m_cfgColorMapping.size(); }
@@ -186,7 +188,9 @@ public:
     inline bool                 setMqttPassword(const char* pwd) { return setStringValue(m_cfgMqttPassword, MAX_MQTT_PASSWORD_LEN, pwd); }
     inline bool                 setMqttServer(const char* ip) { return setStringValue(m_cfgMqttServer, MAX_MQTT_SERVER_LEN, ip); }
     inline bool                 setMqttStatusTopic(const char* topic) { return setStringValue(m_cfgMqttStatusTopic, MAX_MQTT_STATUS_TOPIC_LEN, topic); }
+#ifdef MQTT_TEST_TOPIC
     inline bool                 setMqttTestTopic(const char* topic) { return setStringValue(m_cfgMqttTestTopic, MAX_MQTT_TEST_TOPIC_LEN, topic); }
+#endif // MQTT_TEST_TOPIC    
     inline bool                 setMqttUser(const char* user) { return setStringValue(m_cfgMqttUser, MAX_MQTT_USER_LEN, user); }
     inline bool                 setMqttWillTopic(const char* topic) { return setStringValue(m_cfgMqttWillTopic, MAX_MQTT_WILL_TOPIC_LEN, topic); }
     inline bool                 setNumberOfLeds(uint8_t numberOfLeds) { return setValue<uint8_t>(m_cfgNumberOfLeds, numberOfLeds); }
@@ -233,7 +237,9 @@ private:
     static const int MAX_MQTT_PASSWORD_LEN     = 50;
     static const int MAX_MQTT_SERVER_LEN       = 20;
     static const int MAX_MQTT_STATUS_TOPIC_LEN = 50;
+#ifdef MQTT_TEST_TOPIC
     static const int MAX_MQTT_TEST_TOPIC_LEN   = 50;
+#endif // MQTT_TEST_TOPIC    
     static const int MAX_MQTT_USER_LEN         = 20;
     static const int MAX_MQTT_WILL_TOPIC_LEN   = 50;
     static const int MAX_VERSION_LEN           = 20;
@@ -258,7 +264,9 @@ private:
     char                                  m_cfgMqttPassword[MAX_MQTT_PASSWORD_LEN + 1];
     char                                  m_cfgMqttServer[MAX_MQTT_SERVER_LEN + 1];
     char                                  m_cfgMqttStatusTopic[MAX_MQTT_STATUS_TOPIC_LEN + 1];
+#ifdef MQTT_TEST_TOPIC
     char                                  m_cfgMqttTestTopic[MAX_MQTT_TEST_TOPIC_LEN + 1];
+#endif // MQTT_TEST_TOPIC    
     char                                  m_cfgMqttUser[MAX_MQTT_USER_LEN + 1];
     char                                  m_cfgMqttWillTopic[MAX_MQTT_WILL_TOPIC_LEN + 1];
     uint8_t                               m_cfgNumberOfLeds;

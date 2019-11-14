@@ -64,7 +64,9 @@ void HSDConfig::resetMainConfigData() {
     setMqttUser("");
     setMqttPassword("");
     setMqttStatusTopic("");
+#ifdef MQTT_TEST_TOPIC
     setMqttTestTopic("");
+#endif // MQTT_TEST_TOPIC    
     setMqttWillTopic("");
 
     setNumberOfLeds(0);
@@ -120,7 +122,7 @@ bool HSDConfig::readMainConfigFile() {
             if (json.containsKey(JSON_KEY_HOST) && json.containsKey(JSON_KEY_WIFI_SSID) &&
                 json.containsKey(JSON_KEY_WIFI_PSK) && json.containsKey(JSON_KEY_MQTT_SERVER) &&
                 json.containsKey(JSON_KEY_MQTT_USER) && json.containsKey(JSON_KEY_MQTT_PASSWORD) &&
-                json.containsKey(JSON_KEY_MQTT_STATUS_TOPIC) && json.containsKey(JSON_KEY_MQTT_TEST_TOPIC) &&
+                json.containsKey(JSON_KEY_MQTT_STATUS_TOPIC) && 
                 json.containsKey(JSON_KEY_MQTT_WILL_TOPIC) && json.containsKey(JSON_KEY_LED_COUNT) &&
                 json.containsKey(JSON_KEY_LED_PIN) && json.containsKey(JSON_KEY_CLOCK_PIN_CLK) &&
                 json.containsKey(JSON_KEY_CLOCK_PIN_DIO) && json.containsKey(JSON_KEY_CLOCK_BRIGHTNESS) &&
@@ -135,7 +137,10 @@ bool HSDConfig::readMainConfigFile() {
                 setMqttUser(json[JSON_KEY_MQTT_USER]);
                 setMqttPassword(json[JSON_KEY_MQTT_PASSWORD]);
                 setMqttStatusTopic(json[JSON_KEY_MQTT_STATUS_TOPIC]);
-                setMqttTestTopic(json[JSON_KEY_MQTT_TEST_TOPIC]);
+#ifdef MQTT_TEST_TOPIC
+                if (json.containsKey(JSON_KEY_MQTT_TEST_TOPIC))
+                    setMqttTestTopic(json[JSON_KEY_MQTT_TEST_TOPIC]);
+#endif                 
                 setMqttWillTopic(json[JSON_KEY_MQTT_WILL_TOPIC]);
                 setNumberOfLeds(json[JSON_KEY_LED_COUNT]);
                 setLedDataPin(json[JSON_KEY_LED_PIN]);
@@ -179,7 +184,9 @@ void HSDConfig::printMainConfigFile(JsonObject& json) {
     Serial.print  (F("  • mqttUser        : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_USER]));
     Serial.print  (F("  • mqttPassword    : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_PASSWORD]));
     Serial.print  (F("  • mqttStatusTopic : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_STATUS_TOPIC]));
+#ifdef MQTT_TEST_TOPIC
     Serial.print  (F("  • mqttTestTopic   : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_TEST_TOPIC]));
+#endif // MQTT_TEST_TOPIC    
     Serial.print  (F("  • mqttWillTopic   : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_WILL_TOPIC]));
     Serial.print  (F("  • ledCount        : ")); Serial.println((const char*)(json[JSON_KEY_LED_COUNT]));
     Serial.print  (F("  • ledPin          : ")); Serial.println((const char*)(json[JSON_KEY_LED_PIN]));
@@ -309,7 +316,9 @@ void HSDConfig::writeMainConfigFile() {
     json[JSON_KEY_MQTT_USER] = m_cfgMqttUser;
     json[JSON_KEY_MQTT_PASSWORD] = m_cfgMqttPassword;
     json[JSON_KEY_MQTT_STATUS_TOPIC] = m_cfgMqttStatusTopic;
+#ifdef MQTT_TEST_TOPIC    
     json[JSON_KEY_MQTT_TEST_TOPIC] = m_cfgMqttTestTopic;
+#endif // MQTT_TEST_TOPIC    
     json[JSON_KEY_MQTT_WILL_TOPIC] = m_cfgMqttWillTopic;
     json[JSON_KEY_LED_COUNT] = m_cfgNumberOfLeds;
     json[JSON_KEY_LED_PIN] = m_cfgLedDataPin;

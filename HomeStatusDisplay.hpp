@@ -26,7 +26,9 @@ private:
     void          checkConnections();
     String        getDevice(const String& statusTopic) const;
     void          handleStatus(const String& device, const String& msg);
+#ifdef MQTT_TEST_TOPIC
     void          handleTest(const String& msg);
+#endif    
     bool          isStatusTopic(const String& topic) const;
     void          mqttCallback(char* topic, byte* payload, unsigned int length);
 

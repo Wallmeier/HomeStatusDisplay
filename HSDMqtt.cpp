@@ -17,7 +17,9 @@ void HSDMqtt::begin()
 {  
   initTopics();
   addTopic(m_config.getMqttStatusTopic());
-  addTopic(m_config.getMqttTestTopic());
+#ifdef MQTT_TEST_TOPIC  
+    addTopic(m_config.getMqttTestTopic());
+#endif // MQTT_TEST_TOPIC  
 
   IPAddress mqttIpAddr;
 

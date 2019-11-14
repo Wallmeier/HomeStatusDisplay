@@ -132,9 +132,12 @@ void HomeStatusDisplay::mqttCallback(char* topic, byte* payload, unsigned int le
   
     Serial.print(F("Received an MQTT message for topic ")); Serial.println(mqttTopicString + ": " + mqttMsgString);
 
+#ifdef MQTT_TEST_TOPIC    
     if (mqttTopicString.equals(m_config.getMqttTestTopic())) {
         handleTest(mqttMsgString);
-    } else if (isStatusTopic(mqttTopicString)) {
+    } else 
+#endif // MQTT_TEST_TOPIC    
+    if (isStatusTopic(mqttTopicString)) {
         String device = getDevice(mqttTopicString);
         handleStatus(device, mqttMsgString);
     }
@@ -156,7 +159,7 @@ String HomeStatusDisplay::getDevice(const String& statusTopic) const {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-
+#ifdef MQTT_TEST_TOPIC
 void HomeStatusDisplay::handleTest(const String& msg) {
     int type(msg.toInt());
     if (type > 0) {
@@ -168,7 +171,7 @@ void HomeStatusDisplay::handleTest(const String& msg) {
         m_mqttHandler.reconnect();  // back to normal
     }
 }
-
+#endif // MQTT_TEST_TOPIC
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HomeStatusDisplay::handleStatus(const String& device, const String& msg) { 
