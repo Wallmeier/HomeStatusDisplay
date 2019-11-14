@@ -4,14 +4,14 @@
 #define CHECKED_STRING  (F("checked='checked'")) 
 #define EMPTY_STRING    (F(""))
 
-String HSDHtmlHelper::getHeader(const char* title, const char* host, const char* version) const {
+String HSDHtmlHelper::getHeader(const char* title, const String& host, const String& version) const {
     String header;
     header.reserve(1500);
 
     header  = F("<!doctype html> <html>");
     header += F("<head><meta charset='utf-8'>");
     header += F("<title>");
-    header += String(host);
+    header += host;
     header += F("</title>");
     header += F("<style>.button {border-radius:0;height:30px;width:100px;border:0;background-color:black;color:#fff;margin:5px;cursor:pointer;}</style>");
     header += F("<style>.buttonr {border-radius:0;height:30px;width:100px;border:0;background-color:red;color:#fff;margin:5px;cursor:pointer;}</style>");
@@ -21,9 +21,9 @@ String HSDHtmlHelper::getHeader(const char* title, const char* host, const char*
     header += F("</head>");
     header += F("<body bgcolor='#e5e5e5'><font face='Verdana,Arial,Helvetica'>");
     header += F("<font size='+3'>");
-    header += String(host);
+    header += host;
     header += F("</font><font size='-3'>V");
-    header += String(version);
+    header += version;
     header += F("</font>");
     header += F("<form><p><input type='button' class='button' onclick=\"location.href='./'\" value='Status'>");
     header += F("<input type='submit' class='button' value='Reboot' name='reset'>");

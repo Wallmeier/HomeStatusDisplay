@@ -130,10 +130,10 @@ public:
 #ifdef HSD_CLOCK_ENABLED
     inline uint8_t              getClockBrightness() const { return m_cfgClockBrightness; }
     inline uint16_t             getClockNTPInterval() const { return m_cfgClockNTPInterval; }
-    inline const char*          getClockNTPServer() const { return m_cfgClockNTPServer; }
+    inline const String&        getClockNTPServer() const { return m_cfgClockNTPServer; }
     inline uint8_t              getClockPinCLK() const { return m_cfgClockPinCLK; }
     inline uint8_t              getClockPinDIO() const { return m_cfgClockPinDIO; }
-    inline const char*          getClockTimeZone() const { return m_cfgClockTimeZone; }
+    inline const String&        getClockTimeZone() const { return m_cfgClockTimeZone; }
 #endif // HSD_CLOCK_ENABLED
     int                         getColorMapIndex(const String& msg) const;
     inline const ColorMapping*  getColorMapping(int index) { return m_cfgColorMapping.get(index); }
@@ -141,20 +141,20 @@ public:
     String                      getDefaultColor(uint32_t value) const;
     String                      getDevice(int ledNumber) const;
     inline const DeviceMapping* getDeviceMapping(int index) const { return m_cfgDeviceMapping.get(index); }
-    inline const char*          getHost() const { return m_cfgHost; }
+    inline const String&        getHost() const { return m_cfgHost; }
     inline Behavior             getLedBehavior(int colorMapIndex) const { return m_cfgColorMapping.get(colorMapIndex)->behavior; }
     inline uint8_t              getLedBrightness() const { return m_cfgLedBrightness; }
     inline uint32_t             getLedColor(int colorMapIndex) const { return m_cfgColorMapping.get(colorMapIndex)->color; }
     inline uint8_t              getLedDataPin() const { return m_cfgLedDataPin; }
     int                         getLedNumber(const String& device) const;
-    inline const char*          getMqttPassword() const { return m_cfgMqttPassword; }
-    inline const char*          getMqttServer() const { return m_cfgMqttServer; }
-    inline const char*          getMqttStatusTopic() const { return m_cfgMqttStatusTopic; }
+    inline const String&        getMqttPassword() const { return m_cfgMqttPassword; }
+    inline const String&        getMqttServer() const { return m_cfgMqttServer; }
+    inline const String&        getMqttStatusTopic() const { return m_cfgMqttStatusTopic; }
 #ifdef MQTT_TEST_TOPIC
-    inline const char*          getMqttTestTopic() const { return m_cfgMqttTestTopic; }
+    inline const String&        getMqttTestTopic() const { return m_cfgMqttTestTopic; }
 #endif    
-    inline const char*          getMqttUser() const { return m_cfgMqttUser; }
-    inline const char*          getMqttWillTopic() const { return m_cfgMqttWillTopic; }
+    inline const String&        getMqttUser() const { return m_cfgMqttUser; }
+    inline const String&        getMqttWillTopic() const { return m_cfgMqttWillTopic; }
     inline int                  getNumberOfColorMappingEntries() const { return m_cfgColorMapping.size(); }
     inline int                  getNumberOfDeviceMappingEntries() const { return m_cfgDeviceMapping.size(); }
     inline uint8_t              getNumberOfLeds() const { return m_cfgNumberOfLeds; }
@@ -163,9 +163,9 @@ public:
     inline uint16_t             getSensorInterval() const { return m_cfgSensorInterval; }
     inline uint8_t              getSensorPin() const { return m_cfgSensorPin; }
 #endif // HSD_SENSOR_ENABLED
-    inline const char*          getVersion() const { return m_cfgVersion; }
-    inline const char*          getWifiPSK() const { return m_cfgWifiPSK; }
-    inline const char*          getWifiSSID() const { return m_cfgWifiSSID; }
+    inline const String&        getVersion() const { return m_cfgVersion; }
+    inline const String&        getWifiPSK() const { return m_cfgWifiPSK; }
+    inline const String&        getWifiSSID() const { return m_cfgWifiSSID; }
     String                      hex2string(uint32_t value) const;
     inline bool                 isColorMappingDirty() const { return m_cfgColorMappingDirty; }
     inline bool                 isColorMappingFull() const { return m_cfgColorMapping.isFull(); }
@@ -177,31 +177,31 @@ public:
 #ifdef HSD_CLOCK_ENABLED
     inline bool                 setClockBrightness(uint8_t brightness) { return setValue<uint8_t>(m_cfgClockBrightness, brightness); }
     inline bool                 setClockNTPInterval(uint16_t minutes) { return setValue<uint16_t>(m_cfgClockNTPInterval, minutes); }
-    inline bool                 setClockNTPServer(const char* server) { return setStringValue(m_cfgClockNTPServer, MAX_CLOCK_NTP_SERVER_LEN, server); }
+    inline bool                 setClockNTPServer(const String& server) { return setValue<String>(m_cfgClockNTPServer, server); }
     inline bool                 setClockPinCLK(uint8_t dataPin) { return setValue<uint8_t>(m_cfgClockPinCLK, dataPin); }
     inline bool                 setClockPinDIO(uint8_t dataPin) { return setValue<uint8_t>(m_cfgClockPinDIO, dataPin); }
-    inline bool                 setClockTimeZone(const char* zone) { return setStringValue(m_cfgClockTimeZone, MAX_CLOCK_TIMEZONE_LEN, zone); }
+    inline bool                 setClockTimeZone(const String& zone) { return setValue<String>(m_cfgClockTimeZone, zone); }
 #endif // HSD_CLOCK_ENABLED
-    inline bool                 setHost(const char* host) { return setStringValue(m_cfgHost, MAX_HOST_LEN, host); }
+    inline bool                 setHost(const String& host) { return setValue<String>(m_cfgHost, host); }
     inline bool                 setLedBrightness(uint8_t brightness) { return setValue<uint8_t>(m_cfgLedBrightness, brightness); }
     inline bool                 setLedDataPin(uint8_t dataPin) { return setValue<uint8_t>(m_cfgLedDataPin, dataPin); }
-    inline bool                 setMqttPassword(const char* pwd) { return setStringValue(m_cfgMqttPassword, MAX_MQTT_PASSWORD_LEN, pwd); }
-    inline bool                 setMqttServer(const char* ip) { return setStringValue(m_cfgMqttServer, MAX_MQTT_SERVER_LEN, ip); }
-    inline bool                 setMqttStatusTopic(const char* topic) { return setStringValue(m_cfgMqttStatusTopic, MAX_MQTT_STATUS_TOPIC_LEN, topic); }
+    inline bool                 setMqttPassword(const String& pwd) { return setValue<String>(m_cfgMqttPassword, pwd); }
+    inline bool                 setMqttServer(const String& ip) { return setValue<String>(m_cfgMqttServer, ip); }
+    inline bool                 setMqttStatusTopic(const String& topic) { return setValue<String>(m_cfgMqttStatusTopic, topic); }
 #ifdef MQTT_TEST_TOPIC
-    inline bool                 setMqttTestTopic(const char* topic) { return setStringValue(m_cfgMqttTestTopic, MAX_MQTT_TEST_TOPIC_LEN, topic); }
+    inline bool                 setMqttTestTopic(const String& topic) { return setValue<String>(m_cfgMqttTestTopic, topic); }
 #endif // MQTT_TEST_TOPIC    
-    inline bool                 setMqttUser(const char* user) { return setStringValue(m_cfgMqttUser, MAX_MQTT_USER_LEN, user); }
-    inline bool                 setMqttWillTopic(const char* topic) { return setStringValue(m_cfgMqttWillTopic, MAX_MQTT_WILL_TOPIC_LEN, topic); }
+    inline bool                 setMqttUser(const String& user) { return setValue<String>(m_cfgMqttUser, user); }
+    inline bool                 setMqttWillTopic(const String& topic) { return setValue<String>(m_cfgMqttWillTopic, topic); }
     inline bool                 setNumberOfLeds(uint8_t numberOfLeds) { return setValue<uint8_t>(m_cfgNumberOfLeds, numberOfLeds); }
 #ifdef HSD_SENSOR_ENABLED
     inline bool                 setSensorEnabled(bool enabled) { setValue<bool>(m_cfgSensorEnabled, enabled); }
     inline bool                 setSensorInterval(uint16_t interval) { setValue<uint16_t>(m_cfgSensorInterval, interval); }
     inline bool                 setSensorPin(uint8_t pin) { setValue<uint8_t>(m_cfgSensorPin, pin); }
 #endif // HSD_SENSOR_ENABLED
-    inline bool                 setVersion(const char* version) { return setStringValue(m_cfgVersion, MAX_VERSION_LEN, version); }
-    inline bool                 setWifiPSK(const char* psk) { return setStringValue(m_cfgWifiPSK, MAX_WIFI_PSK_LEN, psk); }
-    inline bool                 setWifiSSID(const char* ssid) { return setStringValue(m_cfgWifiSSID, MAX_WIFI_SSID_LEN, ssid); }
+    inline bool                 setVersion(const String& version) { return setValue<String>(m_cfgVersion, version); }
+    inline bool                 setWifiPSK(const String& psk) { return setValue<String>(m_cfgWifiPSK, psk); }
+    inline bool                 setWifiSSID(const String& ssid) { return setValue<String>(m_cfgWifiSSID, ssid); }
     uint32_t                    string2hex(String value) const;
     inline void                 updateColorMapping() { readColorMappingConfigFile(); }
     inline void                 updateDeviceMapping() { readDeviceMappingConfigFile(); }
@@ -215,7 +215,6 @@ private:
     void resetColorMappingConfigData();
     void resetDeviceMappingConfigData();
     void resetMainConfigData();
-    bool setStringValue(char* val, int maxLen, const char* newValue) const;
     template <class T>
     bool setValue(T& val, const T& newValue) const {
         if (val != newValue) {
@@ -229,55 +228,41 @@ private:
     void writeDeviceMappingConfigFile();
     void writeMainConfigFile();
 
-    static const int MAX_CLOCK_NTP_SERVER_LEN  = 40;
-    static const int MAX_CLOCK_TIMEZONE_LEN    = 40;
     static const int MAX_COLOR_MAP_ENTRIES     = 30;
     static const int MAX_DEVICE_MAP_ENTRIES    = 35;
-    static const int MAX_HOST_LEN              = 30;
-    static const int MAX_MQTT_PASSWORD_LEN     = 50;
-    static const int MAX_MQTT_SERVER_LEN       = 20;
-    static const int MAX_MQTT_STATUS_TOPIC_LEN = 50;
-#ifdef MQTT_TEST_TOPIC
-    static const int MAX_MQTT_TEST_TOPIC_LEN   = 50;
-#endif // MQTT_TEST_TOPIC    
-    static const int MAX_MQTT_USER_LEN         = 20;
-    static const int MAX_MQTT_WILL_TOPIC_LEN   = 50;
-    static const int MAX_VERSION_LEN           = 20;
-    static const int MAX_WIFI_PSK_LEN          = 30;
-    static const int MAX_WIFI_SSID_LEN         = 30;
 
 #ifdef HSD_CLOCK_ENABLED
     uint8_t                               m_cfgClockBrightness;
     uint16_t                              m_cfgClockNTPInterval;
-    char                                  m_cfgClockNTPServer[MAX_CLOCK_NTP_SERVER_LEN + 1];
+    String                                m_cfgClockNTPServer;
     uint8_t                               m_cfgClockPinCLK;
     uint8_t                               m_cfgClockPinDIO;
-    char                                  m_cfgClockTimeZone[MAX_CLOCK_TIMEZONE_LEN + 1];
+    String                                m_cfgClockTimeZone;
 #endif // HSD_CLOCK_ENABLED
     PreAllocatedLinkedList<ColorMapping>  m_cfgColorMapping;
     bool                                  m_cfgColorMappingDirty;
     PreAllocatedLinkedList<DeviceMapping> m_cfgDeviceMapping;
     bool                                  m_cfgDeviceMappingDirty;
-    char                                  m_cfgHost[MAX_HOST_LEN + 1];
+    String                                m_cfgHost;
     uint8_t                               m_cfgLedBrightness;
     uint8_t                               m_cfgLedDataPin;
-    char                                  m_cfgMqttPassword[MAX_MQTT_PASSWORD_LEN + 1];
-    char                                  m_cfgMqttServer[MAX_MQTT_SERVER_LEN + 1];
-    char                                  m_cfgMqttStatusTopic[MAX_MQTT_STATUS_TOPIC_LEN + 1];
+    String                                m_cfgMqttPassword;
+    String                                m_cfgMqttServer;
+    String                                m_cfgMqttStatusTopic;
 #ifdef MQTT_TEST_TOPIC
-    char                                  m_cfgMqttTestTopic[MAX_MQTT_TEST_TOPIC_LEN + 1];
+    String                                m_cfgMqttTestTopic;
 #endif // MQTT_TEST_TOPIC    
-    char                                  m_cfgMqttUser[MAX_MQTT_USER_LEN + 1];
-    char                                  m_cfgMqttWillTopic[MAX_MQTT_WILL_TOPIC_LEN + 1];
+    String                                m_cfgMqttUser;
+    String                                m_cfgMqttWillTopic;
     uint8_t                               m_cfgNumberOfLeds;
 #ifdef HSD_SENSOR_ENABLED
     bool                                  m_cfgSensorEnabled;
     uint16_t                              m_cfgSensorInterval;
     uint8_t                               m_cfgSensorPin;
 #endif // HSD_SENSOR_ENABLED
-    char                                  m_cfgVersion[MAX_VERSION_LEN + 1];
-    char                                  m_cfgWifiPSK[MAX_WIFI_PSK_LEN + 1];
-    char                                  m_cfgWifiSSID[MAX_WIFI_SSID_LEN + 1];
+    String                                m_cfgVersion;
+    String                                m_cfgWifiPSK;
+    String                                m_cfgWifiSSID;
     HSDConfigFile                         m_colorMappingConfigFile;
     HSDConfigFile                         m_deviceMappingConfigFile;
     HSDConfigFile                         m_mainConfigFile;

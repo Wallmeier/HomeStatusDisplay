@@ -483,18 +483,6 @@ void HSDConfig::deleteAllColorMappingEntries() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-bool HSDConfig::setStringValue(char* val, int maxLen, const char* newValue) const {
-    if (strncmp(val, newValue, maxLen)) {
-        strncpy(val, newValue, maxLen);
-        val[maxLen] = '\0';
-        return true;
-    } else {
-        return false;
-    }
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
 int HSDConfig::getLedNumber(const String& deviceName) const {
     for (int i = 0; i < m_cfgDeviceMapping.size(); i++) {
         const DeviceMapping* mapping = m_cfgDeviceMapping.get(i);
