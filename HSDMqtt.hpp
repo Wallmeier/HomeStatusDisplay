@@ -1,42 +1,36 @@
-#pragma once
+#ifndef HSDMQTT_H
+#define HSDMQTT_H
 
-#include "HSDConfig.hpp"
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-class HSDMqtt
-{
+#include "HSDConfig.hpp"
+
+#define MAX_IN_TOPICS 10
+
+class HSDMqtt {
 public:
+    HSDMqtt(const HSDConfig& config, MQTT_CALLBACK_SIGNATURE);
 
-  HSDMqtt(const HSDConfig& config, MQTT_CALLBACK_SIGNATURE);
-
-  static const uint32_t MAX_IN_TOPICS = 10;
-
-  void begin();
-  void handle();
-  void publish(String topic, String msg);
-  bool reconnect(); 
-  bool addTopic(const char* topic);
-  bool connected() const;
+    bool        addTopic(const char* topic);
+    void        begin();
+    inline bool connected() const { return m_pubSubClient.connected(); }
+    void        handle();
+    void        publish(String topic, String msg) const;
+    bool        reconnect() const; 
 
 private:
+    inline bool isTopicValid(const char* topic) const { return (strlen(topic) > 0); }
+    void        subscribe(const char* topic) const;
 
-  void initTopics();
-  void subscribe(const char* topic);
-  bool isTopicValid(const char* topic);
-
-  WiFiClient m_wifiClient;
-  mutable PubSubClient m_pubSubClient;
-
-  const HSDConfig& m_config;
-
-  const char* m_inTopics[MAX_IN_TOPICS];
-  uint32_t m_numberOfInTopics;
-  
-  bool m_connectFailure;
-  int m_maxConnectRetries;
-  int m_numConnectRetriesDone;
-  int m_retryDelay;
-  unsigned long m_millisLastConnectTry;
+    const HSDConfig&     m_config;
+    bool                 m_connectFailure;
+    const char*          m_inTopics[MAX_IN_TOPICS];
+    unsigned long        m_millisLastConnectTry;
+    uint32_t             m_numberOfInTopics;
+    int                  m_numConnectRetriesDone;
+    mutable PubSubClient m_pubSubClient;
+    WiFiClient           m_wifiClient;  
 };
 
+#endif // HSDMQTT_H
