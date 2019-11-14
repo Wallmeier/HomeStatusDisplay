@@ -129,8 +129,8 @@ void HSDWebserver::deliverRootPage()
 #ifdef HSD_CLOCK_ENABLED
   html += F(""
   " <tr>"
-  "  <td><b><font size='+1'>Clock</font></b> (leave empty if not desired)</td>"
-  "  <td></td>"
+  "  <td><b><font size='+1'>Clock</font></b></td>"
+  "  <td>(leave empty if not desired)</td>"
   " </tr>"
   " <tr>"
   "  <td>CLK pin</td>");
