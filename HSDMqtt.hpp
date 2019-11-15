@@ -16,11 +16,12 @@ public:
     void        begin();
     inline bool connected() const { return m_pubSubClient.connected(); }
     void        handle();
-    void        publish(String topic, String msg) const;
+    inline bool isTopicValid(const String& topic) const { return topic.length() > 0; }
+    void        publish(const String& topic, String msg) const;
+    void        publish(const String& topic, const JsonObject& json) const;
     bool        reconnect() const; 
 
 private:
-    inline bool isTopicValid(const String& topic) const { return topic.length() > 0; }
     void        subscribe(const String& topic) const;
 
     const HSDConfig&     m_config;

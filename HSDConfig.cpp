@@ -16,17 +16,15 @@ static const uint8_t DEFAULT_LED_BRIGHTNESS = 50;
 
 const constexpr HSDConfig::Map HSDConfig::DefaultColor[];
 
-HSDConfig::HSDConfig() :
+HSDConfig::HSDConfig(const char* version, const char* defaultIdentifier) :
     m_cfgColorMapping(MAX_COLOR_MAP_ENTRIES),
     m_cfgDeviceMapping(MAX_DEVICE_MAP_ENTRIES),
     m_colorMappingConfigFile(String("/colormapping.json")),
     m_deviceMappingConfigFile(String("/devicemapping.json")),
-    m_mainConfigFile(String("/config.json"))
+    m_mainConfigFile(String("/config.json")),
+    m_cfgHost(defaultIdentifier),
+    m_cfgVersion(version)
 {
-    // reset non-configurable members
-    setVersion("");
-    setHost("");
-
     // reset configurable members
     resetMainConfigData();
     resetColorMappingConfigData();
@@ -35,12 +33,9 @@ HSDConfig::HSDConfig() :
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDConfig::begin(const char* version, const char* defaultIdentifier) {
+void HSDConfig::begin() {
     Serial.println(F(""));
     Serial.println(F("Initializing config."));
-
-    setVersion(version);
-    setHost(defaultIdentifier);
 
     if (SPIFFS.begin()) {
         Serial.println(F("Mounted file system."));
@@ -67,7 +62,7 @@ void HSDConfig::resetMainConfigData() {
 #ifdef MQTT_TEST_TOPIC
     setMqttTestTopic("");
 #endif // MQTT_TEST_TOPIC    
-    setMqttWillTopic("");
+    setMqttOutTopic("");
 
     setNumberOfLeds(0);
     setLedDataPin(0);
@@ -120,52 +115,57 @@ bool HSDConfig::readMainConfigFile() {
             printMainConfigFile(json);
             Serial.println(F(""));
 
-            if (json.containsKey(JSON_KEY_HOST) && json.containsKey(JSON_KEY_WIFI_SSID) &&
-                json.containsKey(JSON_KEY_WIFI_PSK) && json.containsKey(JSON_KEY_MQTT_SERVER) &&
-                json.containsKey(JSON_KEY_MQTT_USER) && json.containsKey(JSON_KEY_MQTT_PASSWORD) &&
-                json.containsKey(JSON_KEY_MQTT_STATUS_TOPIC) && 
-                json.containsKey(JSON_KEY_MQTT_WILL_TOPIC) && json.containsKey(JSON_KEY_LED_COUNT) &&
-                json.containsKey(JSON_KEY_LED_PIN) && json.containsKey(JSON_KEY_CLOCK_PIN_CLK) &&
-                json.containsKey(JSON_KEY_CLOCK_PIN_DIO) && json.containsKey(JSON_KEY_CLOCK_BRIGHTNESS) &&
-                json.containsKey(JSON_KEY_CLOCK_TIME_ZONE) && json.containsKey(JSON_KEY_CLOCK_NTP_SERVER) &&
-                json.containsKey(JSON_KEY_CLOCK_NTP_INTERVAL)) {
-                Serial.println(F("Config data is complete."));
-
+            if (json.containsKey(JSON_KEY_HOST))
                 setHost(json[JSON_KEY_HOST]);
+            if (json.containsKey(JSON_KEY_WIFI_SSID))
                 setWifiSSID(json[JSON_KEY_WIFI_SSID]);
+            if (json.containsKey(JSON_KEY_WIFI_PSK))
                 setWifiPSK(json[JSON_KEY_WIFI_PSK]);
+            if (json.containsKey(JSON_KEY_MQTT_SERVER))
                 setMqttServer(json[JSON_KEY_MQTT_SERVER]);
+            if (json.containsKey(JSON_KEY_MQTT_USER))
                 setMqttUser(json[JSON_KEY_MQTT_USER]);
+            if (json.containsKey(JSON_KEY_MQTT_PASSWORD))
                 setMqttPassword(json[JSON_KEY_MQTT_PASSWORD]);
+            if (json.containsKey(JSON_KEY_MQTT_STATUS_TOPIC))
                 setMqttStatusTopic(json[JSON_KEY_MQTT_STATUS_TOPIC]);
 #ifdef MQTT_TEST_TOPIC
-                if (json.containsKey(JSON_KEY_MQTT_TEST_TOPIC))
-                    setMqttTestTopic(json[JSON_KEY_MQTT_TEST_TOPIC]);
-#endif                 
-                setMqttWillTopic(json[JSON_KEY_MQTT_WILL_TOPIC]);
+            if (json.containsKey(JSON_KEY_MQTT_TEST_TOPIC))
+                setMqttTestTopic(json[JSON_KEY_MQTT_TEST_TOPIC]);
+#endif          
+            if (json.containsKey(JSON_KEY_MQTT_OUT_TOPIC))
+                setMqttOutTopic(json[JSON_KEY_MQTT_OUT_TOPIC]);
+            if (json.containsKey(JSON_KEY_LED_COUNT))
                 setNumberOfLeds(json[JSON_KEY_LED_COUNT]);
+            if (json.containsKey(JSON_KEY_LED_PIN))
                 setLedDataPin(json[JSON_KEY_LED_PIN]);
+            if (json.containsKey(JSON_KEY_LED_BRIGHTNESS))
                 setLedBrightness(json[JSON_KEY_LED_BRIGHTNESS]);
 #ifdef HSD_CLOCK_ENABLED
-                if (json.containsKey(JSON_KEY_CLOCK_ENABLED))
-                    setClockEnabled(json[JSON_KEY_CLOCK_ENABLED]);
+            if (json.containsKey(JSON_KEY_CLOCK_ENABLED))
+                setClockEnabled(json[JSON_KEY_CLOCK_ENABLED]);
+            if (json.containsKey(JSON_KEY_CLOCK_PIN_CLK))
                 setClockPinCLK(json[JSON_KEY_CLOCK_PIN_CLK]);
+            if (json.containsKey(JSON_KEY_CLOCK_PIN_DIO))
                 setClockPinDIO(json[JSON_KEY_CLOCK_PIN_DIO]);
+            if (json.containsKey(JSON_KEY_CLOCK_BRIGHTNESS))
                 setClockBrightness(json[JSON_KEY_CLOCK_BRIGHTNESS]);
+            if (json.containsKey(JSON_KEY_CLOCK_TIME_ZONE))
                 setClockTimeZone(json[JSON_KEY_CLOCK_TIME_ZONE]);
+            if (json.containsKey(JSON_KEY_CLOCK_NTP_SERVER))
                 setClockNTPServer(json[JSON_KEY_CLOCK_NTP_SERVER]);
+            if (json.containsKey(JSON_KEY_CLOCK_NTP_INTERVAL))
                 setClockNTPInterval(json[JSON_KEY_CLOCK_NTP_INTERVAL]);
 #endif // HSD_CLOCK_ENABLED
 #ifdef HSD_SENSOR_ENABLED
-                if (json.containsKey(JSON_KEY_SENSOR_ENABLED))
-                    setSensorEnabled(json[JSON_KEY_SENSOR_ENABLED]);
-                if (json.containsKey(JSON_KEY_SENSOR_PIN))
-                    setSensorPin(json[JSON_KEY_SENSOR_PIN]);
-                if (json.containsKey(JSON_KEY_SENSOR_INTERVAL))
-                    setSensorInterval(json[JSON_KEY_SENSOR_INTERVAL]);
+            if (json.containsKey(JSON_KEY_SENSOR_ENABLED))
+                setSensorEnabled(json[JSON_KEY_SENSOR_ENABLED]);
+            if (json.containsKey(JSON_KEY_SENSOR_PIN))
+                setSensorPin(json[JSON_KEY_SENSOR_PIN]);
+            if (json.containsKey(JSON_KEY_SENSOR_INTERVAL))
+                setSensorInterval(json[JSON_KEY_SENSOR_INTERVAL]);
 #endif // HSD_SENSOR_ENABLED
-                success = true;
-            }
+            success = true;
         } else {
             Serial.println(F("Could not parse config data."));
         }
@@ -190,7 +190,7 @@ void HSDConfig::printMainConfigFile(JsonObject& json) {
 #ifdef MQTT_TEST_TOPIC
     Serial.print  (F("  • mqttTestTopic   : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_TEST_TOPIC]));
 #endif // MQTT_TEST_TOPIC    
-    Serial.print  (F("  • mqttWillTopic   : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_WILL_TOPIC]));
+    Serial.print  (F("  • mqttOutTopic    : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_OUT_TOPIC]));
     Serial.print  (F("  • ledCount        : ")); Serial.println((const char*)(json[JSON_KEY_LED_COUNT]));
     Serial.print  (F("  • ledPin          : ")); Serial.println((const char*)(json[JSON_KEY_LED_PIN]));
     Serial.print  (F("  • ledBrightness   : ")); Serial.println((const char*)(json[JSON_KEY_LED_BRIGHTNESS]));
@@ -323,12 +323,12 @@ void HSDConfig::writeMainConfigFile() {
 #ifdef MQTT_TEST_TOPIC    
     json[JSON_KEY_MQTT_TEST_TOPIC] = m_cfgMqttTestTopic;
 #endif // MQTT_TEST_TOPIC    
-    json[JSON_KEY_MQTT_WILL_TOPIC] = m_cfgMqttWillTopic;
+    json[JSON_KEY_MQTT_OUT_TOPIC] = m_cfgMqttOutTopic;
     json[JSON_KEY_LED_COUNT] = m_cfgNumberOfLeds;
     json[JSON_KEY_LED_PIN] = m_cfgLedDataPin;
     json[JSON_KEY_LED_BRIGHTNESS] = m_cfgLedBrightness;
 #ifdef HSD_CLOCK_ENABLED
-    json[JSON_KEY_SENSOR_ENABLED] = m_cfgClockEnabled;
+    json[JSON_KEY_CLOCK_ENABLED] = m_cfgClockEnabled;
     json[JSON_KEY_CLOCK_PIN_CLK] = m_cfgClockPinCLK;
     json[JSON_KEY_CLOCK_PIN_DIO] = m_cfgClockPinDIO;
     json[JSON_KEY_CLOCK_BRIGHTNESS] = m_cfgClockBrightness;
@@ -555,4 +555,15 @@ uint32_t HSDConfig::string2hex(String value) const {
     value.replace("%23", "");
     value.replace("#", "");
     return strtoul(value.c_str(), nullptr, 16);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+String HSDConfig::getMqttOutTopic(const String& topic) const {
+    if (m_cfgMqttOutTopic.length() == 0)
+        return "";
+    else if (m_cfgMqttOutTopic.endsWith("/"))
+        return m_cfgMqttOutTopic + topic;
+    else
+        return m_cfgMqttOutTopic + "/" + topic;
 }

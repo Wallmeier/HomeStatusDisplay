@@ -68,7 +68,7 @@ bool HSDMqtt::reconnect() const {
     Serial.print(m_config.getMqttServer());
     Serial.print(" with client id " + clientId + "... ");
 
-    const String& willTopic = m_config.getMqttWillTopic();
+    const String& willTopic = m_config.getMqttOutTopic("status");
     if (m_config.getMqttUser().length() == 0) {
         if (isTopicValid(willTopic))
             connected = m_pubSubClient.connect(clientId.c_str(), willTopic.c_str(), 0, true, "off");
@@ -84,6 +84,15 @@ bool HSDMqtt::reconnect() const {
         Serial.println(F("connected"));
         if (isTopicValid(willTopic))
             publish(willTopic, "on");
+        String verTopic = m_config.getMqttOutTopic("versions");
+        if (isTopicValid(verTopic)) {
+            DynamicJsonBuffer jsonBuffer;
+            JsonObject& json = jsonBuffer.createObject();
+            json["Firmware"] = m_config.getVersion();
+            json["CoreVersion"] = ESP.getCoreVersion();
+            json["SdkVersion"] = ESP.getSdkVersion();
+            publish(verTopic, json);
+        }
         for (uint32_t index = 0; index < m_numberOfInTopics; index++)
             subscribe(m_inTopics[index]);
         retval = true;
@@ -109,11 +118,19 @@ void HSDMqtt::subscribe(const String& topic) const {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDMqtt::publish(String topic, String msg) const {
+void HSDMqtt::publish(const String& topic, String msg) const {
     if (m_pubSubClient.publish(topic.c_str(), msg.c_str()))
         Serial.println("Published msg " + msg + " for topic " + topic);
     else
         Serial.println("Error publishing msg " + msg + " for topic " + topic);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+void HSDMqtt::publish(const String& topic, const JsonObject& json) const {
+    String jsonStr;
+    json.printTo(jsonStr);
+    publish(topic, jsonStr);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

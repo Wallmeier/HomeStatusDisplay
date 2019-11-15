@@ -6,7 +6,8 @@
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-HomeStatusDisplay::HomeStatusDisplay() :
+HomeStatusDisplay::HomeStatusDisplay(const char* version, const char* identifier) :
+    m_config(version, identifier),
     m_webServer(m_config, m_leds, m_mqttHandler),
     m_wifi(m_config),
     m_mqttHandler(m_config, std::bind(&HomeStatusDisplay::mqttCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)),
@@ -15,40 +16,39 @@ HomeStatusDisplay::HomeStatusDisplay() :
     m_clock(nullptr),
 #endif
 #ifdef HSD_SENSOR_ENABLED
-    m_sensor(m_config),
+    m_sensor(nullptr),
 #endif
     m_lastWifiConnectionState(false),
     m_lastMqttConnectionState(false),
     m_oneMinuteTimerLast(0),
     m_uptime(0)
 {
-    if (m_config.getClockEnabled())
-        m_clock = new HSDClock(m_config);
-//    if (m_config.getSensorEnabled())
-//        m_sensor = new HSDSensor(m_config);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HomeStatusDisplay::begin(const char* version, const char* identifier) {
+void HomeStatusDisplay::begin() {
     // initialize serial
     Serial.begin(115200);
     Serial.println(F(""));
 
-    m_config.begin(version, identifier);
+    m_config.begin();
     m_webServer.begin();
     m_leds.begin();
     m_wifi.begin();
     m_mqttHandler.begin();
 #ifdef HSD_CLOCK_ENABLED
-    if (m_config.getClockEnabled())
+    if (m_config.getClockEnabled()) {
+        m_clock = new HSDClock(m_config);
         m_clock->begin();
+    }
 #endif
 #ifdef HSD_SENSOR_ENABLED
-    if (m_config.getSensorEnabled())
-        m_sensor.begin();
+    if (m_config.getSensorEnabled()) {
+        m_sensor = new HSDSensor(m_config);
+        m_sensor->begin();
+    }
 #endif
-
     Serial.print(F("Free RAM: ")); 
     Serial.println(ESP.getFreeHeap());
 }
@@ -67,7 +67,7 @@ void HomeStatusDisplay::work() {
   
     m_leds.update();
 #ifdef HSD_CLOCK_ENABLED
-    if (m_config.getClockEnabled())
+    if (m_clock)
         m_clock->handle();
 #endif
 
@@ -78,7 +78,7 @@ void HomeStatusDisplay::work() {
 
 unsigned long HomeStatusDisplay::calcUptime() {
 #ifdef HSD_SENSOR_ENABLED
-    static uint16_t sensorMinutes = -1;
+    static uint16_t sensorMinutes = 0;
 #endif  
     if (millis() - m_oneMinuteTimerLast >= ONE_MINUTE_MILLIS) {
         m_uptime++;
@@ -91,17 +91,28 @@ unsigned long HomeStatusDisplay::calcUptime() {
             uint16_t max;
             uint8_t frag;
             ESP.getHeapStats(&free, &max, &frag);
-
-            m_mqttHandler.publish("HomeStatusDisplayStat", String(m_uptime, DEC) + " m," + String(free, DEC) + "," + String(max, DEC) + "," + String(frag, DEC));
+            
+            String topic = m_config.getMqttOutTopic("statistic");
+            if (m_mqttHandler.isTopicValid(topic)) {
+                DynamicJsonBuffer jsonBuffer;
+                JsonObject& json = jsonBuffer.createObject();
+                json["Uptime"] = m_uptime;
+                json["HeapFree"] = free;
+                json["HeapMax"] = max;
+                json["HeapFrag"] = frag;
+                if (WiFi.status() == WL_CONNECTED)
+                    json["RSSI"] = WiFi.RSSI();
+                m_mqttHandler.publish(topic, json);                
+            }
         }
     
 #ifdef HSD_SENSOR_ENABLED
-        if (m_config.getSensorEnabled()) {
+        if (m_sensor) {
             sensorMinutes++;
             if (sensorMinutes >= m_config.getSensorInterval()) {
                 sensorMinutes = 0;
                 float temp, hum;
-                if (m_sensor.readSensor(temp, hum)) {
+                if (m_sensor->readSensor(temp, hum)) {
                     m_webServer.setSensorData(temp, hum);
                     Serial.print(F("Sensor: Temp "));
                     Serial.print(temp, 1);
@@ -110,13 +121,14 @@ unsigned long HomeStatusDisplay::calcUptime() {
                     Serial.println(F("%"));
           
                     if (m_mqttHandler.connected()) {
-                        DynamicJsonBuffer jsonBuffer;
-                        JsonObject& json = jsonBuffer.createObject();
-                        json["Temp"] = temp;
-                        json["Hum"] = hum;
-                        String jsonStr;
-                        json.printTo(jsonStr);
-                        m_mqttHandler.publish("HomeStatusDisplaySensor", jsonStr);
+                        String topic = m_config.getMqttOutTopic("sensor");
+                        if (m_mqttHandler.isTopicValid(topic)) {
+                            DynamicJsonBuffer jsonBuffer;
+                            JsonObject& json = jsonBuffer.createObject();
+                            json["Temp"] = temp;
+                            json["Hum"] = hum;
+                            m_mqttHandler.publish(topic, json);
+                        }
                     }
                 } else {
                     Serial.println(F("Sensor failed"));

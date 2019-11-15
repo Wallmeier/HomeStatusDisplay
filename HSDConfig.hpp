@@ -19,7 +19,7 @@
 #define JSON_KEY_MQTT_PASSWORD         (F("mqttPassword"))
 #define JSON_KEY_MQTT_STATUS_TOPIC     (F("mqttStatusTopic"))
 #define JSON_KEY_MQTT_TEST_TOPIC       (F("mqttTestTopic"))
-#define JSON_KEY_MQTT_WILL_TOPIC       (F("mqttWillTopic"))
+#define JSON_KEY_MQTT_OUT_TOPIC        (F("mqttOutTopic"))
 #define JSON_KEY_LED_COUNT             (F("ledCount"))
 #define JSON_KEY_LED_PIN               (F("ledPin"))
 #define JSON_KEY_LED_BRIGHTNESS        (F("ledBrightness"))
@@ -119,11 +119,11 @@ public:
         char     msg[MAX_COLOR_MAPPING_MSG_LEN + 1]; // message
     };
 
-    HSDConfig();
+    HSDConfig(const char* version, const char* defaultIdentifier);
 
     bool                        addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior);
     bool                        addDeviceMappingEntry(int entryNum, String name, int ledNumber);
-    void                        begin(const char* version, const char* defaultIdentifier);
+    void                        begin();
     void                        deleteAllColorMappingEntries();
     void                        deleteAllDeviceMappingEntries();
     bool                        deleteColorMappingEntry(int entryNum);
@@ -149,6 +149,8 @@ public:
     inline uint32_t             getLedColor(int colorMapIndex) const { return m_cfgColorMapping.get(colorMapIndex)->color; }
     inline uint8_t              getLedDataPin() const { return m_cfgLedDataPin; }
     int                         getLedNumber(const String& device) const;
+    inline const String&        getMqttOutTopic() const { return m_cfgMqttOutTopic; }
+    String                      getMqttOutTopic(const String& topic) const;
     inline const String&        getMqttPassword() const { return m_cfgMqttPassword; }
     inline const String&        getMqttServer() const { return m_cfgMqttServer; }
     inline const String&        getMqttStatusTopic() const { return m_cfgMqttStatusTopic; }
@@ -156,7 +158,6 @@ public:
     inline const String&        getMqttTestTopic() const { return m_cfgMqttTestTopic; }
 #endif    
     inline const String&        getMqttUser() const { return m_cfgMqttUser; }
-    inline const String&        getMqttWillTopic() const { return m_cfgMqttWillTopic; }
     inline int                  getNumberOfColorMappingEntries() const { return m_cfgColorMapping.size(); }
     inline int                  getNumberOfDeviceMappingEntries() const { return m_cfgDeviceMapping.size(); }
     inline uint8_t              getNumberOfLeds() const { return m_cfgNumberOfLeds; }
@@ -188,6 +189,7 @@ public:
     inline bool                 setHost(const String& host) { return setValue<String>(m_cfgHost, host); }
     inline bool                 setLedBrightness(uint8_t brightness) { return setValue<uint8_t>(m_cfgLedBrightness, brightness); }
     inline bool                 setLedDataPin(uint8_t dataPin) { return setValue<uint8_t>(m_cfgLedDataPin, dataPin); }
+    inline bool                 setMqttOutTopic(const String& topic) { return setValue<String>(m_cfgMqttOutTopic, topic); }
     inline bool                 setMqttPassword(const String& pwd) { return setValue<String>(m_cfgMqttPassword, pwd); }
     inline bool                 setMqttServer(const String& ip) { return setValue<String>(m_cfgMqttServer, ip); }
     inline bool                 setMqttStatusTopic(const String& topic) { return setValue<String>(m_cfgMqttStatusTopic, topic); }
@@ -195,14 +197,12 @@ public:
     inline bool                 setMqttTestTopic(const String& topic) { return setValue<String>(m_cfgMqttTestTopic, topic); }
 #endif // MQTT_TEST_TOPIC    
     inline bool                 setMqttUser(const String& user) { return setValue<String>(m_cfgMqttUser, user); }
-    inline bool                 setMqttWillTopic(const String& topic) { return setValue<String>(m_cfgMqttWillTopic, topic); }
     inline bool                 setNumberOfLeds(uint8_t numberOfLeds) { return setValue<uint8_t>(m_cfgNumberOfLeds, numberOfLeds); }
 #ifdef HSD_SENSOR_ENABLED
     inline bool                 setSensorEnabled(bool enabled) { return setValue<bool>(m_cfgSensorEnabled, enabled); }
     inline bool                 setSensorInterval(uint16_t interval) { return setValue<uint16_t>(m_cfgSensorInterval, interval); }
     inline bool                 setSensorPin(uint8_t pin) { return setValue<uint8_t>(m_cfgSensorPin, pin); }
 #endif // HSD_SENSOR_ENABLED
-    inline bool                 setVersion(const String& version) { return setValue<String>(m_cfgVersion, version); }
     inline bool                 setWifiPSK(const String& psk) { return setValue<String>(m_cfgWifiPSK, psk); }
     inline bool                 setWifiSSID(const String& ssid) { return setValue<String>(m_cfgWifiSSID, ssid); }
     uint32_t                    string2hex(String value) const;
@@ -250,6 +250,7 @@ private:
     String                                m_cfgHost;
     uint8_t                               m_cfgLedBrightness;
     uint8_t                               m_cfgLedDataPin;
+    String                                m_cfgMqttOutTopic;
     String                                m_cfgMqttPassword;
     String                                m_cfgMqttServer;
     String                                m_cfgMqttStatusTopic;
@@ -257,14 +258,13 @@ private:
     String                                m_cfgMqttTestTopic;
 #endif // MQTT_TEST_TOPIC    
     String                                m_cfgMqttUser;
-    String                                m_cfgMqttWillTopic;
     uint8_t                               m_cfgNumberOfLeds;
 #ifdef HSD_SENSOR_ENABLED
     bool                                  m_cfgSensorEnabled;
     uint16_t                              m_cfgSensorInterval;
     uint8_t                               m_cfgSensorPin;
 #endif // HSD_SENSOR_ENABLED
-    String                                m_cfgVersion;
+    const String                          m_cfgVersion;
     String                                m_cfgWifiPSK;
     String                                m_cfgWifiSSID;
     HSDConfigFile                         m_colorMappingConfigFile;

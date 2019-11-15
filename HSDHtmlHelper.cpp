@@ -13,8 +13,8 @@ String HSDHtmlHelper::getHeader(const char* title, const String& host, const Str
     header += F("<title>");
     header += host;
     header += F("</title>");
-    header += F("<style>.button {border-radius:0;height:30px;width:100px;border:0;background-color:black;color:#fff;margin:5px;cursor:pointer;}</style>");
-    header += F("<style>.buttonr {border-radius:0;height:30px;width:100px;border:0;background-color:red;color:#fff;margin:5px;cursor:pointer;}</style>");
+    header += F("<style>.button {border-radius:0;height:30px;width:120px;border:0;background-color:black;color:#fff;margin:5px;cursor:pointer;}</style>");
+    header += F("<style>.buttonr {border-radius:0;height:30px;width:120px;border:0;background-color:red;color:#fff;margin:5px;cursor:pointer;}</style>");
     header += F("<style>.hsdcolor {width:15px;height:15px;border:1px black solid;float:left;margin-right:5px';}</style>");
     header += F("<style>.rdark {background-color:#f9f9f9;}</style>");
     header += F("<style>.rlight {background-color:#e5e5e5;}</style>");

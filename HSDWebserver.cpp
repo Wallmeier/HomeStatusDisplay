@@ -104,9 +104,9 @@ void HSDWebserver::deliverConfigPage() {
     html += F("' size='30' maxlength='40' placeholder='#'></td>"
               " </tr>"
               " <tr>"
-              "  <td>Will topic</td>"
-              "  <td><input type='text' name='mqttWillTopic' value='");
-    html += String(m_config.getMqttWillTopic());
+              "  <td>Outgoing topic</td>"
+              "  <td><input type='text' name='mqttOutTopic' value='");
+    html += String(m_config.getMqttOutTopic());
     html += F("' size='30' maxlength='40' placeholder='#'></td></tr>");
     m_server.sendContent(html);
 
@@ -531,8 +531,8 @@ bool HSDWebserver::updateMainConfig() {
     if (m_server.hasArg(JSON_KEY_MQTT_TEST_TOPIC)) 
         needSave |= m_config.setMqttTestTopic(m_server.arg(JSON_KEY_MQTT_TEST_TOPIC));
 #endif // MQTT_TEST_TOPIC
-    if (m_server.hasArg(JSON_KEY_MQTT_WILL_TOPIC)) 
-        needSave |= m_config.setMqttWillTopic(m_server.arg(JSON_KEY_MQTT_WILL_TOPIC));
+    if (m_server.hasArg(JSON_KEY_MQTT_OUT_TOPIC)) 
+        needSave |= m_config.setMqttOutTopic(m_server.arg(JSON_KEY_MQTT_OUT_TOPIC));
 
     if (m_server.hasArg(JSON_KEY_LED_COUNT)) {
         int ledCount = m_server.arg(JSON_KEY_LED_COUNT).toInt();

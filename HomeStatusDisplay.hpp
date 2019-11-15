@@ -16,9 +16,9 @@
 
 class HomeStatusDisplay {
 public:
-    HomeStatusDisplay();
+    HomeStatusDisplay(const char* version, const char* identifier);
   
-    void begin(const char* version, const char* identifier);
+    void begin();
     void work();
   
 private:
@@ -42,7 +42,7 @@ private:
     HSDMqtt       m_mqttHandler;
     unsigned long m_oneMinuteTimerLast;
 #ifdef HSD_SENSOR_ENABLED
-    HSDSensor     m_sensor;
+    HSDSensor*    m_sensor;
 #endif
     unsigned long m_uptime;
     HSDWebserver  m_webServer;
