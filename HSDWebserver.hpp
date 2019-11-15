@@ -20,8 +20,10 @@ public:
 #endif // HSD_SENSOR_ENABLED  
 
 private:
+    bool        addColorMappingEntry();
     bool        addDeviceMappingEntry();
     void        checkReboot();
+    bool        deleteColorMappingEntry();
     bool        deleteDeviceMappingEntry();
     void        deliverColorMappingPage();
     void        deliverConfigPage();
@@ -33,14 +35,8 @@ private:
     inline bool needDeleteAll() const { return m_server.hasArg("deleteall"); }
     inline bool needSave() const { return m_server.hasArg("save"); }
     inline bool needUndo() const { return (m_server.hasArg("undo")); }
+    bool        updateDeviceMappingConfig();
     bool        updateMainConfig();
-
-    
-  bool addColorMappingEntry();
-  bool deleteColorMappingEntry();
-
-  
-  bool updateDeviceMappingConfig();
 
     HSDConfig&              m_config;
     unsigned long           m_deviceUptimeMinutes;

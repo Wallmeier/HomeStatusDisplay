@@ -74,6 +74,7 @@ void HSDConfig::resetMainConfigData() {
     setLedBrightness(DEFAULT_LED_BRIGHTNESS);
 
 #ifdef HSD_CLOCK_ENABLED
+    setClockEnabled(false);
     setClockPinCLK(0);
     setClockPinCLK(0);
     setClockBrightness(4);
@@ -146,6 +147,8 @@ bool HSDConfig::readMainConfigFile() {
                 setLedDataPin(json[JSON_KEY_LED_PIN]);
                 setLedBrightness(json[JSON_KEY_LED_BRIGHTNESS]);
 #ifdef HSD_CLOCK_ENABLED
+                if (json.containsKey(JSON_KEY_CLOCK_ENABLED))
+                    setClockEnabled(json[JSON_KEY_CLOCK_ENABLED]);
                 setClockPinCLK(json[JSON_KEY_CLOCK_PIN_CLK]);
                 setClockPinDIO(json[JSON_KEY_CLOCK_PIN_DIO]);
                 setClockBrightness(json[JSON_KEY_CLOCK_BRIGHTNESS]);
@@ -192,6 +195,7 @@ void HSDConfig::printMainConfigFile(JsonObject& json) {
     Serial.print  (F("  • ledPin          : ")); Serial.println((const char*)(json[JSON_KEY_LED_PIN]));
     Serial.print  (F("  • ledBrightness   : ")); Serial.println((const char*)(json[JSON_KEY_LED_BRIGHTNESS]));
 #ifdef HSD_CLOCK_ENABLED
+    Serial.print  (F("  • clockEnabled    : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_ENABLED]));
     Serial.print  (F("  • clockPinCLK     : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_PIN_CLK]));
     Serial.print  (F("  • clockPinDIO     : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_PIN_DIO]));
     Serial.print  (F("  • clockBrightness : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_BRIGHTNESS]));
@@ -324,6 +328,7 @@ void HSDConfig::writeMainConfigFile() {
     json[JSON_KEY_LED_PIN] = m_cfgLedDataPin;
     json[JSON_KEY_LED_BRIGHTNESS] = m_cfgLedBrightness;
 #ifdef HSD_CLOCK_ENABLED
+    json[JSON_KEY_SENSOR_ENABLED] = m_cfgClockEnabled;
     json[JSON_KEY_CLOCK_PIN_CLK] = m_cfgClockPinCLK;
     json[JSON_KEY_CLOCK_PIN_DIO] = m_cfgClockPinDIO;
     json[JSON_KEY_CLOCK_BRIGHTNESS] = m_cfgClockBrightness;

@@ -29,7 +29,7 @@ String HSDHtmlHelper::getHeader(const char* title, const String& host, const Str
     header += F("<input type='submit' class='button' value='Reboot' name='reset'>");
     header += F("<input type='button' class='button' onclick=\"location.href='./update'\" value='Update Firmware'></p>");
   
-    header += F("<p><input type='button' class='button' onclick=\"location.href='./cfgmain'\" value='General'>");
+    header += F("<p><input type='button' class='button' onclick=\"location.href='./cfgmain'\" value='Configuration'>");
     header += F("<input type='button' class='button' onclick=\"location.href='./cfgcolormapping'\" value='Color mapping'>");
     header += F("<input type='button' class='button' onclick=\"location.href='./cfgdevicemapping'\" value='Device mapping'></p></form>");
   

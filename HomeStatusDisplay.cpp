@@ -12,7 +12,7 @@ HomeStatusDisplay::HomeStatusDisplay() :
     m_mqttHandler(m_config, std::bind(&HomeStatusDisplay::mqttCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)),
     m_leds(m_config),
 #ifdef HSD_CLOCK_ENABLED
-    m_clock(m_config),
+    m_clock(nullptr),
 #endif
 #ifdef HSD_SENSOR_ENABLED
     m_sensor(m_config),
@@ -22,6 +22,10 @@ HomeStatusDisplay::HomeStatusDisplay() :
     m_oneMinuteTimerLast(0),
     m_uptime(0)
 {
+    if (m_config.getClockEnabled())
+        m_clock = new HSDClock(m_config);
+//    if (m_config.getSensorEnabled())
+//        m_sensor = new HSDSensor(m_config);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -37,10 +41,12 @@ void HomeStatusDisplay::begin(const char* version, const char* identifier) {
     m_wifi.begin();
     m_mqttHandler.begin();
 #ifdef HSD_CLOCK_ENABLED
-    m_clock.begin();
+    if (m_config.getClockEnabled())
+        m_clock->begin();
 #endif
 #ifdef HSD_SENSOR_ENABLED
-    m_sensor.begin();
+    if (m_config.getSensorEnabled())
+        m_sensor.begin();
 #endif
 
     Serial.print(F("Free RAM: ")); 
@@ -61,7 +67,8 @@ void HomeStatusDisplay::work() {
   
     m_leds.update();
 #ifdef HSD_CLOCK_ENABLED
-    m_clock.handle();
+    if (m_config.getClockEnabled())
+        m_clock->handle();
 #endif
 
     delay(100);

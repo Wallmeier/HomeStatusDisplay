@@ -29,6 +29,7 @@
 #define JSON_KEY_CLOCK_TIME_ZONE       (F("clockTZ"))
 #define JSON_KEY_CLOCK_NTP_SERVER      (F("clockServer"))
 #define JSON_KEY_CLOCK_NTP_INTERVAL    (F("clockInterval"))
+#define JSON_KEY_CLOCK_ENABLED         (F("clockEnabled"))
 #define JSON_KEY_SENSOR_ENABLED        (F("sensorEnabled"))
 #define JSON_KEY_SENSOR_PIN            (F("sensorPin"))
 #define JSON_KEY_SENSOR_INTERVAL       (F("sensorInterval"))
@@ -129,6 +130,7 @@ public:
     bool                        deleteDeviceMappingEntry(int entryNum);
 #ifdef HSD_CLOCK_ENABLED
     inline uint8_t              getClockBrightness() const { return m_cfgClockBrightness; }
+    inline bool                 getClockEnabled() const { return m_cfgClockEnabled; }
     inline uint16_t             getClockNTPInterval() const { return m_cfgClockNTPInterval; }
     inline const String&        getClockNTPServer() const { return m_cfgClockNTPServer; }
     inline uint8_t              getClockPinCLK() const { return m_cfgClockPinCLK; }
@@ -176,6 +178,7 @@ public:
     inline void                 saveMain() { writeMainConfigFile(); }
 #ifdef HSD_CLOCK_ENABLED
     inline bool                 setClockBrightness(uint8_t brightness) { return setValue<uint8_t>(m_cfgClockBrightness, brightness); }
+    inline bool                 setClockEnabled(bool enabled) { return setValue<bool>(m_cfgClockEnabled, enabled); }
     inline bool                 setClockNTPInterval(uint16_t minutes) { return setValue<uint16_t>(m_cfgClockNTPInterval, minutes); }
     inline bool                 setClockNTPServer(const String& server) { return setValue<String>(m_cfgClockNTPServer, server); }
     inline bool                 setClockPinCLK(uint8_t dataPin) { return setValue<uint8_t>(m_cfgClockPinCLK, dataPin); }
@@ -195,9 +198,9 @@ public:
     inline bool                 setMqttWillTopic(const String& topic) { return setValue<String>(m_cfgMqttWillTopic, topic); }
     inline bool                 setNumberOfLeds(uint8_t numberOfLeds) { return setValue<uint8_t>(m_cfgNumberOfLeds, numberOfLeds); }
 #ifdef HSD_SENSOR_ENABLED
-    inline bool                 setSensorEnabled(bool enabled) { setValue<bool>(m_cfgSensorEnabled, enabled); }
-    inline bool                 setSensorInterval(uint16_t interval) { setValue<uint16_t>(m_cfgSensorInterval, interval); }
-    inline bool                 setSensorPin(uint8_t pin) { setValue<uint8_t>(m_cfgSensorPin, pin); }
+    inline bool                 setSensorEnabled(bool enabled) { return setValue<bool>(m_cfgSensorEnabled, enabled); }
+    inline bool                 setSensorInterval(uint16_t interval) { return setValue<uint16_t>(m_cfgSensorInterval, interval); }
+    inline bool                 setSensorPin(uint8_t pin) { return setValue<uint8_t>(m_cfgSensorPin, pin); }
 #endif // HSD_SENSOR_ENABLED
     inline bool                 setVersion(const String& version) { return setValue<String>(m_cfgVersion, version); }
     inline bool                 setWifiPSK(const String& psk) { return setValue<String>(m_cfgWifiPSK, psk); }
@@ -233,6 +236,7 @@ private:
 
 #ifdef HSD_CLOCK_ENABLED
     uint8_t                               m_cfgClockBrightness;
+    bool                                  m_cfgClockEnabled;
     uint16_t                              m_cfgClockNTPInterval;
     String                                m_cfgClockNTPServer;
     uint8_t                               m_cfgClockPinCLK;

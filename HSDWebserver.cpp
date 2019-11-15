@@ -130,10 +130,15 @@ void HSDWebserver::deliverConfigPage() {
 #ifdef HSD_CLOCK_ENABLED
     html = F(" <tr>"
              "  <td><b><font size='+1'>Clock</font></b></td>"
-             "  <td>(leave empty if not desired)</td>"
+             "  <td>(TM1637)</td>"
              " </tr>"
              " <tr>"
-             "  <td>CLK pin</td>");
+             "  <td>Enabled</td>");
+    html += F("  <td><input type='checkbox' name='clockEnabled'");
+    if (m_config.getClockEnabled())
+        html += F(" checked");
+    html += F("></td></tr>");
+    html += F("<tr><td>CLK pin</td>");
     html += "  <td><input type='text' name='clockCLK' value='" + String(m_config.getClockPinCLK()) + "' size='30' maxlength='5' placeholder='0'></td></tr>";
     html += F("<tr><td>DIO pin</td>");
     html += F("<td><input type='text' name='clockDIO' value='");
@@ -546,8 +551,9 @@ bool HSDWebserver::updateMainConfig() {
         if (ledBrightness > 0)
             needSave |= m_config.setLedBrightness(ledBrightness);
     }
-
+#ifdef HSD_CLOCK_ENABLED
     if (m_server.hasArg(JSON_KEY_CLOCK_PIN_CLK)) {
+        needSave |= m_config.setClockEnabled(m_server.hasArg(JSON_KEY_CLOCK_ENABLED));
         int pin = m_server.arg(JSON_KEY_CLOCK_PIN_CLK).toInt();
         if (pin > 0)
             needSave |= m_config.setClockPinCLK(pin);
@@ -575,7 +581,7 @@ bool HSDWebserver::updateMainConfig() {
         if (interval > 0)
             needSave |= m_config.setClockNTPInterval(interval);
     }
-
+#endif // HSD_CLOCK_ENABLED
 #ifdef HSD_SENSOR_ENABLED
     if (m_server.hasArg(JSON_KEY_SENSOR_PIN)) {
         needSave |= m_config.setSensorEnabled(m_server.hasArg(JSON_KEY_SENSOR_ENABLED));
@@ -586,7 +592,7 @@ bool HSDWebserver::updateMainConfig() {
         needSave |= m_config.setSensorInterval(m_server.arg(JSON_KEY_SENSOR_INTERVAL).toInt());
 #endif // HSD_SENSOR_ENABLED  
   
-  return needSave;
+    return needSave;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

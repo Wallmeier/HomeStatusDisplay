@@ -33,7 +33,7 @@ private:
     void          mqttCallback(char* topic, byte* payload, unsigned int length);
 
 #ifdef HSD_CLOCK_ENABLED
-    HSDClock      m_clock;
+    HSDClock*     m_clock;
 #endif
     HSDConfig     m_config;
     bool          m_lastMqttConnectionState;
