@@ -1,8 +1,12 @@
 #ifndef HSDWEBSERVER_H
 #define HSDWEBSERVER_H
 
+#ifdef ARDUINO_ARCH_ESP32
+#include <WebServer.h>
+#else
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPUpdateServer.h>
+#endif
 
 #include "HSDConfig.hpp"
 #include "HSDHtmlHelper.hpp"
@@ -30,11 +34,11 @@ private:
     void        deliverDeviceMappingPage();
     void        deliverNotFoundPage();
     void        deliverStatusPage();
-    inline bool needAdd() const { return m_server.hasArg("add"); }
-    inline bool needDelete() const { return m_server.hasArg("delete"); }
-    inline bool needDeleteAll() const { return m_server.hasArg("deleteall"); }
-    inline bool needSave() const { return m_server.hasArg("save"); }
-    inline bool needUndo() const { return (m_server.hasArg("undo")); }
+    inline bool needAdd() { return m_server.hasArg("add"); }
+    inline bool needDelete() { return m_server.hasArg("delete"); }
+    inline bool needDeleteAll() { return m_server.hasArg("deleteall"); }
+    inline bool needSave() { return m_server.hasArg("save"); }
+    inline bool needUndo() { return (m_server.hasArg("undo")); }
     bool        updateDeviceMappingConfig();
     bool        updateMainConfig();
 
@@ -47,8 +51,12 @@ private:
 #endif  
     const HSDLeds&          m_leds;
     const HSDMqtt&          m_mqtt;
+#ifdef ARDUINO_ARCH_ESP32
+    WebServer               m_server;
+#else
     ESP8266WebServer        m_server;
     ESP8266HTTPUpdateServer m_updateServer; 
+#endif // ARDUINO_ARCH_ESP32    
 };
 
 #endif // HSDWEBSERVER_H

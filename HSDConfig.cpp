@@ -1,7 +1,11 @@
 #include "HSDConfig.hpp"
 
-#include <FS.h>
 #include <ArduinoJson.h>
+#ifdef ARDUINO_ARCH_ESP32
+#include <SPIFFS.h>
+#else
+#include <FS.h>
+#endif
 
 static const int MAX_SIZE_MAIN_CONFIG_FILE = 700;
 static const int JSON_BUFFER_MAIN_CONFIG_FILE = 800;

@@ -1,7 +1,11 @@
 #ifndef HSDWIFI_H
 #define HSDWIFI_H
 
+#ifdef ARDUINO_ARCH_ESP32
+#include <WiFi.h>
+#else
 #include <ESP8266WiFi.h>
+#endif // ARDUINO_ARCH_ESP32
 
 #include "HSDConfig.hpp"
 

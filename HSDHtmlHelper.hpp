@@ -2,7 +2,11 @@
 #define HSDHTMLHELPER_H
 
 #include <Arduino.h>
-#include <ESP8266WebServer.h>
+#ifdef ARDUINO_ARCH_ESP32
+#include <WiFi.h>
+#else
+#include <ESP8266WiFi.h>
+#endif // ARDUINO_ARCH_ESP32
 
 #include "HSDConfig.hpp"
 

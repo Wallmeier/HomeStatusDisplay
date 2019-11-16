@@ -1,5 +1,9 @@
 #include "HSDWebserver.hpp"
 
+#ifdef ARDUINO_ARCH_ESP32    
+#include <Update.h>
+#endif // ARDUINO_ARCH_ESP32
+
 HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt& mqtt) :
     m_config(config),
     m_deviceUptimeMinutes(0),
@@ -12,21 +16,59 @@ HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt
     m_mqtt(mqtt),
     m_server(80)
 {
+#ifndef ARDUINO_ARCH_ESP32    
     m_updateServer.setup(&m_server);
+#endif    
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::begin() {
-  Serial.println(F(""));
-  Serial.println(F("Starting WebServer."));
+    Serial.println(F(""));
+    Serial.println(F("Starting WebServer."));
 
-  m_server.begin();
-  m_server.on("/", std::bind(&HSDWebserver::deliverStatusPage, this));
-  m_server.on("/cfgmain", std::bind(&HSDWebserver::deliverConfigPage, this));
-  m_server.on("/cfgcolormapping", std::bind(&HSDWebserver::deliverColorMappingPage, this));
-  m_server.on("/cfgdevicemapping", std::bind(&HSDWebserver::deliverDeviceMappingPage, this));
-  m_server.onNotFound(std::bind(&HSDWebserver::deliverNotFoundPage, this));
+    m_server.on("/", std::bind(&HSDWebserver::deliverStatusPage, this));
+    m_server.on("/cfgmain", std::bind(&HSDWebserver::deliverConfigPage, this));
+    m_server.on("/cfgcolormapping", std::bind(&HSDWebserver::deliverColorMappingPage, this));
+    m_server.on("/cfgdevicemapping", std::bind(&HSDWebserver::deliverDeviceMappingPage, this));
+#ifdef ARDUINO_ARCH_ESP32
+    m_server.on("/update", HTTP_GET, [=]() {
+        m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+        m_server.send(200);
+        m_server.sendContent(m_html.getHeader("Update", m_config.getHost(), m_config.getVersion()));
+        m_server.sendContent(F("<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>"));
+        m_server.sendContent("");
+    });
+    m_server.on("/update", HTTP_POST, [=]() {
+        m_server.sendHeader("Connection", "close");
+        m_server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+        ESP.restart();
+    }, [=]() {
+        HTTPUpload& upload = m_server.upload();
+        if (upload.status == UPLOAD_FILE_START) {
+            Serial.setDebugOutput(true);
+            Serial.printf("Update: %s\n", upload.filename.c_str());
+            if (!Update.begin()) { //start with max available size
+                Update.printError(Serial);
+            }
+        } else if (upload.status == UPLOAD_FILE_WRITE) {
+            if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+                Update.printError(Serial);
+            }
+        } else if (upload.status == UPLOAD_FILE_END) {
+            if (Update.end(true)) { //true to set the size to the current progress
+                Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+            } else {
+                Update.printError(Serial);
+            }
+            Serial.setDebugOutput(false);
+        } else {
+            Serial.printf("Update Failed Unexpectedly (likely broken connection): status=%d\n", upload.status);
+        }
+    });
+#endif // ARDUINO_ARCH_ESP32    
+    m_server.onNotFound(std::bind(&HSDWebserver::deliverNotFoundPage, this));
+    m_server.begin();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -214,6 +256,10 @@ void HSDWebserver::deliverStatusPage() {
     html += m_html.minutes2Uptime(m_deviceUptimeMinutes);
     html += F("</p>");
 
+#ifdef ARDUINO_ARCH_ESP32
+    html += F("<p>Device Heap stats (size, free, minFree, max) [Bytes]: ");
+    html += String(ESP.getHeapSize()) + ", " + String(ESP.getFreeHeap()) + ", " + String(ESP.getMinFreeHeap()) + ", " + String(ESP.getMaxAllocHeap()) + "</p>";
+#else    
     uint32_t free;
     uint16_t max;
     uint8_t frag;
@@ -222,10 +268,10 @@ void HSDWebserver::deliverStatusPage() {
     html += F("<p>Device RAM stats (free, max, frag) [Bytes]: ");
     html += String(free) + ", " + String(max) + ", " + String(frag);
     html += F("</p>");
-
     html += F("<p>Device voltage: ");
     html += String(ESP.getVcc());
     html += F(" mV</p>");
+#endif
 
 #ifdef HSD_SENSOR_ENABLED
     if (m_config.getSensorEnabled()) {

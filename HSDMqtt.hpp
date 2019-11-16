@@ -1,8 +1,12 @@
 #ifndef HSDMQTT_H
 #define HSDMQTT_H
 
-#include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#ifdef ARDUINO_ARCH_ESP32
+#include <WiFi.h>
+#else
+#include <ESP8266WiFi.h>
+#endif // ARDUINO_ARCH_ESP32
 
 #include "HSDConfig.hpp"
 

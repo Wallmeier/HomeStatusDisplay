@@ -33,9 +33,9 @@ void HomeStatusDisplay::begin() {
     Serial.println(F(""));
 
     m_config.begin();
-    m_webServer.begin();
     m_leds.begin();
     m_wifi.begin();
+    m_webServer.begin();
     m_mqttHandler.begin();
 #ifdef HSD_CLOCK_ENABLED
     if (m_config.getClockEnabled()) {
@@ -87,19 +87,26 @@ unsigned long HomeStatusDisplay::calcUptime() {
         Serial.println("Uptime: " + String(m_uptime) + " min");
 
         if (m_mqttHandler.connected()) {
-            uint32_t free;
-            uint16_t max;
-            uint8_t frag;
-            ESP.getHeapStats(&free, &max, &frag);
-            
             String topic = m_config.getMqttOutTopic("statistic");
             if (m_mqttHandler.isTopicValid(topic)) {
                 DynamicJsonBuffer jsonBuffer;
                 JsonObject& json = jsonBuffer.createObject();
                 json["Uptime"] = m_uptime;
+#ifdef ARDUINO_ARCH_ESP32
+                json["HeapFree"] = ESP.getFreeHeap();
+                json["HeapMax"] = ESP.getMaxAllocHeap();
+                json["HeapMinFree"] = ESP.getMinFreeHeap();
+                json["HeapSize"] = ESP.getHeapSize();
+#else
+                uint32_t free;
+                uint16_t max;
+                uint8_t frag;
+                ESP.getHeapStats(&free, &max, &frag);
+                
                 json["HeapFree"] = free;
                 json["HeapMax"] = max;
                 json["HeapFrag"] = frag;
+#endif // ARDUINO_ARCH_ESP32
                 if (WiFi.status() == WL_CONNECTED)
                     json["RSSI"] = WiFi.RSSI();
                 m_mqttHandler.publish(topic, json);                

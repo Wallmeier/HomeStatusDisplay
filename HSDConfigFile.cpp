@@ -1,6 +1,10 @@
 #include "HSDConfigFile.hpp"
 
+#ifdef ARDUINO_ARCH_ESP32
+#include <SPIFFS.h>
+#else
 #include <FS.h>
+#endif
 
 HSDConfigFile::HSDConfigFile(const String& fileName) :
     m_fileName(fileName)

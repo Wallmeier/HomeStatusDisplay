@@ -20,12 +20,18 @@ HSDWifi::HSDWifi(const HSDConfig& config) :
 
 void HSDWifi::begin() {
     WiFi.persistent(false);
+#ifdef ARDUINO_ARCH_ESP32
+    WiFi.setHostname(m_config.getHost().c_str());
+#else    
     WiFi.hostname(m_config.getHost());
+#endif // ARDUINO_ARCH_ESP32
+    handleConnection();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWifi::handleConnection() {
+    static bool first = true;
     bool isConnected(connected());
     if (isConnected != m_lastConnectStatus) {
         if (isConnected) {
@@ -44,7 +50,8 @@ void HSDWifi::handleConnection() {
         if (m_connectFailure) {
             startAccessPoint();
         } else {
-            if ((millis() - m_millisLastConnectTry) >= m_retryDelay) {
+            if (first || ((millis() - m_millisLastConnectTry) >= m_retryDelay)) {
+                first = false;
                 m_millisLastConnectTry = millis(); 
                 if (m_numConnectRetriesDone == 0) {
                     Serial.print(F("Starting Wifi connection to "));
@@ -52,7 +59,11 @@ void HSDWifi::handleConnection() {
                     Serial.println(F("..."));
       
                     WiFi.mode(WIFI_STA);
+#ifdef ARDUINO_ARCH_ESP32
+                    WiFi.begin(m_config.getWifiSSID().c_str(), m_config.getWifiPSK().c_str());
+#else                    
                     WiFi.begin(m_config.getWifiSSID(), m_config.getWifiPSK());
+#endif // ARDUINO_ARCH_ESP32                
       
                     m_numConnectRetriesDone++;
                 } else if (m_numConnectRetriesDone < m_maxConnectRetries) {

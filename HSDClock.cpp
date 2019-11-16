@@ -1,6 +1,10 @@
 #include "HSDClock.hpp"
 
+#ifdef ARDUINO_ARCH_ESP32
+#include <WiFi.h>
+#else
 #include <ESP8266WiFi.h>
+#endif // ARDUINO_ARCH_ESP32
 
 HSDClock::HSDClock(const HSDConfig& config) :
     m_config(config),
