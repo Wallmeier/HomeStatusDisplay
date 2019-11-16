@@ -61,8 +61,8 @@ public:
      * Defintion of default color names and hex values in a map like structure.
      */
     struct Map {
-        char*    key;
-        uint32_t value;
+        const char* key;
+        uint32_t    value;
     };
 
     static const constexpr Map DefaultColor[NUMBER_OF_DEFAULT_COLORS] = {
