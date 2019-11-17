@@ -1,6 +1,9 @@
 #ifndef HSDMQTT_H
 #define HSDMQTT_H
 
+#define MQTT_MAX_PACKET_SIZE 256
+
+#include <ArduinoJson.h>
 #include <PubSubClient.h>
 #ifdef ARDUINO_ARCH_ESP32
 #include <WiFi.h>
@@ -10,7 +13,7 @@
 
 #include "HSDConfig.hpp"
 
-#define MAX_IN_TOPICS 5
+#define MAX_IN_TOPICS        5
 
 class HSDMqtt {
 public:
@@ -29,11 +32,8 @@ private:
     void        subscribe(const String& topic) const;
 
     const HSDConfig&     m_config;
-    bool                 m_connectFailure;
     String               m_inTopics[MAX_IN_TOPICS];
-    unsigned long        m_millisLastConnectTry;
     uint32_t             m_numberOfInTopics;
-    int                  m_numConnectRetriesDone;
     mutable PubSubClient m_pubSubClient;
     WiFiClient           m_wifiClient;  
 };

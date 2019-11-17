@@ -2,9 +2,7 @@
 
 HSDMqtt::HSDMqtt(const HSDConfig& config, MQTT_CALLBACK_SIGNATURE) :
     m_config(config),
-    m_millisLastConnectTry(0),
     m_numberOfInTopics(0),
-    m_numConnectRetriesDone(0),
     m_pubSubClient(m_wifiClient)
 {
     m_pubSubClient.setCallback(callback);
@@ -19,35 +17,25 @@ void HSDMqtt::begin() {
 #endif // MQTT_TEST_TOPIC  
 
     IPAddress mqttIpAddr;
-    if (mqttIpAddr.fromString(m_config.getMqttServer())) {
-        // valid ip address entered 
-        m_pubSubClient.setServer(mqttIpAddr, 1883); 
-    } else {
-        // invalid ip address, try as hostname
-        m_pubSubClient.setServer(m_config.getMqttServer().c_str(), 1883);  
-    }
+    if (mqttIpAddr.fromString(m_config.getMqttServer())) // valid ip address entered 
+        m_pubSubClient.setServer(mqttIpAddr, m_config.getMqttPort()); 
+     else                                                // invalid ip address, try as hostname
+        m_pubSubClient.setServer(m_config.getMqttServer().c_str(), m_config.getMqttPort());
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDMqtt::handle() {
+    static bool first = true;
+    static unsigned long millisLastConnectTry = 0;
+    
     if (connected()) {
         m_pubSubClient.loop();
-    } else if (!m_connectFailure) {
-        if ((millis() - m_millisLastConnectTry) >= 10000) { // alle 10 Sekunden testen
-            m_millisLastConnectTry = millis();
-            if (m_numConnectRetriesDone < 3) { // max 3 connect versuche
-                if (reconnect()) {
-                    Serial.println("DEBUG: Reconnect successful");
-                    m_numConnectRetriesDone = 0;
-                } else {
-                    m_numConnectRetriesDone++;
-                    Serial.println("DEBUG: Reconnect unsuccessful, m_numConnectRetriesDone = " + String(m_numConnectRetriesDone));
-                }
-            } else {
-                Serial.println(F("Failed to connect Mqtt."));      
-                m_connectFailure = true;
-            } 
+    } else if (WiFi.status() == WL_CONNECTED) {
+        if (first || ((millis() - millisLastConnectTry) >= 10000)) { // alle 10 Sekunden testen
+            first = false;
+            millisLastConnectTry = millis();
+            reconnect();
         }
     }
 }
@@ -66,6 +54,7 @@ bool HSDMqtt::reconnect() const {
 
     Serial.print(F("Connecting to MQTT broker "));
     Serial.print(m_config.getMqttServer());
+    Serial.print(":" + String(m_config.getMqttPort()));
     Serial.print(" with client id " + clientId + "... ");
 
     const String& willTopic = m_config.getMqttOutTopic("status");
@@ -121,10 +110,14 @@ void HSDMqtt::subscribe(const String& topic) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDMqtt::publish(const String& topic, String msg) const {
-    if (m_pubSubClient.publish(topic.c_str(), msg.c_str()))
-        Serial.println("Published msg " + msg + " for topic " + topic);
-    else
-        Serial.println("Error publishing msg " + msg + " for topic " + topic);
+    if (connected()) {
+        if (m_pubSubClient.publish(topic.c_str(), msg.c_str()))
+            Serial.println("Published msg " + msg + " for topic " + topic);
+        else
+            Serial.println("Error publishing msg " + msg + " for topic " + topic + " - rc: " + String(m_pubSubClient.state()));
+    } else {
+        Serial.println("Not connected - failed to publish msg " + msg + " for topic " + topic);
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
