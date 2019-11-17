@@ -40,7 +40,6 @@ void HSDLeds::set(uint32_t ledNum, HSDConfig::Behavior behavior, uint32_t color)
     if (ledNum < m_numLeds) {
         m_pLedState[ledNum].behavior = behavior;
         m_pLedState[ledNum].color = color;
-
         updateStripe();
     }
 }
@@ -48,7 +47,7 @@ void HSDLeds::set(uint32_t ledNum, HSDConfig::Behavior behavior, uint32_t color)
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDLeds::setAll(HSDConfig::Behavior behavior, uint32_t color) {
-    for (uint32_t i=0; i < m_numLeds; i++)
+    for (uint32_t i = 0; i < m_numLeds; i++)
         set(i, behavior, color);
     updateStripe();
 }
@@ -148,7 +147,6 @@ void HSDLeds::handleFlicker(unsigned long currentMillis) {
 
 void HSDLeds::test(uint32_t type) {
     clear();
-
     if (type == 1) { // left row on
         for (uint32_t led = 0; led < m_numLeds / 3; led++) {
             m_pLedState[led].behavior = HSDConfig::ON;
