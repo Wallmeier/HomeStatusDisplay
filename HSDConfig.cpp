@@ -30,7 +30,7 @@ HSDConfig::HSDConfig(const char* version, const char* defaultIdentifier) :
     m_cfgHost(defaultIdentifier),
     m_cfgLedBrightness(50),
     m_cfgLedDataPin(0),
-    m_cfgMqttPort(1833),
+    m_cfgMqttPort(1883),
     m_cfgNumberOfLeds(0),
 #ifdef HSD_SENSOR_ENABLED
     m_cfgSensorEnabled(false),
