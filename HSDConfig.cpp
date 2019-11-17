@@ -189,7 +189,7 @@ void HSDConfig::printMainConfigFile(JsonObject& json) {
     Serial.println(F("  • wifiPSK         : not shown"));
     Serial.print  (F("  • mqttServer      : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_SERVER]));
     Serial.print  (F("  • mqttUser        : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_USER]));
-    Serial.print  (F("  • mqttPassword    : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_PASSWORD]));
+    Serial.println(F("  • mqttPassword    : not shown"));
     Serial.print  (F("  • mqttStatusTopic : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_STATUS_TOPIC]));
 #ifdef MQTT_TEST_TOPIC
     Serial.print  (F("  • mqttTestTopic   : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_TEST_TOPIC]));
