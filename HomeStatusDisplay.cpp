@@ -71,7 +71,7 @@ void HomeStatusDisplay::work() {
         m_clock->handle();
 #endif
 
-    delay(100);
+    delay(1);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -94,7 +94,6 @@ unsigned long HomeStatusDisplay::calcUptime() {
                 json["Uptime"] = m_uptime;
 #ifdef ARDUINO_ARCH_ESP32
                 json["HeapFree"] = ESP.getFreeHeap();
-                json["HeapMax"] = ESP.getMaxAllocHeap();
                 json["HeapMinFree"] = ESP.getMinFreeHeap();
                 json["HeapSize"] = ESP.getHeapSize();
 #else
@@ -109,7 +108,7 @@ unsigned long HomeStatusDisplay::calcUptime() {
 #endif // ARDUINO_ARCH_ESP32
                 if (WiFi.status() == WL_CONNECTED)
                     json["RSSI"] = WiFi.RSSI();
-                m_mqttHandler.publish(topic, json);                
+                m_mqttHandler.publish(topic, json);
             }
         }
     
@@ -180,8 +179,8 @@ bool HomeStatusDisplay::isStatusTopic(const String& topic) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HomeStatusDisplay::getDevice(const String& statusTopic) const {
-  int posOfLastSlashInStatusTopic = statusTopic.lastIndexOf("/");
-  return statusTopic.substring(posOfLastSlashInStatusTopic + 1);
+    int posOfLastSlashInStatusTopic = statusTopic.lastIndexOf("/");
+    return statusTopic.substring(posOfLastSlashInStatusTopic + 1);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
