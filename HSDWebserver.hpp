@@ -9,7 +9,6 @@
 #endif
 
 #include "HSDConfig.hpp"
-#include "HSDHtmlHelper.hpp"
 #include "HSDLeds.hpp"
 #include "HSDMqtt.hpp"
 
@@ -24,27 +23,36 @@ public:
 #endif // HSD_SENSOR_ENABLED  
 
 private:
-    bool        addColorMappingEntry();
-    bool        addDeviceMappingEntry();
-    void        checkReboot();
-    bool        deleteColorMappingEntry();
-    bool        deleteDeviceMappingEntry();
-    void        deliverColorMappingPage();
-    void        deliverConfigPage();
-    void        deliverDeviceMappingPage();
-    void        deliverNotFoundPage();
-    void        deliverStatusPage();
-    inline bool needAdd() { return m_server.hasArg("add"); }
-    inline bool needDelete() { return m_server.hasArg("delete"); }
-    inline bool needDeleteAll() { return m_server.hasArg("deleteall"); }
-    inline bool needSave() { return m_server.hasArg("save"); }
-    inline bool needUndo() { return (m_server.hasArg("undo")); }
-    bool        updateDeviceMappingConfig();
-    bool        updateMainConfig();
+    bool          addColorMappingEntry();
+    bool          addDeviceMappingEntry();
+    String        behavior2String(HSDConfig::Behavior behavior) const;
+    void          checkReboot();
+    bool          deleteColorMappingEntry();
+    bool          deleteDeviceMappingEntry();
+    void          deliverColorMappingPage();
+    void          deliverConfigPage();
+    void          deliverDeviceMappingPage();
+    void          deliverNotFoundPage();
+    void          deliverStatusPage();
+    String        getBehaviorOptions(HSDConfig::Behavior selectedBehavior) const;
+    String        getColorMappingTableAddEntryForm(int newEntryNum, bool isFull) const;
+    String        getDeleteForm() const;
+    String        getDeviceMappingTableAddEntryForm(int newEntryNum, bool isFull) const;
+    inline String getFooter() const { return F("</font></body></html>"); }
+    String        getSaveForm() const;
+    inline bool   needAdd() { return m_server.hasArg("add"); }
+    inline bool   needDelete() { return m_server.hasArg("delete"); }
+    inline bool   needDeleteAll() { return m_server.hasArg("deleteall"); }
+    inline bool   needSave() { return m_server.hasArg("save"); }
+    inline bool   needUndo() { return (m_server.hasArg("undo")); }
+    void          sendColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping, const String& colorString);
+    void          sendDeviceMappingTableEntry(int entryNum, const HSDConfig::DeviceMapping* mapping);
+    void          sendHeader(const char* title, const String& host, const String& version);
+    bool          updateDeviceMappingConfig();
+    bool          updateMainConfig();
 
     HSDConfig&              m_config;
     unsigned long           m_deviceUptimeMinutes;
-    const HSDHtmlHelper     m_html;
 #ifdef HSD_SENSOR_ENABLED
     float                   m_lastHum;
     float                   m_lastTemp;
