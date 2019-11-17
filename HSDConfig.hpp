@@ -1,7 +1,9 @@
 #ifndef HSDCONFIG_H
 #define HSDCONFIG_H
 
-#include "HSDConfigFile.hpp"
+#include <Arduino.h>
+#include <ArduinoJson.h>
+
 #include "PreAllocatedLinkedList.hpp"
 
 // comment out next line if you do not need the clock module
@@ -17,6 +19,7 @@
 #define JSON_KEY_MQTT_SERVER           (F("mqttServer"))
 #define JSON_KEY_MQTT_USER             (F("mqttUser"))
 #define JSON_KEY_MQTT_PASSWORD         (F("mqttPassword"))
+#define JSON_KEY_MQTT_PORT             (F("mqttPort"))
 #define JSON_KEY_MQTT_STATUS_TOPIC     (F("mqttStatusTopic"))
 #define JSON_KEY_MQTT_TEST_TOPIC       (F("mqttTestTopic"))
 #define JSON_KEY_MQTT_OUT_TOPIC        (F("mqttOutTopic"))
@@ -39,13 +42,14 @@
 #define JSON_KEY_DEVICEMAPPING_NAME    (F("n"))
 #define JSON_KEY_DEVICEMAPPING_LED     (F("l"))
 
+#define MAX_COLOR_MAP_ENTRIES          30
+#define MAX_COLOR_MAPPING_MSG_LEN      15
+#define MAX_DEVICE_MAP_ENTRIES         35
+#define MAX_DEVICE_MAPPING_NAME_LEN    25
 #define NUMBER_OF_DEFAULT_COLORS       9
 
 class HSDConfig {
 public:
-    static const int MAX_DEVICE_MAPPING_NAME_LEN = 25;
-    static const int MAX_COLOR_MAPPING_MSG_LEN = 15;
-
     /*
      * Enum which defines the different LED behaviors.
      */
@@ -152,6 +156,7 @@ public:
     inline const String&        getMqttOutTopic() const { return m_cfgMqttOutTopic; }
     String                      getMqttOutTopic(const String& topic) const;
     inline const String&        getMqttPassword() const { return m_cfgMqttPassword; }
+    inline uint16_t             getMqttPort() const { return m_cfgMqttPort; }
     inline const String&        getMqttServer() const { return m_cfgMqttServer; }
     inline const String&        getMqttStatusTopic() const { return m_cfgMqttStatusTopic; }
 #ifdef MQTT_TEST_TOPIC
@@ -191,6 +196,7 @@ public:
     inline bool                 setLedDataPin(uint8_t dataPin) { return setValue<uint8_t>(m_cfgLedDataPin, dataPin); }
     inline bool                 setMqttOutTopic(const String& topic) { return setValue<String>(m_cfgMqttOutTopic, topic); }
     inline bool                 setMqttPassword(const String& pwd) { return setValue<String>(m_cfgMqttPassword, pwd); }
+    inline bool                 setMqttPort(uint16_t port) { return setValue<uint16_t>(m_cfgMqttPort, port); }
     inline bool                 setMqttServer(const String& ip) { return setValue<String>(m_cfgMqttServer, ip); }
     inline bool                 setMqttStatusTopic(const String& topic) { return setValue<String>(m_cfgMqttStatusTopic, topic); }
 #ifdef MQTT_TEST_TOPIC
@@ -210,14 +216,12 @@ public:
     inline void                 updateDeviceMapping() { readDeviceMappingConfigFile(); }
 
 private:
-    void onFileWriteError();
+    void onFileWriteError() const;
     void printMainConfigFile(JsonObject& json);
+    bool readFile(const String& fileName, String& content) const;
     bool readColorMappingConfigFile();
     bool readDeviceMappingConfigFile();
     bool readMainConfigFile();
-    void resetColorMappingConfigData();
-    void resetDeviceMappingConfigData();
-    void resetMainConfigData();
     template <class T>
     bool setValue(T& val, const T& newValue) const {
         if (val != newValue) {
@@ -227,12 +231,10 @@ private:
             return false;
         }
     }
+    bool writeFile(const String& fileName, JsonObject* data) const;
     void writeColorMappingConfigFile();
     void writeDeviceMappingConfigFile();
-    void writeMainConfigFile();
-
-    static const int MAX_COLOR_MAP_ENTRIES     = 30;
-    static const int MAX_DEVICE_MAP_ENTRIES    = 35;
+    void writeMainConfigFile() const;
 
 #ifdef HSD_CLOCK_ENABLED
     uint8_t                               m_cfgClockBrightness;
@@ -252,6 +254,7 @@ private:
     uint8_t                               m_cfgLedDataPin;
     String                                m_cfgMqttOutTopic;
     String                                m_cfgMqttPassword;
+    uint16_t                              m_cfgMqttPort;
     String                                m_cfgMqttServer;
     String                                m_cfgMqttStatusTopic;
 #ifdef MQTT_TEST_TOPIC
@@ -267,9 +270,6 @@ private:
     const String                          m_cfgVersion;
     String                                m_cfgWifiPSK;
     String                                m_cfgWifiSSID;
-    HSDConfigFile                         m_colorMappingConfigFile;
-    HSDConfigFile                         m_deviceMappingConfigFile;
-    HSDConfigFile                         m_mainConfigFile;
 };
 
 #endif // HSDCONFIG_H

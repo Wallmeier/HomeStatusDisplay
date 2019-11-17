@@ -7,32 +7,38 @@
 #include <FS.h>
 #endif
 
-static const int MAX_SIZE_MAIN_CONFIG_FILE = 700;
-static const int JSON_BUFFER_MAIN_CONFIG_FILE = 800;
-
-static const int MAX_SIZE_COLOR_MAPPING_CONFIG_FILE = 1500;     // 1401 exactly
-static const int JSON_BUFFER_COLOR_MAPPING_CONFIG_FILE = 3800;  // 3628 exactly
-
-static const int MAX_SIZE_DEVICE_MAPPING_CONFIG_FILE = 1900;    // 1801 exactly
-static const int JSON_BUFFER_DEVICE_MAPPING_CONFIG_FILE = 4000; // 3908 exactly
-
-static const uint8_t DEFAULT_LED_BRIGHTNESS = 50;
+#define FILENAME_COLORMAPPING "/colormapping.json"
+#define FILENAME_DEVMAPPING   "/devicemapping.json"
+#define FILENAME_MAINCONFIG   "/config.json"
 
 const constexpr HSDConfig::Map HSDConfig::DefaultColor[];
 
 HSDConfig::HSDConfig(const char* version, const char* defaultIdentifier) :
+#ifdef HSD_CLOCK_ENABLED
+    m_cfgClockBrightness(4),
+    m_cfgClockEnabled(false),
+    m_cfgClockNTPInterval(20),
+    m_cfgClockNTPServer("pool.ntp.org"),
+    m_cfgClockPinCLK(0),
+    m_cfgClockPinDIO(0),
+    m_cfgClockTimeZone("CET-1CEST,M3.5.0/2,M10.5.0/3"),
+#endif // HSD_CLOCK_ENABLED
     m_cfgColorMapping(MAX_COLOR_MAP_ENTRIES),
+    m_cfgColorMappingDirty(true),
     m_cfgDeviceMapping(MAX_DEVICE_MAP_ENTRIES),
-    m_colorMappingConfigFile(String("/colormapping.json")),
-    m_deviceMappingConfigFile(String("/devicemapping.json")),
-    m_mainConfigFile(String("/config.json")),
+    m_cfgDeviceMappingDirty(true),
     m_cfgHost(defaultIdentifier),
+    m_cfgLedBrightness(50),
+    m_cfgLedDataPin(0),
+    m_cfgMqttPort(1833),
+    m_cfgNumberOfLeds(0),
+#ifdef HSD_SENSOR_ENABLED
+    m_cfgSensorEnabled(false),
+    m_cfgSensorInterval(2),
+    m_cfgSensorPin(0),
+#endif // HSD_SENSOR_ENABLED
     m_cfgVersion(version)
 {
-    // reset configurable members
-    resetMainConfigData();
-    resetColorMappingConfigData();
-    resetDeviceMappingConfigData();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -53,65 +59,39 @@ void HSDConfig::begin() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDConfig::resetMainConfigData() {
-    Serial.println(F("Deleting main config data."));
-
-    setWifiSSID("");
-    setWifiPSK("");
-
-    setMqttServer("");
-    setMqttUser("");
-    setMqttPassword("");
-    setMqttStatusTopic("");
-#ifdef MQTT_TEST_TOPIC
-    setMqttTestTopic("");
-#endif // MQTT_TEST_TOPIC    
-    setMqttOutTopic("");
-
-    setNumberOfLeds(0);
-    setLedDataPin(0);
-    setLedBrightness(DEFAULT_LED_BRIGHTNESS);
-
-#ifdef HSD_CLOCK_ENABLED
-    setClockEnabled(false);
-    setClockPinCLK(0);
-    setClockPinCLK(0);
-    setClockBrightness(4);
-    setClockTimeZone("CET-1CEST,M3.5.0/2,M10.5.0/3");
-    setClockNTPServer("pool.ntp.org");
-    setClockNTPInterval(20);
-#endif // HSD_CLOCK_ENABLED
-#ifdef HSD_SENSOR_ENABLED
-    setSensorEnabled(false);
-    setSensorPin(0);
-    setSensorInterval(5);
-#endif // HSD_SENSOR_ENABLED
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDConfig::resetColorMappingConfigData() {
-    Serial.println(F("Deleting color mapping config data."));
-    m_cfgColorMapping.clear();
-    m_cfgColorMappingDirty = true;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDConfig::resetDeviceMappingConfigData() {
-    Serial.println(F("Deleting device mapping config data."));
-    m_cfgDeviceMapping.clear();
-    m_cfgDeviceMappingDirty = true;
+bool HSDConfig::readFile(const String& fileName, String& content) const {
+    bool success(false);
+    Serial.print(F("Reading config file ")); Serial.println(fileName);
+    if (SPIFFS.exists(fileName)) {
+        File configFile = SPIFFS.open(fileName, "r");
+        if (configFile) {
+            size_t size = configFile.size();
+            Serial.print(F("File size is "));
+            Serial.println(String(size) + " bytes");
+            char* buffer = new char[size + 1];
+            buffer[size] = 0;
+            configFile.readBytes(buffer, size);
+            content = buffer;
+            delete[] buffer;
+            success = true;
+        } else {
+            Serial.println(F("File open failed"));
+        }
+        configFile.close();
+    } else {
+        Serial.println(F("File does not exist"));
+    }
+    return success;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 bool HSDConfig::readMainConfigFile() {
     bool success(false);
-    char fileBuffer[MAX_SIZE_MAIN_CONFIG_FILE];
+    String fileBuffer;
 
-    if (m_mainConfigFile.read(fileBuffer, MAX_SIZE_MAIN_CONFIG_FILE)) {
-        DynamicJsonBuffer jsonBuffer(JSON_BUFFER_MAIN_CONFIG_FILE);
+    if (readFile(FILENAME_MAINCONFIG, fileBuffer)) {
+        DynamicJsonBuffer jsonBuffer(fileBuffer.length() + 1);
         JsonObject& json = jsonBuffer.parseObject(fileBuffer);
         if (json.success()) {
             Serial.println(F("Main config data successfully parsed."));
@@ -131,6 +111,8 @@ bool HSDConfig::readMainConfigFile() {
                 setMqttUser(json[JSON_KEY_MQTT_USER]);
             if (json.containsKey(JSON_KEY_MQTT_PASSWORD))
                 setMqttPassword(json[JSON_KEY_MQTT_PASSWORD]);
+            if (json.containsKey(JSON_KEY_MQTT_PORT))
+                setMqttPort(json[JSON_KEY_MQTT_PORT]);
             if (json.containsKey(JSON_KEY_MQTT_STATUS_TOPIC))
                 setMqttStatusTopic(json[JSON_KEY_MQTT_STATUS_TOPIC]);
 #ifdef MQTT_TEST_TOPIC
@@ -175,7 +157,6 @@ bool HSDConfig::readMainConfigFile() {
         }
     } else {
         Serial.println(F("Creating default main config file."));
-        resetMainConfigData();
         writeMainConfigFile();
     }
     return success;
@@ -190,6 +171,7 @@ void HSDConfig::printMainConfigFile(JsonObject& json) {
     Serial.print  (F("  • mqttServer      : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_SERVER]));
     Serial.print  (F("  • mqttUser        : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_USER]));
     Serial.println(F("  • mqttPassword    : not shown"));
+    Serial.print  (F("  • mqttPort        : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_PORT]));
     Serial.print  (F("  • mqttStatusTopic : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_STATUS_TOPIC]));
 #ifdef MQTT_TEST_TOPIC
     Serial.print  (F("  • mqttTestTopic   : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_TEST_TOPIC]));
@@ -218,14 +200,10 @@ void HSDConfig::printMainConfigFile(JsonObject& json) {
 
 bool HSDConfig::readColorMappingConfigFile() {
     bool success(false);
-    char fileBuffer[MAX_SIZE_COLOR_MAPPING_CONFIG_FILE];
-    memset(fileBuffer, 0, MAX_SIZE_COLOR_MAPPING_CONFIG_FILE);
-    resetColorMappingConfigData();
-
-    if (m_colorMappingConfigFile.read(fileBuffer, MAX_SIZE_COLOR_MAPPING_CONFIG_FILE)) {
-        DynamicJsonBuffer jsonBuffer(JSON_BUFFER_COLOR_MAPPING_CONFIG_FILE);
+    String fileBuffer;
+    if (readFile(FILENAME_COLORMAPPING, fileBuffer)) {
+        DynamicJsonBuffer jsonBuffer(fileBuffer.length() + 1);
         JsonObject& json = jsonBuffer.parseObject(fileBuffer);
-
         if (json.success()) {
             Serial.println(F("Color mapping config data successfully parsed."));
             Serial.print(F("JSON length is ")); Serial.println(json.measureLength());
@@ -252,7 +230,6 @@ bool HSDConfig::readColorMappingConfigFile() {
         }
     } else {
         Serial.println(F("Creating default color mapping config file."));
-        resetColorMappingConfigData();
         writeColorMappingConfigFile();
     }
 
@@ -272,12 +249,9 @@ bool HSDConfig::readColorMappingConfigFile() {
 
 bool HSDConfig::readDeviceMappingConfigFile() {
     bool success(false);
-    char fileBuffer[MAX_SIZE_DEVICE_MAPPING_CONFIG_FILE];
-    memset(fileBuffer, 0, MAX_SIZE_DEVICE_MAPPING_CONFIG_FILE);
-    resetDeviceMappingConfigData();
-
-    if (m_deviceMappingConfigFile.read(fileBuffer, MAX_SIZE_DEVICE_MAPPING_CONFIG_FILE)) {
-        DynamicJsonBuffer jsonBuffer(JSON_BUFFER_DEVICE_MAPPING_CONFIG_FILE);
+    String fileBuffer;
+    if (readFile(FILENAME_DEVMAPPING, fileBuffer)) {
+        DynamicJsonBuffer jsonBuffer(fileBuffer.length() + 1);
         JsonObject& json = jsonBuffer.parseObject(fileBuffer);
 
         if (json.success()) {
@@ -304,7 +278,6 @@ bool HSDConfig::readDeviceMappingConfigFile() {
         }
     } else {
         Serial.println(F("Creating default device mapping config file."));
-        resetDeviceMappingConfigData();
         writeDeviceMappingConfigFile();
     }
 
@@ -313,8 +286,27 @@ bool HSDConfig::readDeviceMappingConfigFile() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDConfig::writeMainConfigFile() {
-    DynamicJsonBuffer jsonBuffer(JSON_BUFFER_MAIN_CONFIG_FILE);
+bool HSDConfig::writeFile(const String& fileName, JsonObject* data) const {
+    bool success(false);
+
+    Serial.print(F("Writing config file "));
+    Serial.println(fileName);
+
+    File configFile = SPIFFS.open(fileName, "w+");
+    if (configFile) {
+        data->printTo(configFile);
+        configFile.close();
+        success = true;
+    } else {
+        Serial.println(F("File open failed"));
+    }
+    return success;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+void HSDConfig::writeMainConfigFile() const {
+    DynamicJsonBuffer jsonBuffer;
     JsonObject& json = jsonBuffer.createObject();
 
     json[JSON_KEY_HOST] = m_cfgHost;
@@ -323,6 +315,7 @@ void HSDConfig::writeMainConfigFile() {
     json[JSON_KEY_MQTT_SERVER] = m_cfgMqttServer;
     json[JSON_KEY_MQTT_USER] = m_cfgMqttUser;
     json[JSON_KEY_MQTT_PASSWORD] = m_cfgMqttPassword;
+    json[JSON_KEY_MQTT_PORT] = m_cfgMqttPort;
     json[JSON_KEY_MQTT_STATUS_TOPIC] = m_cfgMqttStatusTopic;
 #ifdef MQTT_TEST_TOPIC    
     json[JSON_KEY_MQTT_TEST_TOPIC] = m_cfgMqttTestTopic;
@@ -346,14 +339,14 @@ void HSDConfig::writeMainConfigFile() {
     json[JSON_KEY_SENSOR_INTERVAL] = m_cfgSensorInterval;
 #endif
 
-    if (!m_mainConfigFile.write(&json))
+    if (!writeFile(FILENAME_MAINCONFIG, &json))
         onFileWriteError();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDConfig::writeColorMappingConfigFile() {
-    DynamicJsonBuffer jsonBuffer(JSON_BUFFER_COLOR_MAPPING_CONFIG_FILE);
+    DynamicJsonBuffer jsonBuffer;
     JsonObject& json = jsonBuffer.createObject();
 
     for (int index = 0; index < m_cfgColorMapping.size(); index++) {
@@ -375,7 +368,7 @@ void HSDConfig::writeColorMappingConfigFile() {
         }
     }
 
-    if (!m_colorMappingConfigFile.write(&json))
+    if (!writeFile(FILENAME_COLORMAPPING, &json))
         onFileWriteError();
     else
         m_cfgColorMappingDirty = false;
@@ -384,7 +377,7 @@ void HSDConfig::writeColorMappingConfigFile() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDConfig::writeDeviceMappingConfigFile() {
-    DynamicJsonBuffer jsonBuffer(JSON_BUFFER_DEVICE_MAPPING_CONFIG_FILE);
+    DynamicJsonBuffer jsonBuffer;
     JsonObject& json = jsonBuffer.createObject();
 
     for (int index = 0; index < m_cfgDeviceMapping.size(); index++) {
@@ -404,7 +397,7 @@ void HSDConfig::writeDeviceMappingConfigFile() {
         }
     }
 
-    if (!m_deviceMappingConfigFile.write(&json))
+    if (!writeFile(FILENAME_DEVMAPPING, &json))
         onFileWriteError();
     else
         m_cfgDeviceMappingDirty = false;
@@ -412,7 +405,7 @@ void HSDConfig::writeDeviceMappingConfigFile() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDConfig::onFileWriteError() {
+void HSDConfig::onFileWriteError() const {
     Serial.println(F("Failed to write file, formatting file system."));
     SPIFFS.format();
     Serial.println(F("Done."));
