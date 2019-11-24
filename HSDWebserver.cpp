@@ -1,6 +1,6 @@
 #include "HSDWebserver.hpp"
 
-#ifdef ARDUINO_ARCH_ESP32    
+#ifdef ARDUINO_ARCH_ESP32
 #include <Update.h>
 #endif // ARDUINO_ARCH_ESP32
 
@@ -15,9 +15,9 @@ HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt
     m_mqtt(mqtt),
     m_server(80)
 {
-#ifndef ARDUINO_ARCH_ESP32    
+#ifndef ARDUINO_ARCH_ESP32
     m_updateServer.setup(&m_server);
-#endif    
+#endif
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -25,6 +25,7 @@ HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt
 void HSDWebserver::begin() {
     Serial.println(F("Starting WebServer."));
     m_server.on("/", std::bind(&HSDWebserver::deliverStatusPage, this));
+    m_server.on("/layout.css", std::bind(&HSDWebserver::deliverCSS, this));
     m_server.on("/cfgmain", std::bind(&HSDWebserver::deliverConfigPage, this));
     m_server.on("/cfgcolormapping", std::bind(&HSDWebserver::deliverColorMappingPage, this));
     m_server.on("/cfgdevicemapping", std::bind(&HSDWebserver::deliverDeviceMappingPage, this));
@@ -32,8 +33,8 @@ void HSDWebserver::begin() {
     m_server.on("/update", HTTP_GET, [=]() {
         m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         m_server.send(200);
-        sendHeader("Update", m_config.getHost(), m_config.getVersion());
-        m_server.sendContent(F("<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>"));
+        sendHeader("Update");
+        m_server.sendContent(F("\t<form method='POST' action='/update' enctype='multipart/form-data'>\n\t\t<input type='file' name='update'>\n\t\t<input type='submit' value='Update'>\n\t</form>\n</body>"));
         m_server.sendContent("");
     });
     m_server.on("/update", HTTP_POST, [=]() {
@@ -63,7 +64,7 @@ void HSDWebserver::begin() {
             Serial.printf("Update Failed Unexpectedly (likely broken connection): status=%d\n", upload.status);
         }
     });
-#endif // ARDUINO_ARCH_ESP32    
+#endif // ARDUINO_ARCH_ESP32
     m_server.onNotFound(std::bind(&HSDWebserver::deliverNotFoundPage, this));
     m_server.begin();
 }
@@ -82,154 +83,69 @@ void HSDWebserver::deliverConfigPage() {
     html.reserve(1000);
 
     bool needSave(updateMainConfig());
-  
+
     m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     m_server.send(200);
-    sendHeader("General configuration", m_config.getHost(), m_config.getVersion());
+    sendHeader("General configuration");
 
-    html = F("<form><font face='Verdana,Arial,Helvetica'>"
-             "<table width='400px' border='0' cellpadding='0' cellspacing='2'>"
-             " <tr>"
-             "  <td><b><font size='+1'>General</font></b></td>"
-             "  <td></td>"
-             " </tr>"
-             " <tr>"
-             "  <td>Name</td>"
-             "  <td><input type='text' name='host' value='");
-    html += m_config.getHost();
-    html += F("' size='30' maxlength='40' placeholder='host'></td></tr>");
-    m_server.sendContent(html);
-    
-    html = F(" <tr>"
-             "  <td><b><font size='+1'>WiFi</font></b></td>"
-             "  <td></td>"
-             " </tr>"
-             " <tr>"
-             "  <td>SSID</td>");
-    html += F("<td><input type='text' name='wifiSSID' value='");
-    html += m_config.getWifiSSID();
-    html += F("' size='30' maxlength='40' placeholder='SSID'></td>");
-    html += F("</tr><tr><td>Password</td>");
-    html += F("  <td><input type='password' name='wifiPSK' value='");
-    html += m_config.getWifiPSK();
-    html += F("' size='30' maxlength='40' placeholder='Password'></td></tr>");
-    m_server.sendContent(html);
+    html = F("<form>\n<table class=\"cfg\">\n");
 
-    html = F(" <tr>"
-             "  <td><b><font size='+1'>MQTT</font></b></td>"
-             "  <td></td>"
-             " </tr>"
-             " <tr>"
-             "  <td>Server</td>"
-             "  <td><input type='text' name='mqttServer' value='");
-    html += m_config.getMqttServer();
-    html += F("' size='30' maxlength='40' placeholder='IP or hostname'></td></tr><tr><td>Port</td>");
-    html += F("  <td><input type='text' name='mqttPort' value='");
-    html += String(m_config.getMqttPort());
-    html += F("' size='30' maxlength='5' placeholder='Port'></td></tr><tr><td>User</td>");
-    html += F("  <td><input type='text' name='mqttUser' value='");
-    html += String(m_config.getMqttUser());
-    html += F("' size='30' maxlength='20' placeholder='User name'></td></tr><tr><td>Password</td>");
-    html += F("  <td><input type='password' name='mqttPassword' value='");
-    html += m_config.getMqttPassword();
-    html += F("' size='30' maxlength='50' placeholder='Password'></td></tr><tr><td>Status topic</td>");  
-    html += F("  <td><input type='text' name='mqttStatusTopic' value='");
-    html += m_config.getMqttStatusTopic();
-#ifdef MQTT_TEST_TOPIC  
-    html += F("' size='30' maxlength='40' placeholder='#'></td>"
-              " </tr>"
-              " <tr>"
-              "  <td>Test topic</td>"
-              "  <td><input type='text' name='mqttTestTopic' value='");
-    html += m_config.getMqttTestTopic();
-#endif // MQTT_TEST_TOPIC  
-    html += F("' size='30' maxlength='40' placeholder='#'></td>"
-              " </tr>"
-              " <tr>"
-              "  <td>Outgoing topic</td>"
-              "  <td><input type='text' name='mqttOutTopic' value='");
-    html += m_config.getMqttOutTopic();
-    html += F("' size='30' maxlength='40' placeholder='#'></td></tr>");
-    m_server.sendContent(html);
+    const HSDConfig::ConfigEntry* entries = m_config.cfgEntries();
+    HSDConfig::Group lastGroup = HSDConfig::Group::_Last;
+    int idx(0);
+    do {
+        if (entries[idx].group != lastGroup) {
+            lastGroup = entries[idx].group;
+            m_server.sendContent(html);
+            html  = F("\t<tr><td class=\"cfgTitle\" colspan=\"2\">");
+            html += m_config.groupDescription(entries[idx].group);
+            html += F("</td></tr>\n");
+        }
+        html += F("\t<tr><td>");
+        html += entries[idx].label;
+        html += F("</td><td><input name=\"");
+        html += entries[idx].key;
+        if (entries[idx].placeholder != nullptr) {
+            html += F("\" placeholder=\"");
+            html += entries[idx].placeholder;
+        }
+        html += F("\" type=\"");
+        switch (entries[idx].type) {
+            case HSDConfig::DataType::String:
+                html += F("text\" size=\"30\" value=\"");
+                html += *(reinterpret_cast<String*>(entries[idx].val));
+                html += F("\">");
+                break;
 
-    html = F(" <tr>"
-             "  <td><b><font size='+1'>LEDs</font></b></td>"
-             "  <td></td>"
-             " </tr>"
-             " <tr>"
-             "  <td>Number of LEDs</td>");
-    html += "  <td><input type='text' name='ledCount' value='" + String(m_config.getNumberOfLeds()) + "' size='30' maxlength='40' placeholder='0'></td></tr>";
-    html += F("<tr><td>LED pin</td>");
-    html += F("<td><input type='text' name='ledPin' value='");
-    html += String(m_config.getLedDataPin());
-    html += F("' size='30' maxlength='40' placeholder='0'></td></tr>");
-    html += F("<tr><td>Brightness</td>");
-    html += F("<td><input type='text' name='ledBrightness' value='");
-    html += String(m_config.getLedBrightness());
-    html += F("' size='30' maxlength='5' placeholder='0-255'></td></tr>"); 
-    m_server.sendContent(html);
-  
-#ifdef HSD_CLOCK_ENABLED
-    html = F(" <tr>"
-             "  <td><b><font size='+1'>Clock</font></b></td>"
-             "  <td>(TM1637)</td>"
-             " </tr>"
-             " <tr>"
-             "  <td>Enabled</td>");
-    html += F("  <td><input type='checkbox' name='clockEnabled'");
-    if (m_config.getClockEnabled())
-        html += F(" checked");
-    html += F("></td></tr>");
-    html += F("<tr><td>CLK pin</td>");
-    html += "  <td><input type='text' name='clockCLK' value='" + String(m_config.getClockPinCLK()) + "' size='30' maxlength='5' placeholder='0'></td></tr>";
-    html += F("<tr><td>DIO pin</td>");
-    html += F("<td><input type='text' name='clockDIO' value='");
-    html += String(m_config.getClockPinDIO());
-    html += F("' size='30' maxlength='5' placeholder='0'></td></tr>");
-    html += F("<tr><td>Brightness</td>");
-    html += F("<td><input type='text' name='clockBrightness' value='");
-    html += String(m_config.getClockBrightness());
-    html += F("' size='30' maxlength='5' placeholder='0-8'></td></tr>"); 
-    html += F("<tr><td>Time zone</td>");
-    html += F("<td><input type='text' name='clockTZ' value='");
-    html += m_config.getClockTimeZone();
-    html += F("' size='30' maxlength='40' placeholder='CET-1CEST,M3.5.0/2,M10.5.0/3'></td></tr>"); 
-    html += F("<tr><td>NTP server</td>");
-    html += F("<td><input type='text' name='clockServer' value='");
-    html += m_config.getClockNTPServer();
-    html += F("' size='30' maxlength='40' placeholder='pool.ntp.org'></td></tr>");
-    html += F("<tr><td>NTP update interval (min.)</td>");
-    html += F("<td><input type='text' name='clockInterval' value='");
-    html += String(m_config.getClockNTPInterval());
-    html += F("' size='30' maxlength='5' placeholder='20'></td></tr>");
-    m_server.sendContent(html);
-#endif // HSD_
-  
-#ifdef HSD_SENSOR_ENABLED
-    html = F(" <tr>"
-             "  <td><b><font size='+1'>Sensor</font></b></td>"
-             "  <td>(Sonoff SI7021)</td>"
-             " </tr>"
-             " <tr>"
-             "  <td>Enabled</td>");
-    html += F("  <td><input type='checkbox' name='sensorEnabled'");
-    if (m_config.getSensorEnabled())
-        html += F(" checked");
-    html += F("></td></tr>");
-    html += F("<tr><td>Data pin</td>");
-    html += F("<td><input type='text' name='sensorPin' value='");
-    html += String(m_config.getSensorPin());
-    html += F("' size='30' maxlength='5' placeholder='0'></td></tr>");
-    html += F("<tr><td>Sensor update interval (min.)</td>");
-    html += F("<td><input type='text' name='sensorInterval' value='");
-    html += String(m_config.getSensorInterval());
-    html += F("' size='30' maxlength='5' placeholder='5'></td></tr>");  
-    m_server.sendContent(html);
-#endif
+            case HSDConfig::DataType::Byte:
+                html += F("text\" size=\"30\" maxlength=\"");
+                html += String(entries[idx].maxLength);
+                html += F("\" value=\"");
+                html += String(*(reinterpret_cast<uint8_t*>(entries[idx].val)));
+                html += F("\">");
+                break;
+
+            case HSDConfig::DataType::Word:
+                html += F("text\" size=\"30\" maxlength=\"");
+                html += String(entries[idx].maxLength);
+                html += F("\" value=\"");
+                html += String(*(reinterpret_cast<uint16_t*>(entries[idx].val)));
+                html += F("\">");
+                break;
+
+            case HSDConfig::DataType::Bool:
+                html += F("checkbox\"");
+                if (*(reinterpret_cast<bool*>(entries[idx].val)))
+                    html += F(" checked");
+                html += F(">");
+                break;
+        }
+        html += F("</td></tr>\n");
+    } while (entries[++idx].group != HSDConfig::Group::_Last);
 
     html = F("</table>"
              "<input type='submit' class='button' value='Save'>"
-             "</form></font></body></html>");
+             "</form>\n</body>\n</html>");
     m_server.sendContent(html);
     m_server.sendContent("");
 
@@ -250,20 +166,20 @@ void HSDWebserver::deliverStatusPage() {
 
     m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     m_server.send(200);
-    sendHeader("Status", m_config.getHost(), m_config.getVersion());
+    sendHeader("Status");
 
     html = F("<p>Device uptime: ");
     char buffer[50];
     memset(buffer, 0, sizeof(buffer));
-    sprintf(buffer, "%lu days, %lu hours, %lu minutes", m_deviceUptimeMinutes / 1440, (m_deviceUptimeMinutes / 60) % 24, 
+    sprintf(buffer, "%lu days, %lu hours, %lu minutes", m_deviceUptimeMinutes / 1440, (m_deviceUptimeMinutes / 60) % 24,
             m_deviceUptimeMinutes % 60);
     html += String(buffer);
-    html += F("</p>");
+    html += F("</p>\n");
 
 #ifdef ARDUINO_ARCH_ESP32
     html += F("<p>Device Heap stats (size, free, minFree, max) [Bytes]: ");
-    html += String(ESP.getHeapSize()) + ", " + String(ESP.getFreeHeap()) + ", " + String(ESP.getMinFreeHeap()) + ", " + String(ESP.getMaxAllocHeap()) + "</p>";
-#else    
+    html += String(ESP.getHeapSize()) + ", " + String(ESP.getFreeHeap()) + ", " + String(ESP.getMinFreeHeap()) + ", " + String(ESP.getMaxAllocHeap()) + "</p>\n";
+#else
     uint32_t free;
     uint16_t max;
     uint8_t frag;
@@ -271,22 +187,22 @@ void HSDWebserver::deliverStatusPage() {
 
     html += F("<p>Device RAM stats (free, max, frag) [Bytes]: ");
     html += String(free) + ", " + String(max) + ", " + String(frag);
-    html += F("</p>");
+    html += F("</p>\n");
     html += F("<p>Device voltage: ");
     html += String(ESP.getVcc());
-    html += F(" mV</p>");
+    html += F(" mV</p>\n");
 #endif
 
 #ifdef HSD_SENSOR_ENABLED
-    if (m_config.getSensorEnabled()) {
+    if (m_config.getSensorSonoffEnabled()) {
         html += F("<p>Sensor: Temp ");
         html += String(m_lastTemp, 1);
         html += F("&deg;C, Hum ");
         html += String(m_lastHum, 1);
-        html += F("%</p>");
+        html += F("%</p>\n");
     }
-#endif // HSD_SENSOR_ENABLED  
-  
+#endif // HSD_SENSOR_ENABLED
+
     if (WiFi.status() == WL_CONNECTED) {
         html += F("<p>Device is connected to WLAN <b>");
         html += WiFi.SSID();
@@ -298,36 +214,35 @@ void HSDWebserver::deliverStatusPage() {
         html += String(buffer);
         html += F("</b><br/>MAC address is <b>");
         html += WiFi.macAddress();
-        html += F("</b><br/><p>");
+        html += F("</b></p>\n");
     } else {
-        html += F("<p>Device is not connected to local network<p>");
+        html += F("<p>Device is not connected to local network</p>\n");
     }
 
     if (m_mqtt.connected()) {
         html += F("<p>Device is connected to  MQTT broker <b>");
         html += m_config.getMqttServer();
-        html += F("</b><p>");
+        html += F("</b></p>\n");
     } else {
-        html += F("<p>Device is not connected to an MQTT broker<p>");
+        html += F("<p>Device is not connected to an MQTT broker</p>\n");
     }
     m_server.sendContent(html);
 
     if (m_config.getNumberOfLeds() == 0) {
-        html = F("<p>No LEDs configured yet<p>");
+        html = F("<p>No LEDs configured yet</p>\n");
     } else {
-        int ledOnCount(0);    
-        html = F("<p>");
+        int ledOnCount(0);
         for (int ledNr = 0; ledNr < m_config.getNumberOfLeds(); ledNr++) {
             uint32_t color = m_leds.getColor(ledNr);
             HSDConfig::Behavior behavior = m_leds.getBehavior(ledNr);
             String device = m_config.getDevice(ledNr);
-            if ((m_config.getDefaultColor("NONE") != color) && (HSDConfig::OFF != behavior)) {
+            if ((m_config.getDefaultColor("NONE") != color) && (HSDConfig::Behavior::Off != behavior)) {
                 String colorName = m_config.getDefaultColor(color);
                 if (colorName == "")
                     colorName = m_config.hex2string(color);
                 html += F("<p><div class='hsdcolor' style='background-color:");
                 html += m_config.hex2string(color);
-                html += F("';></div>&nbsp;"); 
+                html += F("';></div>&nbsp;");
                 html += F("LED <b>");
                 html += ledNr;
                 html += F("</b> for <b>");
@@ -336,17 +251,16 @@ void HSDWebserver::deliverStatusPage() {
                 html += behavior2String(behavior);
                 html += F("</b> with color <b>");
                 html += colorName;
-                html += F("</b><br/></p>");
+                html += F("</b><br/></p>\n");
 
                 ledOnCount++;
             }
         }
 
         if (ledOnCount == 0)
-            html += F("<p>All LEDs are <b>off</b><p>");
-
-        html += F("</p>");
+            html += F("<p>All LEDs are <b>off</b></p>\n");
     }
+    html += F("</body></html>");
     m_server.sendContent(html);
     m_server.sendContent("");
 
@@ -372,52 +286,52 @@ void HSDWebserver::deliverColorMappingPage() {
         Serial.println(F("Need to save color mapping config"));
         m_config.saveColorMapping();
     }
-    
+
     String html;
     html.reserve(1000);
-  
+
     m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     m_server.send(200);
-    sendHeader("Color mapping configuration", m_config.getHost(), m_config.getVersion());
-    m_server.sendContent(F("<table border='1' cellpadding='1' cellspacing='2'>"
-                           " <tr style='background-color:#828282'>"
-                           "  <td><b><font size='+1'>Nr</font></b></td>"
-                           "  <td><b><font size='+1'>Message</font></b></td>"
-                           "  <td><b><font size='+1'>Color</font></b></td>"
-                           "  <td><b><font size='+1'>Behavior</font></b></td>"
-                           " </tr>"));
+    sendHeader("Color mapping configuration");
+    m_server.sendContent(F("\t<table class=\"colMap\">\n"
+                           "\t\t<tr class=\"colMap\">"
+                           "<td class=\"colMapTitle\">Nr</td>"
+                           "<td class=\"colMapTitle\">Message</td>"
+                           "<td class=\"colMapTitle\">Color</td>"
+                           "<td class=\"colMapTitle\">Behavior</td>"
+                           "</tr>\n"));
 
     for (uint32_t i = 0; i < m_config.getNumberOfColorMappingEntries(); i++) {
         const HSDConfig::ColorMapping* mapping = m_config.getColorMapping(i);
         sendColorMappingTableEntry(i, mapping, m_config.hex2string(mapping->color));
     }
 
-    html = F("</table>");
-    html += F("<p>Default colors you can use instead of HEX colors:<br>");
+    html  = F("\t</table>\n");
+    html += F("\t<p>Default colors you can use instead of HEX colors:<br>\n\t");
     for (uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
         String temp = m_config.DefaultColor[i].key;
         temp.toLowerCase();
         html += temp;
         html += F(" ");
     }
-    html += F("</p>");
+    html += F("</p>\n");
     m_server.sendContent(html);
 
     html = "";
     if (m_config.isColorMappingFull()) {
-        html += F("</table><p>Edit entry (add not possible, entry limit reached):</p>");
+        html += F("\t<p>Edit entry (add not possible, entry limit reached):</p>\n");
         html += getColorMappingTableAddEntryForm(m_config.getNumberOfColorMappingEntries(), true);
     } else {
-        html += F("</table><p>Add/edit entry:</p>");    
+        html += F("\t<p>Add/edit entry:</p>\n");
         html += getColorMappingTableAddEntryForm(m_config.getNumberOfColorMappingEntries(), false);
     }
-    html += F("<p>Delete Entry:</p>");
+    html += F("\t<p>\n\t\tDelete Entry:</p>\n");
     html += getDeleteForm();
     if (m_config.isColorMappingDirty()) {
-        html += F("<p style='color:red'>Unsaved changes! Press Save to make them permanent, <br/>or Undo to revert to last saved version!</p>");
+        html += F("\t<p style='color:red'>Unsaved changes! Press Save to make them permanent,<br/>\n\tor Undo to revert to last saved version!</p>\n");
         html += getSaveForm();
     }
-    html += getFooter();
+    html += F("</body>\n</html>");
     m_server.sendContent(html);
     m_server.sendContent("");
 
@@ -429,13 +343,13 @@ void HSDWebserver::deliverColorMappingPage() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 bool HSDWebserver::addColorMappingEntry() {
-    bool success(false);  
+    bool success(false);
     if (m_server.hasArg("i") && m_server.hasArg("n") && m_server.hasArg("c") && m_server.hasArg("b")) {
         if (m_server.arg("n") != "") {
             uint32_t color = m_config.getDefaultColor(m_server.arg("c"));
             if (color == 0)
                 color = m_config.string2hex(m_server.arg("c"));
-            success = m_config.addColorMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), color, 
+            success = m_config.addColorMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), color,
                                                    (HSDConfig::Behavior)(m_server.arg("b").toInt()));
         } else {
             Serial.print(F("Skipping empty entry"));
@@ -449,11 +363,11 @@ bool HSDWebserver::addColorMappingEntry() {
 bool HSDWebserver::deleteColorMappingEntry() {
     bool success(false);
     int entryNum(0);
-  
+
     if (m_server.hasArg("i")) {
         entryNum = m_server.arg("i").toInt();
 // TODO check conversion status
-        success = m_config.deleteColorMappingEntry(entryNum);                                  
+        success = m_config.deleteColorMappingEntry(entryNum);
     }
     return success;
 }
@@ -480,36 +394,36 @@ void HSDWebserver::deliverDeviceMappingPage() {
 
     String html;
     html.reserve(1000);
-    
+
     m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     m_server.send(200);
-    sendHeader("Device mapping configuration", m_config.getHost(), m_config.getVersion());
-    m_server.sendContent(F("<table border='1' cellpadding='1' cellspacing='2'>"
-                           " <tr style='background-color:#828282'>"
-                           "  <td><b><font size='+1'>Nr</font></b></td>"  
-                           "  <td><b><font size='+1'>Device</font></b></td>"
-                           "  <td><b><font size='+1'>Led</font></b></td>"
-                           " </tr>"));
+    sendHeader("Device mapping configuration");
+    m_server.sendContent(F("\t<table class=\"colMap\">\n"
+                           "\t\t<tr class=\"colMap\">"
+                           "<td class=\"colMap\">Nr</td>"
+                           "<td class=\"colMap\">Device</td>"
+                           "<td class=\"colMap\">Led</td>"
+                           "</tr>\n"));
     for (uint32_t i = 0; i < m_config.getNumberOfDeviceMappingEntries(); i++) {
         const HSDConfig::DeviceMapping* mapping = m_config.getDeviceMapping(i);
         sendDeviceMappingTableEntry(i, mapping);
     }
 
-    html = F("</table>");
+    html = F("\t</table>\n");
     if (m_config.isDeviceMappingFull()) {
-        html += F("</table><p>Edit entry (add not possible, entry limit reached):</p>");
+        html += F("\t<p>Edit entry (add not possible, entry limit reached):</p>\n");
         html += getDeviceMappingTableAddEntryForm(m_config.getNumberOfDeviceMappingEntries(), true);
     } else {
-        html += F("</table><p>Add/edit entry:</p>");    
+        html += F("\t<p>Add/edit entry:</p>\n");
         html += getDeviceMappingTableAddEntryForm(m_config.getNumberOfDeviceMappingEntries(), false);
     }
-    html += F("<br/>Delete Entry:<br/>");
+    html += F("\t<p>Delete Entry:</p>\n");
     html += getDeleteForm();
     if (m_config.isDeviceMappingDirty()) {
-        html += F("<p style='color:red'>Unsaved changes! Press ""Save"" to make them permanent, or they will be lost on next reboot!</p>");
+        html += F("\t<p style='color:red'>Unsaved changes! Press ""Save"" to make them permanent, or they will be lost on next reboot!</p>\n");
         html += getSaveForm();
     }
-    html += getFooter();
+    html += F("</body>\n</html>");
     m_server.sendContent(html);
     m_server.sendContent("");
 
@@ -524,7 +438,7 @@ bool HSDWebserver::addDeviceMappingEntry() {
     bool success(false);
     if (m_server.hasArg("i") && m_server.hasArg("n") && m_server.hasArg("l")) {
         if (m_server.arg("n") != "")
-            success = m_config.addDeviceMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), m_server.arg("l").toInt());                                   
+            success = m_config.addDeviceMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), m_server.arg("l").toInt());
         else
             Serial.print(F("Skipping empty entry"));
     }
@@ -536,11 +450,11 @@ bool HSDWebserver::addDeviceMappingEntry() {
 bool HSDWebserver::deleteDeviceMappingEntry() {
     bool success(false);
     int entryNum(0);
-  
+
     if (m_server.hasArg("i")) {
         entryNum = m_server.arg("i").toInt();
 // TODO check conversion status
-        success = m_config.deleteDeviceMappingEntry(entryNum);                                    
+        success = m_config.deleteDeviceMappingEntry(entryNum);
     }
 
     return success;
@@ -557,10 +471,10 @@ void HSDWebserver::deliverNotFoundPage() {
     html += F("\nArguments: ");
     html += m_server.args();
     html += F("\n");
-  
-    for (uint8_t i = 0; i < m_server.args(); i++) 
+
+    for (uint8_t i = 0; i < m_server.args(); i++)
         html += " " + m_server.argName(i) + ": " + m_server.arg(i) + "\n";
-  
+
     m_server.send(404, F("text/plain"), html);
 }
 
@@ -577,139 +491,107 @@ void HSDWebserver::checkReboot() {
 
 bool HSDWebserver::updateMainConfig() {
     bool needSave(false);
-    if (m_server.hasArg(JSON_KEY_HOST))
-        needSave |= m_config.setHost(m_server.arg(JSON_KEY_HOST));
-    if (m_server.hasArg(JSON_KEY_WIFI_SSID))
-        needSave |= m_config.setWifiSSID(m_server.arg(JSON_KEY_WIFI_SSID));
-    if (m_server.hasArg(JSON_KEY_WIFI_PSK)) 
-        needSave |= m_config.setWifiPSK(m_server.arg(JSON_KEY_WIFI_PSK));
-    if (m_server.hasArg(JSON_KEY_MQTT_SERVER))
-        needSave |= m_config.setMqttServer(m_server.arg(JSON_KEY_MQTT_SERVER));
-    if (m_server.hasArg(JSON_KEY_MQTT_USER))
-        needSave |= m_config.setMqttUser(m_server.arg(JSON_KEY_MQTT_USER));
-    if (m_server.hasArg(JSON_KEY_MQTT_PASSWORD))
-        needSave |= m_config.setMqttPassword(m_server.arg(JSON_KEY_MQTT_PASSWORD));
-    if (m_server.hasArg(JSON_KEY_MQTT_PORT))
-        needSave |= m_config.setMqttPort(m_server.arg(JSON_KEY_MQTT_PORT).toInt());
-    if (m_server.hasArg(JSON_KEY_MQTT_STATUS_TOPIC))
-        needSave |= m_config.setMqttStatusTopic(m_server.arg(JSON_KEY_MQTT_STATUS_TOPIC));
-#ifdef MQTT_TEST_TOPIC  
-    if (m_server.hasArg(JSON_KEY_MQTT_TEST_TOPIC)) 
-        needSave |= m_config.setMqttTestTopic(m_server.arg(JSON_KEY_MQTT_TEST_TOPIC));
-#endif // MQTT_TEST_TOPIC
-    if (m_server.hasArg(JSON_KEY_MQTT_OUT_TOPIC)) 
-        needSave |= m_config.setMqttOutTopic(m_server.arg(JSON_KEY_MQTT_OUT_TOPIC));
+    const HSDConfig::ConfigEntry* entries = m_config.cfgEntries();
+    if (m_server.hasArg(entries[0].key)) {
+        int idx(0);
+        do {
+            switch (entries[idx].type) {
+                case HSDConfig::DataType::String:
+                    if (*(reinterpret_cast<String*>(entries[idx].val)) != m_server.arg(entries[idx].key)) {
+                        needSave = true;
+                        *(reinterpret_cast<String*>(entries[idx].val)) = m_server.arg(entries[idx].key);
+                    }
+                    break;
 
-    if (m_server.hasArg(JSON_KEY_LED_COUNT)) {
-        int ledCount = m_server.arg(JSON_KEY_LED_COUNT).toInt();
-        if (ledCount > 0)
-            needSave |= m_config.setNumberOfLeds(ledCount);
-    }
-  
-    if (m_server.hasArg(JSON_KEY_LED_PIN)) {
-        int ledPin = m_server.arg(JSON_KEY_LED_PIN).toInt();
-        if (ledPin > 0)
-            needSave |= m_config.setLedDataPin(ledPin);
-    }
+                case HSDConfig::DataType::Byte:
+                    if (*(reinterpret_cast<uint8_t*>(entries[idx].val)) != m_server.arg(entries[idx].key).toInt()) {
+                        needSave = true;
+                        *(reinterpret_cast<uint8_t*>(entries[idx].val)) = m_server.arg(entries[idx].key).toInt();
+                    }
+                    break;
 
-    if (m_server.hasArg(JSON_KEY_LED_BRIGHTNESS)) {
-        uint8_t ledBrightness = m_server.arg(JSON_KEY_LED_BRIGHTNESS).toInt();
-        if (ledBrightness > 0)
-            needSave |= m_config.setLedBrightness(ledBrightness);
-    }
-#ifdef HSD_CLOCK_ENABLED
-    if (m_server.hasArg(JSON_KEY_CLOCK_PIN_CLK)) {
-        needSave |= m_config.setClockEnabled(m_server.hasArg(JSON_KEY_CLOCK_ENABLED));
-        int pin = m_server.arg(JSON_KEY_CLOCK_PIN_CLK).toInt();
-        if (pin > 0)
-            needSave |= m_config.setClockPinCLK(pin);
-    }
+                case HSDConfig::DataType::Word:
+                    if (*(reinterpret_cast<uint16_t*>(entries[idx].val)) != m_server.arg(entries[idx].key).toInt()) {
+                        needSave = true;
+                        *(reinterpret_cast<uint16_t*>(entries[idx].val)) = m_server.arg(entries[idx].key).toInt();
+                    }
+                    break;
 
-    if (m_server.hasArg(JSON_KEY_CLOCK_PIN_DIO)) {
-        int pin = m_server.arg(JSON_KEY_CLOCK_PIN_DIO).toInt();    
-        if (pin > 0)
-            needSave |= m_config.setClockPinDIO(pin);
+                case HSDConfig::DataType::Bool:
+                    if (*(reinterpret_cast<bool*>(entries[idx].val)) != m_server.hasArg(entries[idx].key)) {
+                        needSave = true;
+                        *(reinterpret_cast<bool*>(entries[idx].val)) = m_server.hasArg(entries[idx].key);
+                    }
+                    break;
+            }
+        } while (entries[++idx].group != HSDConfig::Group::_Last);
     }
-
-    if (m_server.hasArg(JSON_KEY_CLOCK_BRIGHTNESS)) {
-        int brightness = m_server.arg(JSON_KEY_CLOCK_BRIGHTNESS).toInt();
-        if (brightness >= 0 && brightness < 9)
-            needSave |= m_config.setClockBrightness(brightness);
-    }
-
-    if (m_server.hasArg(JSON_KEY_CLOCK_TIME_ZONE)) 
-        needSave |= m_config.setClockTimeZone(m_server.arg(JSON_KEY_CLOCK_TIME_ZONE));
-    if (m_server.hasArg(JSON_KEY_CLOCK_NTP_SERVER)) 
-        needSave |= m_config.setClockNTPServer(m_server.arg(JSON_KEY_CLOCK_NTP_SERVER));
-
-    if (m_server.hasArg(JSON_KEY_CLOCK_NTP_INTERVAL)) {
-        int interval = m_server.arg(JSON_KEY_CLOCK_NTP_INTERVAL).toInt();
-        if (interval > 0)
-            needSave |= m_config.setClockNTPInterval(interval);
-    }
-#endif // HSD_CLOCK_ENABLED
-#ifdef HSD_SENSOR_ENABLED
-    if (m_server.hasArg(JSON_KEY_SENSOR_PIN)) {
-        needSave |= m_config.setSensorEnabled(m_server.hasArg(JSON_KEY_SENSOR_ENABLED));
-        needSave |= m_config.setSensorPin(m_server.arg(JSON_KEY_SENSOR_PIN).toInt());
-    }
-  
-    if (m_server.hasArg(JSON_KEY_SENSOR_INTERVAL))
-        needSave |= m_config.setSensorInterval(m_server.arg(JSON_KEY_SENSOR_INTERVAL).toInt());
-#endif // HSD_SENSOR_ENABLED  
-  
     return needSave;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDWebserver::sendHeader(const char* title, const String& host, const String& version) {
+void HSDWebserver::deliverCSS() {
+    Serial.println(F("Delivering /layout.css"));
+    String css;
+    css.reserve(500);
+    css  = F("body { background-color:#e5e5e5; font-family:Verdana,Arial,Helvetica; }\n");
+    css += F("span.title { font-size: xx-large; }\n");
+    css += F("table.cfg { border-spacing:2; border-width:0; width:400px; }\n");
+    css += F("table.colMap { border-spacing:2; border-width:1; }\n");
+    css += F("td { padding:0; }\n");
+    css += F("td.cfgTitle { font-size: large; font-weight: bold; }\n");
+    css += F("td.colMap { padding:1; }\n");
+    css += F("td.colMapTitle { padding:1; font-size: large; font-weight: bold; }\n");
+    css += F("tr.colMap { background-color:#828282; }\n");
+    css += F(".button { border-radius:0; height:30px; width:120px; border:0; background-color:black; color:#fff; margin:5px; cursor:pointer; }\n"); // Header buttons
+    css += F(".buttonr {border-radius:0; height:30px; width:120px; border:0; background-color:red; color:#fff; margin:5px; cursor:pointer; }\n");
+    css += F(".hsdcolor { width:15px; height:15px; border:1px black solid; float:left; margin-right:5px; }\n"); // Used on status page
+    css += F(".rdark { background-color:#f9f9f9; }\n");
+    css += F(".rlight { background-color:#e5e5e5; }\n");
+    m_server.send(200, F("text/css"), css);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+void HSDWebserver::sendHeader(const char* title) {
     String header;
-    header.reserve(1500);
+    header.reserve(500);
 
-    header  = F("<!doctype html> <html>");
-    header += F("<head><meta charset='utf-8'>");
-    header += F("<title>");
-    header += host;
-    header += F("</title>");
-    header += F("<style>.button {border-radius:0;height:30px;width:120px;border:0;background-color:black;color:#fff;margin:5px;cursor:pointer;}</style>");
-    header += F("<style>.buttonr {border-radius:0;height:30px;width:120px;border:0;background-color:red;color:#fff;margin:5px;cursor:pointer;}</style>");
-    header += F("<style>.hsdcolor {width:15px;height:15px;border:1px black solid;float:left;margin-right:5px';}</style>");
-    header += F("<style>.rdark {background-color:#f9f9f9;}</style>");
-    header += F("<style>.rlight {background-color:#e5e5e5;}</style>");
-    header += F("</head>");
-    header += F("<body bgcolor='#e5e5e5'><font face='Verdana,Arial,Helvetica'>");
-    header += F("<font size='+3'>");
-    header += host;
-    header += F("</font><font size='-3'>V");
-    header += version;
-    header += F("</font>");
-    header += F("<form><p><input type='button' class='button' onclick=\"location.href='./'\" value='Status'>");
-    header += F("<input type='submit' class='button' value='Reboot' name='reset'>");
-    header += F("<input type='button' class='button' onclick=\"location.href='./update'\" value='Update Firmware'></p>");
-  
-    header += F("<p><input type='button' class='button' onclick=\"location.href='./cfgmain'\" value='Configuration'>");
-    header += F("<input type='button' class='button' onclick=\"location.href='./cfgcolormapping'\" value='Color mapping'>");
-    header += F("<input type='button' class='button' onclick=\"location.href='./cfgdevicemapping'\" value='Device mapping'></p></form>");
-  
-    header += F("<h4>"); 
+    header  = F("<!doctype html>\n<html lang=\"en\">\n");
+    header += F("<head>\n\t<meta charset='utf-8'>\n");
+    header += F("\t<title>");
+    header += m_config.getHost();
+    header += F("</title>\n");
+    header += F("\t<link rel=\"stylesheet\" href=\"/layout.css\">\n");
+    header += F("</head>\n");
+    header += F("<body>\n");
+    header += F("\t<span class=\"title\">");
+    header += m_config.getHost();
+    header += F("</span>V");
+    header += HSD_VERSION;
+    header += F("\n");
+    header += F("\t<form>\n\t\t<p>\n\t\t\t<input type='button' class='button' onclick=\"location.href='./'\" value='Status'>\n");
+    header += F("\t\t\t<input type='submit' class='button' value='Reboot' name='reset'>\n");
+    header += F("\t\t\t<input type='button' class='button' onclick=\"location.href='./update'\" value='Update Firmware'>\n\t\t</p>\n");
+    header += F("\t\t<p>\n\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgmain'\" value='Configuration'>\n");
+    header += F("\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgcolormapping'\" value='Color mapping'>\n");
+    header += F("\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgdevicemapping'\" value='Device mapping'>\n\t\t</p>\n\t</form>\n");
+    header += F("\t<h4>");
     header += title;
-    header += F("</h4>");
-
-    Serial.print(F("Header size: ")); Serial.println(header.length());
-  
+    header += F("</h4>\n");
     m_server.sendContent(header);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::behavior2String(HSDConfig::Behavior behavior) const {
-    String behaviorString = F("Off");  
+    String behaviorString = F("Off");
     switch(behavior) {
-        case HSDConfig::ON:         behaviorString = F("On"); break;
-        case HSDConfig::BLINKING:   behaviorString = F("Blink"); break;
-        case HSDConfig::FLASHING:   behaviorString = F("Flash"); break;
-        case HSDConfig::FLICKERING: behaviorString = F("Flicker"); break;
+        case HSDConfig::Behavior::On:         behaviorString = F("On"); break;
+        case HSDConfig::Behavior::Blinking:   behaviorString = F("Blink"); break;
+        case HSDConfig::Behavior::Flashing:   behaviorString = F("Flash"); break;
+        case HSDConfig::Behavior::Flickering: behaviorString = F("Flicker"); break;
         default: break;
     }
     return behaviorString;
@@ -717,54 +599,51 @@ String HSDWebserver::behavior2String(HSDConfig::Behavior behavior) const {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDWebserver::sendColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping, 
+void HSDWebserver::sendColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping,
                                               const String& colorString) {
     String html;
-    html = entryNum % 2 == 0 ? F("<tr class='rlight'><td>") : F("<tr class='rdark'><td>");
+    html = entryNum % 2 == 0 ? F("\t\t<tr class='rlight'><td>") : F("\t\t<tr class='rdark'><td>");
     html += entryNum;
     html += F("</td><td>");
     html += mapping->msg;
     html += F("</td><td>");
     html += F("<div class='hsdcolor' style='background-color:");
     html += colorString;
-    html += F("';></div> ");
+    html += F(";'></div>");
     html += colorString;
-    html += F("</td><td>"); 
+    html += F("</td><td>");
     html += behavior2String(mapping->behavior);
-    html += F("</td></tr>");
-        
+    html += F("</td></tr>\n");
     m_server.sendContent(html);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::sendDeviceMappingTableEntry(int entryNum, const HSDConfig::DeviceMapping* mapping) {
-    String html = entryNum % 2 == 0 ? F("<tr class='rlight'><td>") : F("<tr class='rdark'><td>");
+    String html = entryNum % 2 == 0 ? F("\t\t<tr class='rlight'><td>") : F("\t\t<tr class='rdark'><td>");
     html += entryNum;
     html += F("</td><td>");
     html += mapping->name;
     html += F("</td><td>");
     html += mapping->ledNumber;
-    html += F("</td></tr>");
-
+    html += F("</td></tr>\n");
     m_server.sendContent(html);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::getDeviceMappingTableAddEntryForm(int newEntryNum, bool isFull) const {
-    String html = F("<form><table><tr>");
-    html += F("<td><input type='text' name='i' value='");
+    String html = F("\t<form>\n\t\t<table>\n\t\t\t<tr>\n");
+    html += F("\t\t\t\t<td><input type='text' name='i' value='");
     html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='5' maxlength='3' placeholder='Nr'</td>");
-    html += F("<td><input type='text' name='n' value='' size='30' maxlength='25' placeholder='device name'></td>");
-    html += F("<td><input type='text' name='l' value='");
+    html += F("' size='5' maxlength='3' placeholder='Nr'></td>\n");
+    html += F("\t\t\t\t<td><input type='text' name='n' value='' size='30' maxlength='25' placeholder='device name'></td>\n");
+    html += F("\t\t\t\t<td><input type='text' name='l' value='");
     html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='6' maxlength='3' placeholder='led nr'></td></tr></table>");
-    html += F("<input type='submit' class='button' value='");
+    html += F("' size='6' maxlength='3' placeholder='led nr'></td>\n\t\t\t</tr>\n\t\t</table>\n");
+    html += F("\t\t<input type='submit' class='button' value='");
     html += isFull ? F("Edit") : F("Add/Edit");
-    html += F("' name='add'></form>");
-
+    html += F("' name='add'>\n\t</form>\n");
     return html;
 }
 
@@ -772,51 +651,48 @@ String HSDWebserver::getDeviceMappingTableAddEntryForm(int newEntryNum, bool isF
 
 String HSDWebserver::getSaveForm() const {
     String html;
-    html += F("<form><input type='submit' class='buttonr' value='Save' name='save'>");   
-    html += F("<form><input type='submit' class='buttonr' value='Undo' name='undo'></form>");   
+    html += F("\t<form>\n\t\t<input type='submit' class='buttonr' value='Save' name='save'>\n");
+    html += F("\t\t<input type='submit' class='buttonr' value='Undo' name='undo'>\n\t</form>\n");
     return html;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::getDeleteForm() const {
-    String html;  
-    html += F("<form><input type='text' name='i' value='' size='5' maxlength='3' placeholder='Nr'><br/>");
-    html += F("<input type='submit' class='button' value='Delete' name='delete'>");
-    html += F("<input type='submit' class='button' value='Delete all' name='deleteall'></form>");
-  
-    return html;  
+    String html;
+    html += F("\t<form>\n\t\t<input type='text' name='i' value='' size='5' maxlength='3' placeholder='Nr'><br/>\n");
+    html += F("\t\t<input type='submit' class='button' value='Delete' name='delete'>\n");
+    html += F("\t\t<input type='submit' class='button' value='Delete all' name='deleteall'>\n\t</form>\n");
+    return html;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::getColorMappingTableAddEntryForm(int newEntryNum, bool isFull) const {
-    String html;  
-    html += F("<form><table><tr>");
-    html += F("<td><input type='text' name='i' value='");
+    String html;
+    html += F("\t<form>\n\t\t<table>\n\t\t\t<tr>\n");
+    html += F("\t\t\t\t<td><input type='text' name='i' value='");
     html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='5' maxlength='3' placeholder='Nr'</td>");
-    html += F("<td><input type='text' name='n' value='' size='20' maxlength='15' placeholder='message name'></td>");
-    html += F("<td><input type='text' name='c' value='' size='10' maxlength='7' placeholder='#ffaabb' list='colorOptions'>");
-    html += F("<datalist id='colorOptions'>");
+    html += F("' size='5' maxlength='3' placeholder='Nr'></td>\n");
+    html += F("\t\t\t\t<td><input type='text' name='n' value='' size='20' maxlength='15' placeholder='message name'></td>\n");
+    html += F("\t\t\t\t<td><input type='text' name='c' value='' size='10' maxlength='7' placeholder='#ffaabb' list='colorOptions'>");
+    html += F("<datalist id='colorOptions'>\n");
     for (uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
         String temp = HSDConfig::DefaultColor[i].key;
         temp.toLowerCase();
-        html += F("<option value='");
+        html += F("\t\t\t\t\t<option value='");
         html += temp;
         html += F("'>");
         html += temp;
-        html += F("</option>");
+        html += F("</option>\n");
     }
-    html += F("</datalist>");  
-    html += F("</td>");
-    html += F("<td><select name='b'>");
-    html += getBehaviorOptions(HSDConfig::ON);
-    html += F("</select></td></tr></table>");  
-    html += F("<input type='submit' class='button' value='");
+    html += F("\t\t\t\t</datalist></td>\n");
+    html += F("\t\t\t\t<td><select name='b'>");
+    html += getBehaviorOptions(HSDConfig::Behavior::On);
+    html += F("</select></td>\n\t\t\t</tr>\n\t\t</table>\n");
+    html += F("\t\t<input type='submit' class='button' value='");
     html += isFull ? F("Edit") : F("Add/Edit");
-    html += F("' name='add'></form>");
-
+    html += F("' name='add'>\n\t</form>\n");
     return html;
 }
 
@@ -828,17 +704,16 @@ String HSDWebserver::getColorMappingTableAddEntryForm(int newEntryNum, bool isFu
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::getBehaviorOptions(HSDConfig::Behavior selectedBehavior) const {
-    String onSelect       =   (selectedBehavior == HSDConfig::ON)         ? SELECTED_STRING : EMPTY_STRING;
-    String blinkingSelect =   (selectedBehavior == HSDConfig::BLINKING)   ? SELECTED_STRING : EMPTY_STRING;
-    String flashingSelect =   (selectedBehavior == HSDConfig::FLASHING)   ? SELECTED_STRING : EMPTY_STRING;
-    String flickeringSelect = (selectedBehavior == HSDConfig::FLICKERING) ? SELECTED_STRING : EMPTY_STRING;
-  
+    String onSelect       =   (selectedBehavior == HSDConfig::Behavior::On)         ? SELECTED_STRING : EMPTY_STRING;
+    String blinkingSelect =   (selectedBehavior == HSDConfig::Behavior::Blinking)   ? SELECTED_STRING : EMPTY_STRING;
+    String flashingSelect =   (selectedBehavior == HSDConfig::Behavior::Flashing)   ? SELECTED_STRING : EMPTY_STRING;
+    String flickeringSelect = (selectedBehavior == HSDConfig::Behavior::Flickering) ? SELECTED_STRING : EMPTY_STRING;
+
     String html;
-    html += F("<option "); html += onSelect;         html += F(" value='"); html += HSDConfig::ON;         html += F("'>On</option>");
-    html += F("<option "); html += blinkingSelect;   html += F(" value='"); html += HSDConfig::BLINKING;   html += F("'>Blink</option>");
-    html += F("<option "); html += flashingSelect;   html += F(" value='"); html += HSDConfig::FLASHING;   html += F("'>Flash</option>");
-    html += F("<option "); html += flickeringSelect; html += F(" value='"); html += HSDConfig::FLICKERING; html += F("'>Flicker</option>");
-  
+    html += F("<option "); html += onSelect;         html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::On);         html += F("'>On</option>");
+    html += F("<option "); html += blinkingSelect;   html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::Blinking);   html += F("'>Blink</option>");
+    html += F("<option "); html += flashingSelect;   html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::Flashing);   html += F("'>Flash</option>");
+    html += F("<option "); html += flickeringSelect; html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::Flickering); html += F("'>Flicker</option>");
     return html;
 }
 
@@ -848,4 +723,4 @@ void HSDWebserver::setSensorData(float& temp, float& hum) {
     m_lastTemp = temp;
     m_lastHum = hum;
 }
-#endif // HSD_SENSOR_ENABLED  
+#endif // HSD_SENSOR_ENABLED

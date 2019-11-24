@@ -6,22 +6,20 @@
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-HomeStatusDisplay::HomeStatusDisplay(const char* version, const char* identifier) :
-    m_config(version, identifier),
-    m_webServer(m_config, m_leds, m_mqttHandler),
-    m_wifi(m_config),
-    m_mqttHandler(m_config, std::bind(&HomeStatusDisplay::mqttCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)),
-    m_leds(m_config),
+HomeStatusDisplay::HomeStatusDisplay() :
+#if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
+    m_bluetooth(nullptr),
+#endif    
 #ifdef HSD_CLOCK_ENABLED
     m_clock(nullptr),
 #endif
+    m_leds(m_config),
+    m_mqttHandler(m_config, std::bind(&HomeStatusDisplay::mqttCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)),
 #ifdef HSD_SENSOR_ENABLED
     m_sensor(nullptr),
 #endif
-    m_lastWifiConnectionState(false),
-    m_lastMqttConnectionState(false),
-    m_oneMinuteTimerLast(0),
-    m_uptime(0)
+    m_webServer(m_config, m_leds, m_mqttHandler),
+    m_wifi(m_config)
 {
 }
 
@@ -44,11 +42,17 @@ void HomeStatusDisplay::begin() {
     }
 #endif
 #ifdef HSD_SENSOR_ENABLED
-    if (m_config.getSensorEnabled()) {
+    if (m_config.getSensorSonoffEnabled()) {
         m_sensor = new HSDSensor(m_config);
         m_sensor->begin();
     }
 #endif
+#if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
+    if (m_config.getBluetoothEnabled()) {
+        m_bluetooth = new HSDBluetooth(m_config, m_mqttHandler);
+        m_bluetooth->begin();
+    }
+#endif    
     Serial.print(F("Free RAM: ")); 
     Serial.println(ESP.getFreeHeap());
 }
@@ -56,11 +60,9 @@ void HomeStatusDisplay::begin() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HomeStatusDisplay::work() {
-    m_uptime = calcUptime();
-    
     checkConnections();
     m_wifi.handleConnection();
-    m_webServer.handleClient(m_uptime);
+    m_webServer.handleClient(calcUptime());
 
     if (m_wifi.connected())
         m_mqttHandler.handle();
@@ -70,28 +72,33 @@ void HomeStatusDisplay::work() {
     if (m_clock)
         m_clock->handle();
 #endif
-
+#if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
+    if (m_bluetooth)
+        m_bluetooth->handle();
+#endif    
     delay(1);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 unsigned long HomeStatusDisplay::calcUptime() {
+    static unsigned long oneMinuteTimerLast = 0;
+    static unsigned long uptime = 0;
 #ifdef HSD_SENSOR_ENABLED
     static uint16_t sensorMinutes = 0;
 #endif  
-    if (millis() - m_oneMinuteTimerLast >= ONE_MINUTE_MILLIS) {
-        m_uptime++;
-        m_oneMinuteTimerLast = millis();
+    if (millis() - oneMinuteTimerLast >= ONE_MINUTE_MILLIS) {
+        uptime++;
+        oneMinuteTimerLast = millis();
 
-        Serial.println("Uptime: " + String(m_uptime) + " min");
+        Serial.println("Uptime: " + String(uptime) + " min");
 
         if (m_mqttHandler.connected()) {
             String topic = m_config.getMqttOutTopic("statistic");
             if (m_mqttHandler.isTopicValid(topic)) {
                 DynamicJsonBuffer jsonBuffer;
                 JsonObject& json = jsonBuffer.createObject();
-                json["Uptime"] = m_uptime;
+                json["Uptime"] = uptime;
 #ifdef ARDUINO_ARCH_ESP32
                 json["HeapFree"] = ESP.getFreeHeap();
                 json["HeapMinFree"] = ESP.getMinFreeHeap();
@@ -143,7 +150,7 @@ unsigned long HomeStatusDisplay::calcUptime() {
         }
 #endif
     }
-    return m_uptime;
+    return uptime;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -207,15 +214,15 @@ void HomeStatusDisplay::handleStatus(const String& device, const String& msg) {
             HSDConfig::Behavior behavior = m_config.getLedBehavior(colorMapIndex);
             uint32_t color = m_config.getLedColor(colorMapIndex);
 
-            Serial.println("Set led number " + String(ledNumber) + " to behavior " + String(behavior) + " with color " + m_config.hex2string(color));
+            Serial.println("Set led number " + String(ledNumber) + " to behavior " + String(static_cast<uint8_t>(behavior)) + " with color " + m_config.hex2string(color));
             m_leds.set(ledNumber, behavior, color);
         } else if (msg.length() > 3 && msg[0] == '#') {  // allow MQTT broker to directly set LED color with HEX strings
             uint32_t color = m_config.string2hex(msg);
             Serial.println("Received HEX " + String(msg) + " and set led number " + String(ledNumber) + " with this color ON");
-            m_leds.set(ledNumber, HSDConfig::ON, color);
+            m_leds.set(ledNumber, HSDConfig::Behavior::On, color);
         } else {
             Serial.println("Unknown message " + msg + " for led number " + String(ledNumber) + ", set to OFF");
-            m_leds.set(ledNumber, HSDConfig::OFF, m_config.getDefaultColor("NONE"));
+            m_leds.set(ledNumber, HSDConfig::Behavior::Off, m_config.getDefaultColor("NONE"));
         }
     } else {
         Serial.println("No LED defined for device " + device + ", ignoring it");
@@ -225,27 +232,30 @@ void HomeStatusDisplay::handleStatus(const String& device, const String& msg) {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HomeStatusDisplay::checkConnections() {
-    if (!m_lastMqttConnectionState && m_mqttHandler.connected()) {
+    static bool lastMqttConnectionState = false;
+    static bool lastWifiConnectionState = false;
+    
+    if (!lastMqttConnectionState && m_mqttHandler.connected()) {
         m_leds.clear();
-        m_lastMqttConnectionState = true;
-    } else if (m_lastMqttConnectionState && !m_mqttHandler.connected()) {
+        lastMqttConnectionState = true;
+    } else if (lastMqttConnectionState && !m_mqttHandler.connected()) {
         m_leds.clear();
-        m_lastMqttConnectionState = false;
+        lastMqttConnectionState = false;
     }
 
     if (!m_mqttHandler.connected() && m_wifi.connected())
-        m_leds.setAll(HSDConfig::ON, m_config.getDefaultColor("YELLOW"));
+        m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("YELLOW"));
   
-    if (!m_lastWifiConnectionState && m_wifi.connected()) {
+    if (!lastWifiConnectionState && m_wifi.connected()) {
         m_leds.clear();
         if (!m_mqttHandler.connected())
-            m_leds.setAll(HSDConfig::ON, m_config.getDefaultColor("ORANGE"));
-        m_lastWifiConnectionState = true;
-    } else if (m_lastWifiConnectionState && !m_wifi.connected()) {
+            m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("ORANGE"));
+        lastWifiConnectionState = true;
+    } else if (lastWifiConnectionState && !m_wifi.connected()) {
         m_leds.clear();
-        m_lastWifiConnectionState = false;
+        lastWifiConnectionState = false;
     }
 
     if (!m_wifi.connected())
-        m_leds.setAll(HSDConfig::ON, m_config.getDefaultColor("RED"));
+        m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("RED"));
 }

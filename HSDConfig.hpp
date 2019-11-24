@@ -6,36 +6,15 @@
 
 #include "PreAllocatedLinkedList.hpp"
 
+#define HSD_VERSION (F("0.9"))
+
 // comment out next line if you do not need the clock module
 #define HSD_CLOCK_ENABLED
 // comment out next line if you do not need the sensor module (Sonoff SI7021)
 #define HSD_SENSOR_ENABLED
-
 // #define MQTT_TEST_TOPIC
+#define HSD_BLUETOOTH_ENABLED
 
-#define JSON_KEY_HOST                  (F("host"))
-#define JSON_KEY_WIFI_SSID             (F("wifiSSID"))
-#define JSON_KEY_WIFI_PSK              (F("wifiPSK"))
-#define JSON_KEY_MQTT_SERVER           (F("mqttServer"))
-#define JSON_KEY_MQTT_USER             (F("mqttUser"))
-#define JSON_KEY_MQTT_PASSWORD         (F("mqttPassword"))
-#define JSON_KEY_MQTT_PORT             (F("mqttPort"))
-#define JSON_KEY_MQTT_STATUS_TOPIC     (F("mqttStatusTopic"))
-#define JSON_KEY_MQTT_TEST_TOPIC       (F("mqttTestTopic"))
-#define JSON_KEY_MQTT_OUT_TOPIC        (F("mqttOutTopic"))
-#define JSON_KEY_LED_COUNT             (F("ledCount"))
-#define JSON_KEY_LED_PIN               (F("ledPin"))
-#define JSON_KEY_LED_BRIGHTNESS        (F("ledBrightness"))
-#define JSON_KEY_CLOCK_PIN_CLK         (F("clockCLK"))
-#define JSON_KEY_CLOCK_PIN_DIO         (F("clockDIO"))
-#define JSON_KEY_CLOCK_BRIGHTNESS      (F("clockBrightness"))
-#define JSON_KEY_CLOCK_TIME_ZONE       (F("clockTZ"))
-#define JSON_KEY_CLOCK_NTP_SERVER      (F("clockServer"))
-#define JSON_KEY_CLOCK_NTP_INTERVAL    (F("clockInterval"))
-#define JSON_KEY_CLOCK_ENABLED         (F("clockEnabled"))
-#define JSON_KEY_SENSOR_ENABLED        (F("sensorEnabled"))
-#define JSON_KEY_SENSOR_PIN            (F("sensorPin"))
-#define JSON_KEY_SENSOR_INTERVAL       (F("sensorInterval"))
 #define JSON_KEY_COLORMAPPING_MSG      (F("m"))
 #define JSON_KEY_COLORMAPPING_COLOR    (F("c"))
 #define JSON_KEY_COLORMAPPING_BEHAVIOR (F("b"))
@@ -53,12 +32,40 @@ public:
     /*
      * Enum which defines the different LED behaviors.
      */
-    enum Behavior {
-        OFF,
-        ON,
-        BLINKING,
-        FLASHING,
-        FLICKERING
+    enum class Behavior : uint8_t {
+        Off = 0,
+        On,
+        Blinking,
+        Flashing,
+        Flickering
+    };
+    
+    enum class DataType : uint8_t {
+        String = 0,
+        Byte,
+        Word,
+        Bool
+    };
+    
+    enum class Group : uint8_t {
+        Wifi = 0,
+        Mqtt,
+        Leds,
+        Clock,
+        Sensors,
+        Bluetooth,
+        _Last
+    };
+    
+    struct ConfigEntry {
+        Group                      group;
+        const __FlashStringHelper* key;
+        const __FlashStringHelper* label;
+        const __FlashStringHelper* placeholder;
+        DataType                   type;
+        uint8_t                    maxLength;
+        bool                       doNotDump;
+        void*                      val;
     };
 
     /*
@@ -108,7 +115,7 @@ public:
         ColorMapping() {
             memset(msg, 0, MAX_COLOR_MAPPING_MSG_LEN);
             color = 0x000000;
-            behavior = OFF;
+            behavior = Behavior::Off;
         }
 
         ColorMapping(String m, uint32_t c, Behavior b) {
@@ -123,15 +130,19 @@ public:
         char     msg[MAX_COLOR_MAPPING_MSG_LEN + 1]; // message
     };
 
-    HSDConfig(const char* version, const char* defaultIdentifier);
+    HSDConfig();
 
     bool                        addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior);
     bool                        addDeviceMappingEntry(int entryNum, String name, int ledNumber);
     void                        begin();
+    inline const ConfigEntry*   cfgEntries() const { return m_cfgEntries; }
     void                        deleteAllColorMappingEntries();
     void                        deleteAllDeviceMappingEntries();
     bool                        deleteColorMappingEntry(int entryNum);
     bool                        deleteDeviceMappingEntry(int entryNum);
+#if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
+    inline bool                 getBluetoothEnabled() const { return m_cfgBluetoothEnabled; }
+#endif
 #ifdef HSD_CLOCK_ENABLED
     inline uint8_t              getClockBrightness() const { return m_cfgClockBrightness; }
     inline bool                 getClockEnabled() const { return m_cfgClockEnabled; }
@@ -167,13 +178,13 @@ public:
     inline int                  getNumberOfDeviceMappingEntries() const { return m_cfgDeviceMapping.size(); }
     inline uint8_t              getNumberOfLeds() const { return m_cfgNumberOfLeds; }
 #ifdef HSD_SENSOR_ENABLED
-    inline bool                 getSensorEnabled() const { return m_cfgSensorEnabled; }
+    inline bool                 getSensorSonoffEnabled() const { return m_cfgSensorSonoffEnabled; }
     inline uint16_t             getSensorInterval() const { return m_cfgSensorInterval; }
     inline uint8_t              getSensorPin() const { return m_cfgSensorPin; }
 #endif // HSD_SENSOR_ENABLED
-    inline const String&        getVersion() const { return m_cfgVersion; }
     inline const String&        getWifiPSK() const { return m_cfgWifiPSK; }
     inline const String&        getWifiSSID() const { return m_cfgWifiSSID; }
+    String                      groupDescription(Group group) const;
     String                      hex2string(uint32_t value) const;
     inline bool                 isColorMappingDirty() const { return m_cfgColorMappingDirty; }
     inline bool                 isColorMappingFull() const { return m_cfgColorMapping.isFull(); }
@@ -182,35 +193,6 @@ public:
     inline void                 saveColorMapping() { writeColorMappingConfigFile(); }
     inline void                 saveDeviceMapping() { writeDeviceMappingConfigFile(); }
     inline void                 saveMain() { writeMainConfigFile(); }
-#ifdef HSD_CLOCK_ENABLED
-    inline bool                 setClockBrightness(uint8_t brightness) { return setValue<uint8_t>(m_cfgClockBrightness, brightness); }
-    inline bool                 setClockEnabled(bool enabled) { return setValue<bool>(m_cfgClockEnabled, enabled); }
-    inline bool                 setClockNTPInterval(uint16_t minutes) { return setValue<uint16_t>(m_cfgClockNTPInterval, minutes); }
-    inline bool                 setClockNTPServer(const String& server) { return setValue<String>(m_cfgClockNTPServer, server); }
-    inline bool                 setClockPinCLK(uint8_t dataPin) { return setValue<uint8_t>(m_cfgClockPinCLK, dataPin); }
-    inline bool                 setClockPinDIO(uint8_t dataPin) { return setValue<uint8_t>(m_cfgClockPinDIO, dataPin); }
-    inline bool                 setClockTimeZone(const String& zone) { return setValue<String>(m_cfgClockTimeZone, zone); }
-#endif // HSD_CLOCK_ENABLED
-    inline bool                 setHost(const String& host) { return setValue<String>(m_cfgHost, host); }
-    inline bool                 setLedBrightness(uint8_t brightness) { return setValue<uint8_t>(m_cfgLedBrightness, brightness); }
-    inline bool                 setLedDataPin(uint8_t dataPin) { return setValue<uint8_t>(m_cfgLedDataPin, dataPin); }
-    inline bool                 setMqttOutTopic(const String& topic) { return setValue<String>(m_cfgMqttOutTopic, topic); }
-    inline bool                 setMqttPassword(const String& pwd) { return setValue<String>(m_cfgMqttPassword, pwd); }
-    inline bool                 setMqttPort(uint16_t port) { return setValue<uint16_t>(m_cfgMqttPort, port); }
-    inline bool                 setMqttServer(const String& ip) { return setValue<String>(m_cfgMqttServer, ip); }
-    inline bool                 setMqttStatusTopic(const String& topic) { return setValue<String>(m_cfgMqttStatusTopic, topic); }
-#ifdef MQTT_TEST_TOPIC
-    inline bool                 setMqttTestTopic(const String& topic) { return setValue<String>(m_cfgMqttTestTopic, topic); }
-#endif // MQTT_TEST_TOPIC    
-    inline bool                 setMqttUser(const String& user) { return setValue<String>(m_cfgMqttUser, user); }
-    inline bool                 setNumberOfLeds(uint8_t numberOfLeds) { return setValue<uint8_t>(m_cfgNumberOfLeds, numberOfLeds); }
-#ifdef HSD_SENSOR_ENABLED
-    inline bool                 setSensorEnabled(bool enabled) { return setValue<bool>(m_cfgSensorEnabled, enabled); }
-    inline bool                 setSensorInterval(uint16_t interval) { return setValue<uint16_t>(m_cfgSensorInterval, interval); }
-    inline bool                 setSensorPin(uint8_t pin) { return setValue<uint8_t>(m_cfgSensorPin, pin); }
-#endif // HSD_SENSOR_ENABLED
-    inline bool                 setWifiPSK(const String& psk) { return setValue<String>(m_cfgWifiPSK, psk); }
-    inline bool                 setWifiSSID(const String& ssid) { return setValue<String>(m_cfgWifiSSID, ssid); }
     uint32_t                    string2hex(String value) const;
     inline void                 updateColorMapping() { readColorMappingConfigFile(); }
     inline void                 updateDeviceMapping() { readDeviceMappingConfigFile(); }
@@ -222,20 +204,14 @@ private:
     bool readColorMappingConfigFile();
     bool readDeviceMappingConfigFile();
     bool readMainConfigFile();
-    template <class T>
-    bool setValue(T& val, const T& newValue) const {
-        if (val != newValue) {
-            val = newValue;
-            return true;
-        } else {
-            return false;
-        }
-    }
     bool writeFile(const String& fileName, JsonObject* data) const;
     void writeColorMappingConfigFile();
     void writeDeviceMappingConfigFile();
     void writeMainConfigFile() const;
 
+#if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
+    bool                                  m_cfgBluetoothEnabled;
+#endif    
 #ifdef HSD_CLOCK_ENABLED
     uint8_t                               m_cfgClockBrightness;
     bool                                  m_cfgClockEnabled;
@@ -263,13 +239,14 @@ private:
     String                                m_cfgMqttUser;
     uint8_t                               m_cfgNumberOfLeds;
 #ifdef HSD_SENSOR_ENABLED
-    bool                                  m_cfgSensorEnabled;
+    bool                                  m_cfgSensorSonoffEnabled;
     uint16_t                              m_cfgSensorInterval;
     uint8_t                               m_cfgSensorPin;
 #endif // HSD_SENSOR_ENABLED
-    const String                          m_cfgVersion;
     String                                m_cfgWifiPSK;
     String                                m_cfgWifiSSID;
+    
+    ConfigEntry*                          m_cfgEntries;
 };
 
 #endif // HSDCONFIG_H

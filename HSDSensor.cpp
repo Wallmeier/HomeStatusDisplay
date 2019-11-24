@@ -24,7 +24,7 @@ HSDSensor::HSDSensor(const HSDConfig& config) :
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDSensor::begin() {
-    if (m_config.getSensorEnabled()) {
+    if (m_config.getSensorSonoffEnabled()) {
         m_maxCycles = microsecondsToClockCycles(1000);  // 1 millisecond timeout for reading pulses from DHT sensor.
         m_pin = m_config.getSensorPin();
         Serial.print(F("Enabling sensor on pin "));

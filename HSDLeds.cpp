@@ -64,7 +64,7 @@ uint32_t HSDLeds::getColor(uint32_t ledNum) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 HSDConfig::Behavior HSDLeds::getBehavior(uint32_t ledNum) const {
-    HSDConfig::Behavior behavior = HSDConfig::OFF;
+    HSDConfig::Behavior behavior = HSDConfig::Behavior::Off;
     if (ledNum < m_numLeds)
         behavior = m_pLedState[ledNum].behavior;
     return behavior;
@@ -74,10 +74,10 @@ HSDConfig::Behavior HSDLeds::getBehavior(uint32_t ledNum) const {
 
 void HSDLeds::updateStripe() {
     for (uint32_t i = 0; i < m_numLeds; i++) {
-        if ((m_pLedState[i].behavior == HSDConfig::ON) || 
-            ((m_pLedState[i].behavior == HSDConfig::BLINKING) && m_blinkOn) ||
-            ((m_pLedState[i].behavior == HSDConfig::FLASHING) && m_flashOn) ||
-            ((m_pLedState[i].behavior == HSDConfig::FLICKERING) && m_flickerOn)) {
+        if ((m_pLedState[i].behavior == HSDConfig::Behavior::On) || 
+            ((m_pLedState[i].behavior == HSDConfig::Behavior::Blinking) && m_blinkOn) ||
+            ((m_pLedState[i].behavior == HSDConfig::Behavior::Flashing) && m_flashOn) ||
+            ((m_pLedState[i].behavior == HSDConfig::Behavior::Flickering) && m_flickerOn)) {
             m_stripe.setPixelColor(i, m_pLedState[i].color);
         } else {
             m_stripe.setPixelColor(i, m_config.getDefaultColor("NONE"));
@@ -90,7 +90,7 @@ void HSDLeds::updateStripe() {
 
 void HSDLeds::clear() {
     for (uint32_t i = 0; i < m_numLeds; i++) {
-        m_pLedState[i].behavior = HSDConfig::OFF;
+        m_pLedState[i].behavior = HSDConfig::Behavior::Off;
         m_pLedState[i].color = m_config.getDefaultColor("NONE");
     }
     updateStripe();
@@ -149,25 +149,25 @@ void HSDLeds::test(uint32_t type) {
     clear();
     if (type == 1) { // left row on
         for (uint32_t led = 0; led < m_numLeds / 3; led++) {
-            m_pLedState[led].behavior = HSDConfig::ON;
+            m_pLedState[led].behavior = HSDConfig::Behavior::On;
             m_pLedState[led].color = m_config.getDefaultColor("GREEN");
         }
         updateStripe();
     } else if (type == 2) { // middle row on
         for (uint32_t led = m_numLeds / 3; led < m_numLeds / 3 * 2; led++) {
-            m_pLedState[led].behavior = HSDConfig::ON;
+            m_pLedState[led].behavior = HSDConfig::Behavior::On;
             m_pLedState[led].color = m_config.getDefaultColor("GREEN");
         }
         updateStripe();
     } else if(type == 3) {  // right row on
         for (uint32_t led = m_numLeds / 3 * 2; led < m_numLeds; led++) {
-            m_pLedState[led].behavior = HSDConfig::ON;
+            m_pLedState[led].behavior = HSDConfig::Behavior::On;
             m_pLedState[led].color = m_config.getDefaultColor("GREEN");
         }
         updateStripe();
     } else if (type == 4) { // all rows on
         for (uint32_t led = 0; led < m_numLeds; led++) {
-            m_pLedState[led].behavior = HSDConfig::ON;
+            m_pLedState[led].behavior = HSDConfig::Behavior::On;
             m_pLedState[led].color = m_config.getDefaultColor("GREEN");
         }
         updateStripe();
@@ -175,13 +175,13 @@ void HSDLeds::test(uint32_t type) {
         uint32_t colors[] = {m_config.getDefaultColor("RED"), m_config.getDefaultColor("GREEN"), m_config.getDefaultColor("BLUE")};
         for (uint32_t led = 0; led < m_numLeds / 3; led++) {
             for (uint32_t colorIndex = 0; colorIndex < NUMBER_OF_ELEMENTS(colors); colorIndex++) {
-                m_pLedState[led].behavior = HSDConfig::ON;
+                m_pLedState[led].behavior = HSDConfig::Behavior::On;
                 m_pLedState[led].color = colors[colorIndex];
   
-                m_pLedState[led + m_numLeds / 3].behavior = HSDConfig::ON;
+                m_pLedState[led + m_numLeds / 3].behavior = HSDConfig::Behavior::On;
                 m_pLedState[led + m_numLeds / 3].color = colors[colorIndex];
   
-                m_pLedState[led + m_numLeds / 3 * 2].behavior = HSDConfig::ON;
+                m_pLedState[led + m_numLeds / 3 * 2].behavior = HSDConfig::Behavior::On;
                 m_pLedState[led + m_numLeds / 3 * 2].color = colors[colorIndex];
 
                 updateStripe();
@@ -191,10 +191,10 @@ void HSDLeds::test(uint32_t type) {
             m_pLedState[led].behavior = HSDConfig::OFF;
             m_pLedState[led].color = m_config.getDefaultColor("NONE");
 
-            m_pLedState[led + m_numLeds / 3].behavior = HSDConfig::OFF;
+            m_pLedState[led + m_numLeds / 3].behavior = HSDConfig::Behavior::Off;
             m_pLedState[led + m_numLeds / 3].color = m_config.getDefaultColor("NONE");
 
-            m_pLedState[led + m_numLeds / 3 * 2].behavior = HSDConfig::OFF;
+            m_pLedState[led + m_numLeds / 3 * 2].behavior = HSDConfig::Behavior::Off;
             m_pLedState[led + m_numLeds / 3 * 2].color = m_config.getDefaultColor("NONE");
   
             updateStripe();

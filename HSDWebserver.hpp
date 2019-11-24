@@ -30,6 +30,7 @@ private:
     bool          deleteColorMappingEntry();
     bool          deleteDeviceMappingEntry();
     void          deliverColorMappingPage();
+    void          deliverCSS();
     void          deliverConfigPage();
     void          deliverDeviceMappingPage();
     void          deliverNotFoundPage();
@@ -38,7 +39,6 @@ private:
     String        getColorMappingTableAddEntryForm(int newEntryNum, bool isFull) const;
     String        getDeleteForm() const;
     String        getDeviceMappingTableAddEntryForm(int newEntryNum, bool isFull) const;
-    inline String getFooter() const { return F("</font></body></html>"); }
     String        getSaveForm() const;
     inline bool   needAdd() { return m_server.hasArg("add"); }
     inline bool   needDelete() { return m_server.hasArg("delete"); }
@@ -47,7 +47,7 @@ private:
     inline bool   needUndo() { return (m_server.hasArg("undo")); }
     void          sendColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping, const String& colorString);
     void          sendDeviceMappingTableEntry(int entryNum, const HSDConfig::DeviceMapping* mapping);
-    void          sendHeader(const char* title, const String& host, const String& version);
+    void          sendHeader(const char* title);
     bool          updateDeviceMappingConfig();
     bool          updateMainConfig();
 

@@ -77,7 +77,7 @@ bool HSDMqtt::reconnect() const {
         if (isTopicValid(verTopic)) {
             DynamicJsonBuffer jsonBuffer;
             JsonObject& json = jsonBuffer.createObject();
-            json["Firmware"] = m_config.getVersion();
+            json["Firmware"] = HSD_VERSION;
 #ifndef ARDUINO_ARCH_ESP32
             json["CoreVersion"] = ESP.getCoreVersion();
 #endif            

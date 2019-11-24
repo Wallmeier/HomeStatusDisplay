@@ -13,7 +13,11 @@
 
 const constexpr HSDConfig::Map HSDConfig::DefaultColor[];
 
-HSDConfig::HSDConfig(const char* version, const char* defaultIdentifier) :
+HSDConfig::HSDConfig() :
+    m_cfgEntries(nullptr),
+#if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
+    m_cfgBluetoothEnabled(false),
+#endif
 #ifdef HSD_CLOCK_ENABLED
     m_cfgClockBrightness(4),
     m_cfgClockEnabled(false),
@@ -27,18 +31,65 @@ HSDConfig::HSDConfig(const char* version, const char* defaultIdentifier) :
     m_cfgColorMappingDirty(true),
     m_cfgDeviceMapping(MAX_DEVICE_MAP_ENTRIES),
     m_cfgDeviceMappingDirty(true),
-    m_cfgHost(defaultIdentifier),
+    m_cfgHost("HomeStatusDisplay"),
     m_cfgLedBrightness(50),
     m_cfgLedDataPin(0),
     m_cfgMqttPort(1883),
     m_cfgNumberOfLeds(0),
 #ifdef HSD_SENSOR_ENABLED
-    m_cfgSensorEnabled(false),
+    m_cfgSensorSonoffEnabled(false),
     m_cfgSensorInterval(2),
-    m_cfgSensorPin(0),
+    m_cfgSensorPin(0)
 #endif // HSD_SENSOR_ENABLED
-    m_cfgVersion(version)
 {
+    int len(13);
+#ifdef MQTT_TEST_TOPIC
+    len += 1;
+#endif    
+#if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
+    len += 1;
+#endif
+#ifdef HSD_SENSOR_ENABLED
+    len += 3;
+#endif
+#ifdef HSD_CLOCK_ENABLED
+    len += 7;
+#endif
+    int idx(0);
+    m_cfgEntries = new ConfigEntry[len];
+    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiHost"),        F("Hostname"),                      F("host"),                         DataType::String, 0, false, &m_cfgHost};
+    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiSSID"),        F("SSID"),                          F("SSID"),                         DataType::String, 0, false, &m_cfgWifiSSID};
+    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiPSK"),         F("Password"),                      F("Password"),                     DataType::String, 0, true,  &m_cfgWifiPSK};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttServer"),      F("Server"),                        F("IP or hostname"),               DataType::String, 0, false, &m_cfgMqttServer};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttPort"),        F("Port"),                          F("Port"),                         DataType::Word,   5, false, &m_cfgMqttPort};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttUser"),        F("User"),                          F("User name"),                    DataType::String, 0, false, &m_cfgMqttUser};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttPassword"),    F("Password"),                      F("Password"),                     DataType::String, 0, true,  &m_cfgMqttPassword};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttStatusTopic"), F("Status topic"),                  F("#"),                            DataType::String, 0, false, &m_cfgMqttStatusTopic};
+#ifdef MQTT_TEST_TOPIC
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttTestTopic"),   F("Test topic"),                    F("#"),                            DataType::String, 0, false, &m_cfgMqttTestTopic};
+#endif // MQTT_TEST_TOPIC        
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttOutTopic"),    F("Outgoing topic"),                F("#"),                            DataType::String, 0, false, &m_cfgMqttOutTopic};
+    m_cfgEntries[idx++] = {Group::Leds,      F("ledCount"),        F("Number of LEDs"),                F("0"),                            DataType::Byte,   3, false, &m_cfgNumberOfLeds};
+    m_cfgEntries[idx++] = {Group::Leds,      F("ledPin"),          F("LED pin"),                       F("0"),                            DataType::Byte,   3, false, &m_cfgLedDataPin};
+    m_cfgEntries[idx++] = {Group::Leds,      F("ledBrightness"),   F("Brightness"),                    F("0-255"),                        DataType::Byte,   3, false, &m_cfgLedBrightness};
+#ifdef HSD_CLOCK_ENABLED
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockEnabled"),    F("Enable"),                        nullptr,                           DataType::Bool,   0, false, &m_cfgClockEnabled};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockCLK"),        F("CLK pin"),                       F("0"),                            DataType::Byte,   3, false, &m_cfgClockPinCLK};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockDIO"),        F("DIO pin"),                       F("0"),                            DataType::Byte,   3, false, &m_cfgClockPinDIO};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockBrightness"), F("Brightness"),                    F("0-8"),                          DataType::Byte,   1, false, &m_cfgClockBrightness};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockTZ"),         F("Time zone"),                     F("CET-1CEST,M3.5.0/2,M10.5.0/3"), DataType::String, 0, false, &m_cfgClockTimeZone};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockServer"),     F("NTP server"),                    F("pool.ntp.org"),                 DataType::String, 0, false, &m_cfgClockNTPServer};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockInterval"),   F("NTP update interval (min.)"),    F("20"),                           DataType::Word,   5, false, &m_cfgClockNTPInterval};
+#endif // HSD_CLOCK_ENABLED
+#ifdef HSD_SENSOR_ENABLED
+    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorEnabled"),   F("Sonoff SI7021"),                 nullptr,                           DataType::Bool,   0, false, &m_cfgSensorSonoffEnabled};
+    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorPin"),       F("Data pin"),                      F("0"),                            DataType::Byte,   0, false, &m_cfgSensorPin};
+    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorInterval"),  F("Sensor update interval (min.)"), F("5"),                            DataType::Word,   5, false, &m_cfgSensorInterval};
+#endif // HSD_SENSOR_ENABLED        
+#if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
+    m_cfgEntries[idx++] = {Group::Bluetooth, F("btEnabled"),       F("Enable"),                        nullptr,                           DataType::Bool,   0, false, &m_cfgBluetoothEnabled};
+#endif // HSD_BLUETOOTH_ENABLED
+    m_cfgEntries[idx++] = {Group::_Last,     nullptr,              nullptr,                            nullptr,                           DataType::String, 0, false, nullptr};
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -98,59 +149,17 @@ bool HSDConfig::readMainConfigFile() {
             Serial.print(F("JSON length is ")); Serial.println(json.measureLength());
             printMainConfigFile(json);
             Serial.println(F(""));
-
-            if (json.containsKey(JSON_KEY_HOST))
-                setHost(json[JSON_KEY_HOST]);
-            if (json.containsKey(JSON_KEY_WIFI_SSID))
-                setWifiSSID(json[JSON_KEY_WIFI_SSID]);
-            if (json.containsKey(JSON_KEY_WIFI_PSK))
-                setWifiPSK(json[JSON_KEY_WIFI_PSK]);
-            if (json.containsKey(JSON_KEY_MQTT_SERVER))
-                setMqttServer(json[JSON_KEY_MQTT_SERVER]);
-            if (json.containsKey(JSON_KEY_MQTT_USER))
-                setMqttUser(json[JSON_KEY_MQTT_USER]);
-            if (json.containsKey(JSON_KEY_MQTT_PASSWORD))
-                setMqttPassword(json[JSON_KEY_MQTT_PASSWORD]);
-            if (json.containsKey(JSON_KEY_MQTT_PORT))
-                setMqttPort(json[JSON_KEY_MQTT_PORT]);
-            if (json.containsKey(JSON_KEY_MQTT_STATUS_TOPIC))
-                setMqttStatusTopic(json[JSON_KEY_MQTT_STATUS_TOPIC]);
-#ifdef MQTT_TEST_TOPIC
-            if (json.containsKey(JSON_KEY_MQTT_TEST_TOPIC))
-                setMqttTestTopic(json[JSON_KEY_MQTT_TEST_TOPIC]);
-#endif          
-            if (json.containsKey(JSON_KEY_MQTT_OUT_TOPIC))
-                setMqttOutTopic(json[JSON_KEY_MQTT_OUT_TOPIC]);
-            if (json.containsKey(JSON_KEY_LED_COUNT))
-                setNumberOfLeds(json[JSON_KEY_LED_COUNT]);
-            if (json.containsKey(JSON_KEY_LED_PIN))
-                setLedDataPin(json[JSON_KEY_LED_PIN]);
-            if (json.containsKey(JSON_KEY_LED_BRIGHTNESS))
-                setLedBrightness(json[JSON_KEY_LED_BRIGHTNESS]);
-#ifdef HSD_CLOCK_ENABLED
-            if (json.containsKey(JSON_KEY_CLOCK_ENABLED))
-                setClockEnabled(json[JSON_KEY_CLOCK_ENABLED]);
-            if (json.containsKey(JSON_KEY_CLOCK_PIN_CLK))
-                setClockPinCLK(json[JSON_KEY_CLOCK_PIN_CLK]);
-            if (json.containsKey(JSON_KEY_CLOCK_PIN_DIO))
-                setClockPinDIO(json[JSON_KEY_CLOCK_PIN_DIO]);
-            if (json.containsKey(JSON_KEY_CLOCK_BRIGHTNESS))
-                setClockBrightness(json[JSON_KEY_CLOCK_BRIGHTNESS]);
-            if (json.containsKey(JSON_KEY_CLOCK_TIME_ZONE))
-                setClockTimeZone(json[JSON_KEY_CLOCK_TIME_ZONE]);
-            if (json.containsKey(JSON_KEY_CLOCK_NTP_SERVER))
-                setClockNTPServer(json[JSON_KEY_CLOCK_NTP_SERVER]);
-            if (json.containsKey(JSON_KEY_CLOCK_NTP_INTERVAL))
-                setClockNTPInterval(json[JSON_KEY_CLOCK_NTP_INTERVAL]);
-#endif // HSD_CLOCK_ENABLED
-#ifdef HSD_SENSOR_ENABLED
-            if (json.containsKey(JSON_KEY_SENSOR_ENABLED))
-                setSensorEnabled(json[JSON_KEY_SENSOR_ENABLED]);
-            if (json.containsKey(JSON_KEY_SENSOR_PIN))
-                setSensorPin(json[JSON_KEY_SENSOR_PIN]);
-            if (json.containsKey(JSON_KEY_SENSOR_INTERVAL))
-                setSensorInterval(json[JSON_KEY_SENSOR_INTERVAL]);
-#endif // HSD_SENSOR_ENABLED
+            int idx(0);
+            do {
+                if (json.containsKey(m_cfgEntries[idx].key)) {
+                    switch (m_cfgEntries[idx].type) {
+                        case DataType::String: *(reinterpret_cast<String*> ( m_cfgEntries[idx].val)) = json[m_cfgEntries[idx].key].as<String>(); break;
+                        case DataType::Bool:   *(reinterpret_cast<bool*>(    m_cfgEntries[idx].val)) = json[m_cfgEntries[idx].key].as<bool>();   break;
+                        case DataType::Byte:   *(reinterpret_cast<uint8_t*>( m_cfgEntries[idx].val)) = json[m_cfgEntries[idx].key].as<int>();    break;
+                        case DataType::Word:   *(reinterpret_cast<uint16_t*>(m_cfgEntries[idx].val)) = json[m_cfgEntries[idx].key].as<int>();    break;
+                    }
+                }
+            } while (m_cfgEntries[++idx].group != Group::_Last); 
             success = true;
         } else {
             Serial.println(F("Could not parse config data."));
@@ -165,35 +174,27 @@ bool HSDConfig::readMainConfigFile() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDConfig::printMainConfigFile(JsonObject& json) {
-    Serial.print  (F("  • host            : ")); Serial.println((const char*)(json[JSON_KEY_HOST]));
-    Serial.print  (F("  • wifiSSID        : ")); Serial.println((const char*)(json[JSON_KEY_WIFI_SSID]));
-    Serial.println(F("  • wifiPSK         : not shown"));
-    Serial.print  (F("  • mqttServer      : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_SERVER]));
-    Serial.print  (F("  • mqttUser        : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_USER]));
-    Serial.println(F("  • mqttPassword    : not shown"));
-    Serial.print  (F("  • mqttPort        : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_PORT]));
-    Serial.print  (F("  • mqttStatusTopic : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_STATUS_TOPIC]));
-#ifdef MQTT_TEST_TOPIC
-    Serial.print  (F("  • mqttTestTopic   : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_TEST_TOPIC]));
-#endif // MQTT_TEST_TOPIC    
-    Serial.print  (F("  • mqttOutTopic    : ")); Serial.println((const char*)(json[JSON_KEY_MQTT_OUT_TOPIC]));
-    Serial.print  (F("  • ledCount        : ")); Serial.println((const char*)(json[JSON_KEY_LED_COUNT]));
-    Serial.print  (F("  • ledPin          : ")); Serial.println((const char*)(json[JSON_KEY_LED_PIN]));
-    Serial.print  (F("  • ledBrightness   : ")); Serial.println((const char*)(json[JSON_KEY_LED_BRIGHTNESS]));
-#ifdef HSD_CLOCK_ENABLED
-    Serial.print  (F("  • clockEnabled    : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_ENABLED]));
-    Serial.print  (F("  • clockPinCLK     : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_PIN_CLK]));
-    Serial.print  (F("  • clockPinDIO     : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_PIN_DIO]));
-    Serial.print  (F("  • clockBrightness : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_BRIGHTNESS]));
-    Serial.print  (F("  • clockTimeZone   : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_TIME_ZONE]));
-    Serial.print  (F("  • clockNTPServer  : ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_NTP_SERVER]));
-    Serial.print  (F("  • clockNTPInterval: ")); Serial.println((const char*)(json[JSON_KEY_CLOCK_NTP_INTERVAL]));
-#endif // HSD_CLOCK_ENABLED
-#ifdef HSD_SENSOR_ENABLED
-    Serial.print  (F("  • sensorEnabled   : ")); Serial.println((const char*)(json[JSON_KEY_SENSOR_ENABLED]));
-    Serial.print  (F("  • sensorPin       : ")); Serial.println((const char*)(json[JSON_KEY_SENSOR_PIN]));
-    Serial.print  (F("  • sensorInterval  : ")); Serial.println((const char*)(json[JSON_KEY_SENSOR_INTERVAL]));
-#endif // HSD_SENSOR_ENABLED
+    int idx(0), maxLen(0);
+    do {
+        int length = strlen_P((PGM_P)m_cfgEntries[idx].key);
+        if (length > maxLen)
+            maxLen = length;
+    } while (m_cfgEntries[++idx].group != Group::_Last);
+    idx = 0;
+    do {
+        Serial.print(F("  • "));
+        Serial.print(m_cfgEntries[idx].key);
+        int length = strlen_P((PGM_P)m_cfgEntries[idx].key);
+        while (length < maxLen) {
+            length++;
+            Serial.print(" ");
+        }
+        Serial.print(F(": "));
+        if (m_cfgEntries[idx].doNotDump)
+            Serial.println("not shown");
+        else
+            Serial.println((const char*)(json[m_cfgEntries[idx].key]));
+    } while (m_cfgEntries[++idx].group != Group::_Last);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -219,9 +220,9 @@ bool HSDConfig::readColorMappingConfigFile() {
                 if (entry.containsKey(JSON_KEY_COLORMAPPING_MSG) && entry.containsKey(JSON_KEY_COLORMAPPING_COLOR) &&
                     entry.containsKey(JSON_KEY_COLORMAPPING_BEHAVIOR)) {
                     addColorMappingEntry(index,
-                                        entry[JSON_KEY_COLORMAPPING_MSG].as<char*>(),
-                                        entry[JSON_KEY_COLORMAPPING_COLOR].as<uint32_t>(),
-                                        (Behavior)(entry[JSON_KEY_COLORMAPPING_BEHAVIOR].as<int>()));
+                                         entry[JSON_KEY_COLORMAPPING_MSG].as<char*>(),
+                                         entry[JSON_KEY_COLORMAPPING_COLOR].as<uint32_t>(),
+                                         (Behavior)(entry[JSON_KEY_COLORMAPPING_BEHAVIOR].as<int>()));
                     index++;
                 }
             }
@@ -238,7 +239,7 @@ bool HSDConfig::readColorMappingConfigFile() {
         for (uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
             String temp = String(DefaultColor[i].key);
             temp.toLowerCase();
-            addColorMappingEntry(i - 1, temp, DefaultColor[i].value, ON);
+            addColorMappingEntry(i - 1, temp, DefaultColor[i].value, Behavior::On);
         }
     }
 
@@ -308,37 +309,15 @@ bool HSDConfig::writeFile(const String& fileName, JsonObject* data) const {
 void HSDConfig::writeMainConfigFile() const {
     DynamicJsonBuffer jsonBuffer;
     JsonObject& json = jsonBuffer.createObject();
-
-    json[JSON_KEY_HOST] = m_cfgHost;
-    json[JSON_KEY_WIFI_SSID] = m_cfgWifiSSID;
-    json[JSON_KEY_WIFI_PSK] = m_cfgWifiPSK;
-    json[JSON_KEY_MQTT_SERVER] = m_cfgMqttServer;
-    json[JSON_KEY_MQTT_USER] = m_cfgMqttUser;
-    json[JSON_KEY_MQTT_PASSWORD] = m_cfgMqttPassword;
-    json[JSON_KEY_MQTT_PORT] = m_cfgMqttPort;
-    json[JSON_KEY_MQTT_STATUS_TOPIC] = m_cfgMqttStatusTopic;
-#ifdef MQTT_TEST_TOPIC    
-    json[JSON_KEY_MQTT_TEST_TOPIC] = m_cfgMqttTestTopic;
-#endif // MQTT_TEST_TOPIC    
-    json[JSON_KEY_MQTT_OUT_TOPIC] = m_cfgMqttOutTopic;
-    json[JSON_KEY_LED_COUNT] = m_cfgNumberOfLeds;
-    json[JSON_KEY_LED_PIN] = m_cfgLedDataPin;
-    json[JSON_KEY_LED_BRIGHTNESS] = m_cfgLedBrightness;
-#ifdef HSD_CLOCK_ENABLED
-    json[JSON_KEY_CLOCK_ENABLED] = m_cfgClockEnabled;
-    json[JSON_KEY_CLOCK_PIN_CLK] = m_cfgClockPinCLK;
-    json[JSON_KEY_CLOCK_PIN_DIO] = m_cfgClockPinDIO;
-    json[JSON_KEY_CLOCK_BRIGHTNESS] = m_cfgClockBrightness;
-    json[JSON_KEY_CLOCK_TIME_ZONE] = m_cfgClockTimeZone;
-    json[JSON_KEY_CLOCK_NTP_SERVER] = m_cfgClockNTPServer;
-    json[JSON_KEY_CLOCK_NTP_INTERVAL] = m_cfgClockNTPInterval;
-#endif // HSD_CLOCK_ENABLED
-#ifdef HSD_SENSOR_ENABLED
-    json[JSON_KEY_SENSOR_ENABLED] = m_cfgSensorEnabled;
-    json[JSON_KEY_SENSOR_PIN] = m_cfgSensorPin;
-    json[JSON_KEY_SENSOR_INTERVAL] = m_cfgSensorInterval;
-#endif
-
+    int idx(0);
+    do {
+        switch (m_cfgEntries[idx].type) {
+            case DataType::String: json[m_cfgEntries[idx].key] = *(reinterpret_cast<String*> ( m_cfgEntries[idx].val)); break;
+            case DataType::Bool:   json[m_cfgEntries[idx].key] = *(reinterpret_cast<bool*>(    m_cfgEntries[idx].val)); break;
+            case DataType::Byte:   json[m_cfgEntries[idx].key] = *(reinterpret_cast<uint8_t*>( m_cfgEntries[idx].val)); break;
+            case DataType::Word:   json[m_cfgEntries[idx].key] = *(reinterpret_cast<uint16_t*>(m_cfgEntries[idx].val)); break;
+        }
+    } while (m_cfgEntries[++idx].group != Group::_Last); 
     if (!writeFile(FILENAME_MAINCONFIG, &json))
         onFileWriteError();
 }
@@ -453,7 +432,7 @@ bool HSDConfig::addColorMappingEntry(int entryNum, String msg, uint32_t color, B
     bool success(false);
 
     Serial.print(F("Adding or editing color mapping entry at index "));
-    Serial.println(String(entryNum) + ", new values: name " + msg + ", color " + String(color) + ", behavior " + String(behavior));
+    Serial.println(String(entryNum) + ", new values: name " + msg + ", color " + String(color) + ", behavior " + String(static_cast<uint8_t>(behavior)));
 
     ColorMapping mapping(msg, color, behavior);
 
@@ -563,4 +542,17 @@ String HSDConfig::getMqttOutTopic(const String& topic) const {
         return m_cfgMqttOutTopic + topic;
     else
         return m_cfgMqttOutTopic + "/" + topic;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+String HSDConfig::groupDescription(Group group) const {
+    switch (group) {
+        case Group::Wifi:      return F("WiFi");
+        case Group::Mqtt:      return F("MQTT");
+        case Group::Leds:      return F("LEDs");
+        case Group::Clock:     return F("Clock");
+        case Group::Sensors:   return F("Sensors");
+        case Group::Bluetooth: return F("Bluetooth");        
+    }
 }
