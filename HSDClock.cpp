@@ -17,8 +17,8 @@ HSDClock::HSDClock(const HSDConfig& config) :
 void HSDClock::begin() {
     m_tm1637 = TM1637(m_config.getClockPinCLK(), m_config.getClockPinDIO());
   
-    setServer(m_config.getClockNTPServer());
-    setInterval(m_config.getClockNTPInterval() * 60);
+    ezt::setServer(m_config.getClockNTPServer());
+    ezt::setInterval(m_config.getClockNTPInterval() * 60);
     m_local.setPosix(m_config.getClockTimeZone());
 
     m_tm1637.set(m_config.getClockBrightness());  // set brightness
@@ -28,8 +28,13 @@ void HSDClock::begin() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDClock::handle() {
-    // for ezTime
-    events();
+    static bool initEZ = false;
+    
+    if (initEZ || WiFi.status() == WL_CONNECTED) {
+        initEZ = true;
+        // for ezTime
+        ezt::events();
+    }
 
     if (WiFi.status() == WL_CONNECTED && m_config.getClockPinCLK() != m_config.getClockPinDIO()) {
         uint8_t new_time = m_local.hour() * 100 + m_local.minute();

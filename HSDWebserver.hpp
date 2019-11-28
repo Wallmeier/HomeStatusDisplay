@@ -19,7 +19,7 @@ public:
     void begin();
     void handleClient(unsigned long deviceUptime);
 #ifdef HSD_SENSOR_ENABLED
-    void setSensorData(float& temp, float& hum);
+    inline void setSensorData(const String& data) { m_sensorData = data; }
 #endif // HSD_SENSOR_ENABLED  
 
 private:
@@ -53,12 +53,11 @@ private:
 
     HSDConfig&              m_config;
     unsigned long           m_deviceUptimeMinutes;
-#ifdef HSD_SENSOR_ENABLED
-    float                   m_lastHum;
-    float                   m_lastTemp;
-#endif  
     const HSDLeds&          m_leds;
     const HSDMqtt&          m_mqtt;
+#ifdef HSD_SENSOR_ENABLED
+    String                  m_sensorData;
+#endif  
 #ifdef ARDUINO_ARCH_ESP32
     WebServer               m_server;
 #else

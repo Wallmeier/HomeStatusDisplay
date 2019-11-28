@@ -7,10 +7,6 @@
 HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt& mqtt) :
     m_config(config),
     m_deviceUptimeMinutes(0),
-#ifdef HSD_SENSOR_ENABLED
-    m_lastHum(0),
-    m_lastTemp(0),
-#endif // HSD_SENSOR_ENABLED
     m_leds(leds),
     m_mqtt(mqtt),
     m_server(80)
@@ -112,7 +108,9 @@ void HSDWebserver::deliverConfigPage() {
         html += F("\" type=\"");
         switch (entries[idx].type) {
             case HSDConfig::DataType::String:
-                html += F("text\" size=\"30\" value=\"");
+            case HSDConfig::DataType::Password:
+                html += entries[idx].type == HSDConfig::DataType::Password ? F("password") : F("text");
+                html += F("\" size=\"30\" value=\"");
                 html += *(reinterpret_cast<String*>(entries[idx].val));
                 html += F("\">");
                 break;
@@ -143,7 +141,7 @@ void HSDWebserver::deliverConfigPage() {
         html += F("</td></tr>\n");
     } while (entries[++idx].group != HSDConfig::Group::_Last);
 
-    html = F("</table>"
+    html += F("</table>"
              "<input type='submit' class='button' value='Save'>"
              "</form>\n</body>\n</html>");
     m_server.sendContent(html);
@@ -194,12 +192,10 @@ void HSDWebserver::deliverStatusPage() {
 #endif
 
 #ifdef HSD_SENSOR_ENABLED
-    if (m_config.getSensorSonoffEnabled()) {
-        html += F("<p>Sensor: Temp ");
-        html += String(m_lastTemp, 1);
-        html += F("&deg;C, Hum ");
-        html += String(m_lastHum, 1);
-        html += F("%</p>\n");
+    if (m_config.getSensorSonoffEnabled() && m_sensorData.length() > 0) {
+        html += F("<p>Sensor: ");
+        html += m_sensorData;
+        html += F("</p>\n");
     }
 #endif // HSD_SENSOR_ENABLED
 
@@ -231,6 +227,7 @@ void HSDWebserver::deliverStatusPage() {
     if (m_config.getNumberOfLeds() == 0) {
         html = F("<p>No LEDs configured yet</p>\n");
     } else {
+        html = F("");
         int ledOnCount(0);
         for (int ledNr = 0; ledNr < m_config.getNumberOfLeds(); ledNr++) {
             uint32_t color = m_leds.getColor(ledNr);
@@ -497,6 +494,7 @@ bool HSDWebserver::updateMainConfig() {
         do {
             switch (entries[idx].type) {
                 case HSDConfig::DataType::String:
+                case HSDConfig::DataType::Password:
                     if (*(reinterpret_cast<String*>(entries[idx].val)) != m_server.arg(entries[idx].key)) {
                         needSave = true;
                         *(reinterpret_cast<String*>(entries[idx].val)) = m_server.arg(entries[idx].key);
@@ -533,23 +531,23 @@ bool HSDWebserver::updateMainConfig() {
 
 void HSDWebserver::deliverCSS() {
     Serial.println(F("Delivering /layout.css"));
-    String css;
-    css.reserve(500);
-    css  = F("body { background-color:#e5e5e5; font-family:Verdana,Arial,Helvetica; }\n");
-    css += F("span.title { font-size: xx-large; }\n");
-    css += F("table.cfg { border-spacing:2; border-width:0; width:400px; }\n");
-    css += F("table.colMap { border-spacing:2; border-width:1; }\n");
-    css += F("td { padding:0; }\n");
-    css += F("td.cfgTitle { font-size: large; font-weight: bold; }\n");
-    css += F("td.colMap { padding:1; }\n");
-    css += F("td.colMapTitle { padding:1; font-size: large; font-weight: bold; }\n");
-    css += F("tr.colMap { background-color:#828282; }\n");
-    css += F(".button { border-radius:0; height:30px; width:120px; border:0; background-color:black; color:#fff; margin:5px; cursor:pointer; }\n"); // Header buttons
-    css += F(".buttonr {border-radius:0; height:30px; width:120px; border:0; background-color:red; color:#fff; margin:5px; cursor:pointer; }\n");
-    css += F(".hsdcolor { width:15px; height:15px; border:1px black solid; float:left; margin-right:5px; }\n"); // Used on status page
-    css += F(".rdark { background-color:#f9f9f9; }\n");
-    css += F(".rlight { background-color:#e5e5e5; }\n");
-    m_server.send(200, F("text/css"), css);
+    m_server.sendHeader("Cache-Control", "max-age=86400"); // load only once a day
+    m_server.send(200, F("text/css"), F(
+        "body { background-color:#e5e5e5; font-family:Verdana,Arial,Helvetica; }\n"
+        "span.title { font-size: xx-large; }\n"
+        "table.cfg { border-spacing:2; border-width:0; width:400px; }\n"
+        "table.colMap { border-spacing:2; border-width:1; }\n"
+        "td { padding:0; }\n"
+        "td.cfgTitle { font-size: large; font-weight: bold; }\n"
+        "td.colMap { padding:1; }\n"
+        "td.colMapTitle { padding:1; font-size: large; font-weight: bold; }\n"
+        "tr.colMap { background-color:#828282; }\n"
+        ".button { border-radius:0; height:30px; width:120px; border:0; background-color:black; color:#fff; margin:5px; cursor:pointer; }\n" // Header buttons
+        ".buttonr {border-radius:0; height:30px; width:120px; border:0; background-color:red; color:#fff; margin:5px; cursor:pointer; }\n"
+        ".hsdcolor { width:15px; height:15px; border:1px black solid; float:left; margin-right:5px; }\n" // Used on status page
+        ".rdark { background-color:#f9f9f9; }\n"
+        ".rlight { background-color:#e5e5e5; }\n"
+    ));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -716,11 +714,3 @@ String HSDWebserver::getBehaviorOptions(HSDConfig::Behavior selectedBehavior) co
     html += F("<option "); html += flickeringSelect; html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::Flickering); html += F("'>Flicker</option>");
     return html;
 }
-
-// ---------------------------------------------------------------------------------------------------------------------
-#ifdef HSD_SENSOR_ENABLED
-void HSDWebserver::setSensorData(float& temp, float& hum) {
-    m_lastTemp = temp;
-    m_lastHum = hum;
-}
-#endif // HSD_SENSOR_ENABLED

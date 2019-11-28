@@ -37,9 +37,11 @@ HSDConfig::HSDConfig() :
     m_cfgMqttPort(1883),
     m_cfgNumberOfLeds(0),
 #ifdef HSD_SENSOR_ENABLED
-    m_cfgSensorSonoffEnabled(false),
+    m_cfgSensorI2CEnabled(false),
     m_cfgSensorInterval(2),
-    m_cfgSensorPin(0)
+    m_cfgSensorPin(0),
+    m_cfgSensorSonoffEnabled(false),
+    m_cfgSensorAltitude(0)
 #endif // HSD_SENSOR_ENABLED
 {
     int len(13);
@@ -50,46 +52,48 @@ HSDConfig::HSDConfig() :
     len += 1;
 #endif
 #ifdef HSD_SENSOR_ENABLED
-    len += 3;
+    len += 5;
 #endif
 #ifdef HSD_CLOCK_ENABLED
     len += 7;
 #endif
     int idx(0);
     m_cfgEntries = new ConfigEntry[len];
-    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiHost"),        F("Hostname"),                      F("host"),                         DataType::String, 0, false, &m_cfgHost};
-    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiSSID"),        F("SSID"),                          F("SSID"),                         DataType::String, 0, false, &m_cfgWifiSSID};
-    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiPSK"),         F("Password"),                      F("Password"),                     DataType::String, 0, true,  &m_cfgWifiPSK};
-    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttServer"),      F("Server"),                        F("IP or hostname"),               DataType::String, 0, false, &m_cfgMqttServer};
-    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttPort"),        F("Port"),                          F("Port"),                         DataType::Word,   5, false, &m_cfgMqttPort};
-    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttUser"),        F("User"),                          F("User name"),                    DataType::String, 0, false, &m_cfgMqttUser};
-    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttPassword"),    F("Password"),                      F("Password"),                     DataType::String, 0, true,  &m_cfgMqttPassword};
-    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttStatusTopic"), F("Status topic"),                  F("#"),                            DataType::String, 0, false, &m_cfgMqttStatusTopic};
+    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiHost"),         F("Hostname"),                      F("host"),                         DataType::String,   0, &m_cfgHost};
+    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiSSID"),         F("SSID"),                          F("SSID"),                         DataType::String,   0, &m_cfgWifiSSID};
+    m_cfgEntries[idx++] = {Group::Wifi,      F("wifiPSK"),          F("Password"),                      F("Password"),                     DataType::Password, 0, &m_cfgWifiPSK};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttServer"),       F("Server"),                        F("IP or hostname"),               DataType::String,   0, &m_cfgMqttServer};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttPort"),         F("Port"),                          F("Port"),                         DataType::Word,     5, &m_cfgMqttPort};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttUser"),         F("User"),                          F("User name"),                    DataType::String,   0, &m_cfgMqttUser};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttPassword"),     F("Password"),                      F("Password"),                     DataType::Password, 0, &m_cfgMqttPassword};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttStatusTopic"),  F("Status topic"),                  F("#"),                            DataType::String,   0, &m_cfgMqttStatusTopic};
 #ifdef MQTT_TEST_TOPIC
-    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttTestTopic"),   F("Test topic"),                    F("#"),                            DataType::String, 0, false, &m_cfgMqttTestTopic};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttTestTopic"),    F("Test topic"),                    F("#"),                            DataType::String,   0, &m_cfgMqttTestTopic};
 #endif // MQTT_TEST_TOPIC        
-    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttOutTopic"),    F("Outgoing topic"),                F("#"),                            DataType::String, 0, false, &m_cfgMqttOutTopic};
-    m_cfgEntries[idx++] = {Group::Leds,      F("ledCount"),        F("Number of LEDs"),                F("0"),                            DataType::Byte,   3, false, &m_cfgNumberOfLeds};
-    m_cfgEntries[idx++] = {Group::Leds,      F("ledPin"),          F("LED pin"),                       F("0"),                            DataType::Byte,   3, false, &m_cfgLedDataPin};
-    m_cfgEntries[idx++] = {Group::Leds,      F("ledBrightness"),   F("Brightness"),                    F("0-255"),                        DataType::Byte,   3, false, &m_cfgLedBrightness};
+    m_cfgEntries[idx++] = {Group::Mqtt,      F("mqttOutTopic"),     F("Outgoing topic"),                F("#"),                            DataType::String,   0, &m_cfgMqttOutTopic};
+    m_cfgEntries[idx++] = {Group::Leds,      F("ledCount"),         F("Number of LEDs"),                F("0"),                            DataType::Byte,     3, &m_cfgNumberOfLeds};
+    m_cfgEntries[idx++] = {Group::Leds,      F("ledPin"),           F("LED pin"),                       F("0"),                            DataType::Byte,     2, &m_cfgLedDataPin};
+    m_cfgEntries[idx++] = {Group::Leds,      F("ledBrightness"),    F("Brightness"),                    F("0-255"),                        DataType::Byte,     3, &m_cfgLedBrightness};
 #ifdef HSD_CLOCK_ENABLED
-    m_cfgEntries[idx++] = {Group::Clock,     F("clockEnabled"),    F("Enable"),                        nullptr,                           DataType::Bool,   0, false, &m_cfgClockEnabled};
-    m_cfgEntries[idx++] = {Group::Clock,     F("clockCLK"),        F("CLK pin"),                       F("0"),                            DataType::Byte,   3, false, &m_cfgClockPinCLK};
-    m_cfgEntries[idx++] = {Group::Clock,     F("clockDIO"),        F("DIO pin"),                       F("0"),                            DataType::Byte,   3, false, &m_cfgClockPinDIO};
-    m_cfgEntries[idx++] = {Group::Clock,     F("clockBrightness"), F("Brightness"),                    F("0-8"),                          DataType::Byte,   1, false, &m_cfgClockBrightness};
-    m_cfgEntries[idx++] = {Group::Clock,     F("clockTZ"),         F("Time zone"),                     F("CET-1CEST,M3.5.0/2,M10.5.0/3"), DataType::String, 0, false, &m_cfgClockTimeZone};
-    m_cfgEntries[idx++] = {Group::Clock,     F("clockServer"),     F("NTP server"),                    F("pool.ntp.org"),                 DataType::String, 0, false, &m_cfgClockNTPServer};
-    m_cfgEntries[idx++] = {Group::Clock,     F("clockInterval"),   F("NTP update interval (min.)"),    F("20"),                           DataType::Word,   5, false, &m_cfgClockNTPInterval};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockEnabled"),     F("Enable"),                        nullptr,                           DataType::Bool,     0, &m_cfgClockEnabled};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockCLK"),         F("CLK pin"),                       F("0"),                            DataType::Byte,     2, &m_cfgClockPinCLK};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockDIO"),         F("DIO pin"),                       F("0"),                            DataType::Byte,     2, &m_cfgClockPinDIO};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockBrightness"),  F("Brightness"),                    F("0-8"),                          DataType::Byte,     1, &m_cfgClockBrightness};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockTZ"),          F("Time zone"),                     F("CET-1CEST,M3.5.0/2,M10.5.0/3"), DataType::String,   0, &m_cfgClockTimeZone};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockServer"),      F("NTP server"),                    F("pool.ntp.org"),                 DataType::String,   0, &m_cfgClockNTPServer};
+    m_cfgEntries[idx++] = {Group::Clock,     F("clockInterval"),    F("NTP update interval (min.)"),    F("20"),                           DataType::Word,     5, &m_cfgClockNTPInterval};
 #endif // HSD_CLOCK_ENABLED
 #ifdef HSD_SENSOR_ENABLED
-    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorEnabled"),   F("Sonoff SI7021"),                 nullptr,                           DataType::Bool,   0, false, &m_cfgSensorSonoffEnabled};
-    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorPin"),       F("Data pin"),                      F("0"),                            DataType::Byte,   0, false, &m_cfgSensorPin};
-    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorInterval"),  F("Sensor update interval (min.)"), F("5"),                            DataType::Word,   5, false, &m_cfgSensorInterval};
+    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorEnabled"),    F("Sonoff SI7021"),                 nullptr,                           DataType::Bool,     0, &m_cfgSensorSonoffEnabled};
+    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorPin"),        F("Data pin"),                      F("0"),                            DataType::Byte,     2, &m_cfgSensorPin};
+    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorInterval"),   F("Sensor update interval (min.)"), F("5"),                            DataType::Word,     5, &m_cfgSensorInterval};
+    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorI2CEnabled"), F("I2C"),                           nullptr,                           DataType::Bool,     0, &m_cfgSensorI2CEnabled};
+    m_cfgEntries[idx++] = {Group::Sensors,   F("sensorAltitude"),   F("Altitude"),                      F("0"),                            DataType::Word,     5, &m_cfgSensorAltitude};
 #endif // HSD_SENSOR_ENABLED        
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
-    m_cfgEntries[idx++] = {Group::Bluetooth, F("btEnabled"),       F("Enable"),                        nullptr,                           DataType::Bool,   0, false, &m_cfgBluetoothEnabled};
+    m_cfgEntries[idx++] = {Group::Bluetooth, F("btEnabled"),        F("Enable"),                        nullptr,                           DataType::Bool,     0, &m_cfgBluetoothEnabled};
 #endif // HSD_BLUETOOTH_ENABLED
-    m_cfgEntries[idx++] = {Group::_Last,     nullptr,              nullptr,                            nullptr,                           DataType::String, 0, false, nullptr};
+    m_cfgEntries[idx++] = {Group::_Last,     nullptr,               nullptr,                            nullptr,                           DataType::String,   0, nullptr};
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -153,6 +157,7 @@ bool HSDConfig::readMainConfigFile() {
             do {
                 if (json.containsKey(m_cfgEntries[idx].key)) {
                     switch (m_cfgEntries[idx].type) {
+                        case DataType::Password:
                         case DataType::String: *(reinterpret_cast<String*> ( m_cfgEntries[idx].val)) = json[m_cfgEntries[idx].key].as<String>(); break;
                         case DataType::Bool:   *(reinterpret_cast<bool*>(    m_cfgEntries[idx].val)) = json[m_cfgEntries[idx].key].as<bool>();   break;
                         case DataType::Byte:   *(reinterpret_cast<uint8_t*>( m_cfgEntries[idx].val)) = json[m_cfgEntries[idx].key].as<int>();    break;
@@ -190,7 +195,7 @@ void HSDConfig::printMainConfigFile(JsonObject& json) {
             Serial.print(" ");
         }
         Serial.print(F(": "));
-        if (m_cfgEntries[idx].doNotDump)
+        if (m_cfgEntries[idx].type == DataType::Password)
             Serial.println("not shown");
         else
             Serial.println((const char*)(json[m_cfgEntries[idx].key]));
@@ -312,6 +317,7 @@ void HSDConfig::writeMainConfigFile() const {
     int idx(0);
     do {
         switch (m_cfgEntries[idx].type) {
+            case DataType::Password:
             case DataType::String: json[m_cfgEntries[idx].key] = *(reinterpret_cast<String*> ( m_cfgEntries[idx].val)); break;
             case DataType::Bool:   json[m_cfgEntries[idx].key] = *(reinterpret_cast<bool*>(    m_cfgEntries[idx].val)); break;
             case DataType::Byte:   json[m_cfgEntries[idx].key] = *(reinterpret_cast<uint8_t*>( m_cfgEntries[idx].val)); break;

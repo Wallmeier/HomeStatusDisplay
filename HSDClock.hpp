@@ -1,6 +1,8 @@
 #ifndef HSDCLOCK_H
 #define HSDCLOCK_H
 
+#define EZTIME_EZT_NAMESPACE
+
 #include "HSDConfig.hpp"
 #include <TM1637.h>
 #include <ezTime.h>

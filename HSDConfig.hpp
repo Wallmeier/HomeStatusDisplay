@@ -12,7 +12,7 @@
 #define HSD_CLOCK_ENABLED
 // comment out next line if you do not need the sensor module (Sonoff SI7021)
 #define HSD_SENSOR_ENABLED
-// #define MQTT_TEST_TOPIC
+#define MQTT_TEST_TOPIC
 #define HSD_BLUETOOTH_ENABLED
 
 #define JSON_KEY_COLORMAPPING_MSG      (F("m"))
@@ -42,6 +42,7 @@ public:
     
     enum class DataType : uint8_t {
         String = 0,
+        Password,
         Byte,
         Word,
         Bool
@@ -64,7 +65,6 @@ public:
         const __FlashStringHelper* placeholder;
         DataType                   type;
         uint8_t                    maxLength;
-        bool                       doNotDump;
         void*                      val;
     };
 
@@ -178,9 +178,11 @@ public:
     inline int                  getNumberOfDeviceMappingEntries() const { return m_cfgDeviceMapping.size(); }
     inline uint8_t              getNumberOfLeds() const { return m_cfgNumberOfLeds; }
 #ifdef HSD_SENSOR_ENABLED
-    inline bool                 getSensorSonoffEnabled() const { return m_cfgSensorSonoffEnabled; }
+    inline uint16_t             getSensorAltitude() const { return m_cfgSensorAltitude; }
+    inline bool                 getSensorI2CEnabled() const { return m_cfgSensorI2CEnabled; }
     inline uint16_t             getSensorInterval() const { return m_cfgSensorInterval; }
     inline uint8_t              getSensorPin() const { return m_cfgSensorPin; }
+    inline bool                 getSensorSonoffEnabled() const { return m_cfgSensorSonoffEnabled; }
 #endif // HSD_SENSOR_ENABLED
     inline const String&        getWifiPSK() const { return m_cfgWifiPSK; }
     inline const String&        getWifiSSID() const { return m_cfgWifiSSID; }
@@ -239,9 +241,11 @@ private:
     String                                m_cfgMqttUser;
     uint8_t                               m_cfgNumberOfLeds;
 #ifdef HSD_SENSOR_ENABLED
-    bool                                  m_cfgSensorSonoffEnabled;
+    bool                                  m_cfgSensorI2CEnabled;
     uint16_t                              m_cfgSensorInterval;
     uint8_t                               m_cfgSensorPin;
+    bool                                  m_cfgSensorSonoffEnabled;
+    uint16_t                              m_cfgSensorAltitude;
 #endif // HSD_SENSOR_ENABLED
     String                                m_cfgWifiPSK;
     String                                m_cfgWifiSSID;

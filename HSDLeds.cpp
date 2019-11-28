@@ -7,8 +7,8 @@ HSDLeds::HSDLeds(const HSDConfig& config) :
     m_flashOn(false),
     m_flickerOn(false),
     m_config(config),
-    m_numLeds(m_config.getNumberOfLeds()),
-    m_pLedState(new LedState[m_numLeds]),
+    m_numLeds(0),
+    m_pLedState(nullptr),
     m_previousMillisBlink(0),
     m_previousMillisFlash(0),
     m_previousMillisFlicker(0)
@@ -25,6 +25,12 @@ HSDLeds::~HSDLeds() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDLeds::begin() {
+    m_numLeds = m_config.getNumberOfLeds();
+    m_pLedState = new LedState[m_numLeds];
+    Serial.print("LEDs using pin ");
+    Serial.print(m_config.getLedDataPin());
+    Serial.print(", length ");
+    Serial.println(m_numLeds);
     m_stripe.setPin(m_config.getLedDataPin());
     m_stripe.updateLength(m_numLeds);
     m_stripe.updateType(NEO_GRB + NEO_KHZ800);
@@ -89,9 +95,10 @@ void HSDLeds::updateStripe() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDLeds::clear() {
-    for (uint32_t i = 0; i < m_numLeds; i++) {
+    uint32_t color = m_config.getDefaultColor("NONE");
+    for (uint8_t i = 0; i < m_numLeds; i++) {
         m_pLedState[i].behavior = HSDConfig::Behavior::Off;
-        m_pLedState[i].color = m_config.getDefaultColor("NONE");
+        m_pLedState[i].color = color;
     }
     updateStripe();
 }
@@ -188,7 +195,7 @@ void HSDLeds::test(uint32_t type) {
                 delay(50);
             }
 
-            m_pLedState[led].behavior = HSDConfig::OFF;
+            m_pLedState[led].behavior = HSDConfig::Behavior::Off;
             m_pLedState[led].color = m_config.getDefaultColor("NONE");
 
             m_pLedState[led + m_numLeds / 3].behavior = HSDConfig::Behavior::Off;

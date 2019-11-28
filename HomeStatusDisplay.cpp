@@ -41,12 +41,14 @@ void HomeStatusDisplay::begin() {
         m_clock->begin();
     }
 #endif
+
 #ifdef HSD_SENSOR_ENABLED
-    if (m_config.getSensorSonoffEnabled()) {
+    if (m_config.getSensorSonoffEnabled() || m_config.getSensorI2CEnabled()) {
         m_sensor = new HSDSensor(m_config);
         m_sensor->begin();
     }
 #endif
+
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
     if (m_config.getBluetoothEnabled()) {
         m_bluetooth = new HSDBluetooth(m_config, m_mqttHandler);
@@ -75,7 +77,11 @@ void HomeStatusDisplay::work() {
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
     if (m_bluetooth)
         m_bluetooth->handle();
-#endif    
+#endif
+#ifdef HSD_SENSOR_ENABLED
+    if (m_config.getSensorSonoffEnabled() || m_config.getSensorI2CEnabled())
+        m_sensor->handle(m_webServer, m_mqttHandler);
+#endif // HSD_SENSOR_ENABLED
     delay(1);
 }
 
@@ -84,13 +90,11 @@ void HomeStatusDisplay::work() {
 unsigned long HomeStatusDisplay::calcUptime() {
     static unsigned long oneMinuteTimerLast = 0;
     static unsigned long uptime = 0;
-#ifdef HSD_SENSOR_ENABLED
-    static uint16_t sensorMinutes = 0;
-#endif  
+
     if (millis() - oneMinuteTimerLast >= ONE_MINUTE_MILLIS) {
         uptime++;
         oneMinuteTimerLast = millis();
-
+        
         Serial.println("Uptime: " + String(uptime) + " min");
 
         if (m_mqttHandler.connected()) {
@@ -118,37 +122,6 @@ unsigned long HomeStatusDisplay::calcUptime() {
                 m_mqttHandler.publish(topic, json);
             }
         }
-    
-#ifdef HSD_SENSOR_ENABLED
-        if (m_sensor) {
-            sensorMinutes++;
-            if (sensorMinutes >= m_config.getSensorInterval()) {
-                sensorMinutes = 0;
-                float temp, hum;
-                if (m_sensor->readSensor(temp, hum)) {
-                    m_webServer.setSensorData(temp, hum);
-                    Serial.print(F("Sensor: Temp "));
-                    Serial.print(temp, 1);
-                    Serial.print(F("°C, Hum "));
-                    Serial.print(hum, 1);
-                    Serial.println(F("%"));
-          
-                    if (m_mqttHandler.connected()) {
-                        String topic = m_config.getMqttOutTopic("sensor");
-                        if (m_mqttHandler.isTopicValid(topic)) {
-                            DynamicJsonBuffer jsonBuffer;
-                            JsonObject& json = jsonBuffer.createObject();
-                            json["Temp"] = temp;
-                            json["Hum"] = hum;
-                            m_mqttHandler.publish(topic, json);
-                        }
-                    }
-                } else {
-                    Serial.println(F("Sensor failed"));
-                }
-            }
-        }
-#endif
     }
     return uptime;
 }
