@@ -9,7 +9,6 @@
 
 #define FILENAME_COLORMAPPING "/colormapping.json"
 #define FILENAME_DEVMAPPING   "/devicemapping.json"
-#define FILENAME_MAINCONFIG   "/config.json"
 
 const constexpr HSDConfig::Map HSDConfig::DefaultColor[];
 
@@ -300,7 +299,7 @@ bool HSDConfig::writeFile(const String& fileName, JsonObject* data) const {
 
     File configFile = SPIFFS.open(fileName, "w+");
     if (configFile) {
-        data->printTo(configFile);
+        data->prettyPrintTo(configFile);
         configFile.close();
         success = true;
     } else {

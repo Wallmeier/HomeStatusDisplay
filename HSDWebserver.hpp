@@ -53,6 +53,7 @@ private:
 
     HSDConfig&              m_config;
     unsigned long           m_deviceUptimeMinutes;
+    File                    m_file;
     const HSDLeds&          m_leds;
     const HSDMqtt&          m_mqtt;
 #ifdef HSD_SENSOR_ENABLED

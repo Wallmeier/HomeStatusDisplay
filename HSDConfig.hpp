@@ -27,6 +27,8 @@
 #define MAX_DEVICE_MAPPING_NAME_LEN    25
 #define NUMBER_OF_DEFAULT_COLORS       9
 
+#define FILENAME_MAINCONFIG   "/config.json"
+
 class HSDConfig {
 public:
     /*
@@ -192,6 +194,8 @@ public:
     inline bool                 isColorMappingFull() const { return m_cfgColorMapping.isFull(); }
     inline bool                 isDeviceMappingDirty() const { return m_cfgDeviceMappingDirty; }
     inline bool                 isDeviceMappingFull() const { return m_cfgDeviceMapping.isFull(); }
+    bool                        readFile(const String& fileName, String& content) const;
+    bool                        readMainConfigFile();
     inline void                 saveColorMapping() { writeColorMappingConfigFile(); }
     inline void                 saveDeviceMapping() { writeDeviceMappingConfigFile(); }
     inline void                 saveMain() { writeMainConfigFile(); }
@@ -202,10 +206,8 @@ public:
 private:
     void onFileWriteError() const;
     void printMainConfigFile(JsonObject& json);
-    bool readFile(const String& fileName, String& content) const;
     bool readColorMappingConfigFile();
     bool readDeviceMappingConfigFile();
-    bool readMainConfigFile();
     bool writeFile(const String& fileName, JsonObject* data) const;
     void writeColorMappingConfigFile();
     void writeDeviceMappingConfigFile();

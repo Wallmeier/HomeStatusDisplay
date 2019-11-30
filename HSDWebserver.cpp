@@ -25,6 +25,43 @@ void HSDWebserver::begin() {
     m_server.on("/cfgmain", std::bind(&HSDWebserver::deliverConfigPage, this));
     m_server.on("/cfgcolormapping", std::bind(&HSDWebserver::deliverColorMappingPage, this));
     m_server.on("/cfgdevicemapping", std::bind(&HSDWebserver::deliverDeviceMappingPage, this));
+    m_server.on("/cfgExport", HTTP_GET, [=]() {
+        String content;
+        if (m_config.readFile(FILENAME_MAINCONFIG, content)) {
+            m_server.sendHeader("Content-Disposition", "attachment; filename=" + m_config.getHost() + "_export.json");
+            m_server.send(200, "application/octet-stream;charset=utf-8", content);
+        } else {
+            deliverNotFoundPage();
+        }
+    });
+    m_server.on("/cfgImport", HTTP_GET, [=]() {
+        m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+        m_server.send(200);
+        sendHeader("Config Import");
+        m_server.sendContent(F("\t<form method='POST' action='/cfgImport' enctype='multipart/form-data'>\n\t\t<input type='file' name='import'>\n\t\t<input type='submit' value='Import'>\n\t</form>\n</body>"));
+        m_server.sendContent("");
+    });
+    m_server.on("/cfgImport", HTTP_POST, std::bind(&HSDWebserver::deliverConfigPage, this), [=]() {
+        HTTPUpload& upload = m_server.upload();
+        if (upload.status == UPLOAD_FILE_START) {
+            Serial.setDebugOutput(true);
+            Serial.printf("Import config: %s\n", upload.filename.c_str());
+            m_file = SPIFFS.open(FILENAME_MAINCONFIG, "w+");
+            if (!m_file)
+                Serial.printf("Failed to open %s\n", FILENAME_MAINCONFIG);
+        } else if (upload.status == UPLOAD_FILE_WRITE) {
+            if (m_file && m_file.write(upload.buf, upload.currentSize) != upload.currentSize)
+                Serial.println("Failed to write file");
+        } else if (upload.status == UPLOAD_FILE_END) {
+            if (m_file) {
+                m_file.close();
+                m_config.readMainConfigFile();
+            }
+            Serial.setDebugOutput(false);
+        } else {
+            Serial.printf("Config Import Failed Unexpectedly (likely broken connection): status=%d\n", upload.status);
+        }
+    });
 #ifdef ARDUINO_ARCH_ESP32
     m_server.on("/update", HTTP_GET, [=]() {
         m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
@@ -84,7 +121,7 @@ void HSDWebserver::deliverConfigPage() {
     m_server.send(200);
     sendHeader("General configuration");
 
-    html = F("<form>\n<table class=\"cfg\">\n");
+    html = F("\t<form action=\"/cfgmain\">\n\t\t<table class=\"cfg\">\n");
 
     const HSDConfig::ConfigEntry* entries = m_config.cfgEntries();
     HSDConfig::Group lastGroup = HSDConfig::Group::_Last;
@@ -93,11 +130,11 @@ void HSDWebserver::deliverConfigPage() {
         if (entries[idx].group != lastGroup) {
             lastGroup = entries[idx].group;
             m_server.sendContent(html);
-            html  = F("\t<tr><td class=\"cfgTitle\" colspan=\"2\">");
+            html  = F("\t\t\t<tr><td class=\"cfgTitle\" colspan=\"2\">");
             html += m_config.groupDescription(entries[idx].group);
             html += F("</td></tr>\n");
         }
-        html += F("\t<tr><td>");
+        html += F("\t\t\t<tr><td>");
         html += entries[idx].label;
         html += F("</td><td><input name=\"");
         html += entries[idx].key;
@@ -141,9 +178,13 @@ void HSDWebserver::deliverConfigPage() {
         html += F("</td></tr>\n");
     } while (entries[++idx].group != HSDConfig::Group::_Last);
 
-    html += F("</table>"
-             "<input type='submit' class='button' value='Save'>"
-             "</form>\n</body>\n</html>");
+    html += F("\t\t</table>\n"
+             "\t\t<p>\n"
+             "\t\t\t<input type='submit' class='button' value='Save'>\n"
+             "\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgExport'\" value='Export'>\n"
+             "\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgImport'\" value='Import'>\n"
+             "\t\t</p>\n"
+             "\t</form>\n</body>\n</html>");
     m_server.sendContent(html);
     m_server.sendContent("");
 
