@@ -34,6 +34,24 @@ void HSDWebserver::begin() {
             deliverNotFoundPage();
         }
     });
+    m_server.on("/cfgExportDev", HTTP_GET, [=]() {
+        String content;
+        if (m_config.readFile(FILENAME_DEVMAPPING, content)) {
+            m_server.sendHeader("Content-Disposition", "attachment; filename=" + m_config.getHost() + "_devMapping.json");
+            m_server.send(200, "application/octet-stream;charset=utf-8", content);
+        } else {
+            deliverNotFoundPage();
+        }
+    });
+    m_server.on("/cfgExportCol", HTTP_GET, [=]() {
+        String content;
+        if (m_config.readFile(FILENAME_COLORMAPPING, content)) {
+            m_server.sendHeader("Content-Disposition", "attachment; filename=" + m_config.getHost() + "_colMapping.json");
+            m_server.send(200, "application/octet-stream;charset=utf-8", content);
+        } else {
+            deliverNotFoundPage();
+        }
+    });
     m_server.on("/cfgImport", HTTP_GET, [=]() {
         m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         m_server.send(200);
@@ -137,6 +155,8 @@ void HSDWebserver::deliverConfigPage() {
         html += F("\t\t\t<tr><td>");
         html += entries[idx].label;
         html += F("</td><td><input name=\"");
+        html += m_config.groupDescription(entries[idx].group);
+        html += F(".");
         html += entries[idx].key;
         if (entries[idx].placeholder != nullptr) {
             html += F("\" placeholder=\"");
@@ -530,40 +550,41 @@ void HSDWebserver::checkReboot() {
 bool HSDWebserver::updateMainConfig() {
     bool needSave(false);
     const HSDConfig::ConfigEntry* entries = m_config.cfgEntries();
-    if (m_server.hasArg(entries[0].key)) {
-        int idx(0);
-        do {
+    String key = m_config.groupDescription(entries[0].group) + "." + entries[0].key;
+    if (m_server.hasArg(key)) {
+        for (int idx = 0; entries[idx].group != HSDConfig::Group::_Last; idx++) {
+            key = m_config.groupDescription(entries[idx].group) + "." + entries[idx].key;
             switch (entries[idx].type) {
                 case HSDConfig::DataType::String:
                 case HSDConfig::DataType::Password:
-                    if (*(reinterpret_cast<String*>(entries[idx].val)) != m_server.arg(entries[idx].key)) {
+                    if (*(reinterpret_cast<String*>(entries[idx].val)) != m_server.arg(key)) {
                         needSave = true;
-                        *(reinterpret_cast<String*>(entries[idx].val)) = m_server.arg(entries[idx].key);
+                        *(reinterpret_cast<String*>(entries[idx].val)) = m_server.arg(key);
                     }
                     break;
 
                 case HSDConfig::DataType::Byte:
-                    if (*(reinterpret_cast<uint8_t*>(entries[idx].val)) != m_server.arg(entries[idx].key).toInt()) {
+                    if (*(reinterpret_cast<uint8_t*>(entries[idx].val)) != m_server.arg(key).toInt()) {
                         needSave = true;
-                        *(reinterpret_cast<uint8_t*>(entries[idx].val)) = m_server.arg(entries[idx].key).toInt();
+                        *(reinterpret_cast<uint8_t*>(entries[idx].val)) = m_server.arg(key).toInt();
                     }
                     break;
 
                 case HSDConfig::DataType::Word:
-                    if (*(reinterpret_cast<uint16_t*>(entries[idx].val)) != m_server.arg(entries[idx].key).toInt()) {
+                    if (*(reinterpret_cast<uint16_t*>(entries[idx].val)) != m_server.arg(key).toInt()) {
                         needSave = true;
-                        *(reinterpret_cast<uint16_t*>(entries[idx].val)) = m_server.arg(entries[idx].key).toInt();
+                        *(reinterpret_cast<uint16_t*>(entries[idx].val)) = m_server.arg(key).toInt();
                     }
                     break;
 
                 case HSDConfig::DataType::Bool:
-                    if (*(reinterpret_cast<bool*>(entries[idx].val)) != m_server.hasArg(entries[idx].key)) {
+                    if (*(reinterpret_cast<bool*>(entries[idx].val)) != m_server.hasArg(key)) {
                         needSave = true;
-                        *(reinterpret_cast<bool*>(entries[idx].val)) = m_server.hasArg(entries[idx].key);
+                        *(reinterpret_cast<bool*>(entries[idx].val)) = m_server.hasArg(key);
                     }
                     break;
             }
-        } while (entries[++idx].group != HSDConfig::Group::_Last);
+        }
     }
     return needSave;
 }

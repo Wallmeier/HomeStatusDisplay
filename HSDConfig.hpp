@@ -28,6 +28,8 @@
 #define NUMBER_OF_DEFAULT_COLORS       9
 
 #define FILENAME_MAINCONFIG   "/config.json"
+#define FILENAME_COLORMAPPING "/colormapping.json"
+#define FILENAME_DEVMAPPING   "/devicemapping.json"
 
 class HSDConfig {
 public:
@@ -205,7 +207,6 @@ public:
 
 private:
     void onFileWriteError() const;
-    void printMainConfigFile(JsonObject& json);
     bool readColorMappingConfigFile();
     bool readDeviceMappingConfigFile();
     bool writeFile(const String& fileName, JsonObject* data) const;
