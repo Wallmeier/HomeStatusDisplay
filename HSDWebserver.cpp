@@ -19,7 +19,7 @@ HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::begin() {
-    Serial.println(F("Starting WebServer."));
+    Serial.println(F("Starting WebServer"));
     m_server.on("/", std::bind(&HSDWebserver::deliverStatusPage, this));
     m_server.on("/layout.css", std::bind(&HSDWebserver::deliverCSS, this));
     m_server.on("/cfgmain", std::bind(&HSDWebserver::deliverConfigPage, this));

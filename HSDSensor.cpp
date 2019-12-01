@@ -34,7 +34,7 @@ void HSDSensor::begin() {
     if (m_config.getSensorSonoffEnabled()) {
         sensorCnt += 2;
         m_pin = m_config.getSensorPin();
-        Serial.print(F("Enabling sensor on pin "));
+        Serial.print(F("Starting Sonoff Si7021 sensor on pin "));
         Serial.println(m_pin);
         pinMode(m_pin, INPUT_PULLUP);
     }
@@ -245,7 +245,7 @@ bool HSDSensor::readSensor(float& temp, float& hum) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDSensor::i2cscan(bool& hasBmp, bool& hasTsl) const {
-    Serial.println(F("Start I2C search"));
+    Serial.println(F("Starting i2c search"));
     Serial.println(F("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f"));
     Serial.print(  F("00:         "));
     for (byte address = 3; address <= 119; address++) {

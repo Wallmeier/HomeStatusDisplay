@@ -36,12 +36,11 @@ void HSDWifi::handleConnection() {
     if (isConnected != m_lastConnectStatus) {
         if (isConnected) {
             Serial.print(F("WiFi connected with IP "));
-            Serial.print(WiFi.localIP());
-            Serial.println(F("."));
+            Serial.println(WiFi.localIP());
             m_wasConnected = true;
             m_numConnectRetriesDone = 0;
         } else {
-            Serial.println(F("WiFi connection lost."));
+            Serial.println(F("WiFi connection lost"));
         }
         m_lastConnectStatus = isConnected;
     }
@@ -55,8 +54,7 @@ void HSDWifi::handleConnection() {
                 m_millisLastConnectTry = millis(); 
                 if (m_numConnectRetriesDone == 0) {
                     Serial.print(F("Starting Wifi connection to "));
-                    Serial.print(m_config.getWifiSSID());
-                    Serial.println(F("..."));
+                    Serial.println(m_config.getWifiSSID());
       
                     WiFi.mode(WIFI_STA);
                     WiFi.begin(m_config.getWifiSSID().c_str(), m_config.getWifiPSK().c_str());

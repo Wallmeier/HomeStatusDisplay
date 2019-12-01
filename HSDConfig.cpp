@@ -103,7 +103,7 @@ HSDConfig::HSDConfig() :
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDConfig::begin() {
-    Serial.println(F("\nInitializing config."));
+    Serial.printf("\nInitializing config - using ArduinoJson version %s\n", ARDUINOJSON_VERSION);
 
     if (SPIFFS.begin()) {
         Serial.println(F("Mounted file system."));
@@ -150,7 +150,7 @@ bool HSDConfig::readConfigFile() {
         DynamicJsonBuffer jsonBuffer(fileBuffer.length() + 1);
         JsonObject& root = jsonBuffer.parseObject(fileBuffer);
         if (root.success()) {
-            Serial.println(F("Main config data successfully parsed."));
+            Serial.println(F("Config data successfully parsed."));
             int idx(0), maxLen(0), len(0);
             do {
                 len = strlen_P((PGM_P)m_cfgEntries[idx].key) + groupDescription(m_cfgEntries[idx].group).length() + 1;
@@ -177,11 +177,8 @@ bool HSDConfig::readConfigFile() {
                 Serial.print(groupName);
                 Serial.print(F("."));
                 Serial.print(m_cfgEntries[idx].key);
-                len = groupName.length() + 1 + strlen_P((PGM_P)m_cfgEntries[idx].key);
-                while (len < maxLen) {
-                    len++;
-                    Serial.print(" ");
-                }
+                for (int i = groupName.length() + 1 + strlen_P((PGM_P)m_cfgEntries[idx].key); i < maxLen; i++)
+                    Serial.print(F(" "));
                 Serial.print(F(": "));
                 if (m_cfgEntries[idx].type == DataType::Password) {
                     Serial.println("not shown");
