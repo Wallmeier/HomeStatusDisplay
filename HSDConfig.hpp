@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-#include "PreAllocatedLinkedList.hpp"
+#include "QList.h"
 
 #define HSD_VERSION (F("0.9"))
 
@@ -15,9 +15,6 @@
 #define MQTT_TEST_TOPIC
 #define HSD_BLUETOOTH_ENABLED
 
-
-#define MAX_COLOR_MAP_ENTRIES          30
-#define MAX_DEVICE_MAP_ENTRIES         35
 #define NUMBER_OF_DEFAULT_COLORS       9
 
 #define FILENAME_MAINCONFIG   "/config.json"
@@ -50,7 +47,7 @@ public:
         Clock,
         Sensors,
         Bluetooth,
-        _Last
+        __Last
     };
     
     struct ConfigEntry {
@@ -90,11 +87,11 @@ public:
         DeviceMapping() : ledNumber(0) {
         }
 
-        DeviceMapping(String n, int l) : device(n), ledNumber(l) {
+        DeviceMapping(String n, uint8_t l) : device(n), ledNumber(l) {
         }
 
-        String device;     // name of the device
-        int    ledNumber;  // led number on which reactions for this device are displayed
+        String  device;     // name of the device
+        uint8_t ledNumber;  // led number on which reactions for this device are displayed
     };
 
     /*
@@ -115,10 +112,10 @@ public:
 
     HSDConfig();
 
-    bool                        addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior);
-    bool                        addDeviceMappingEntry(int entryNum, String name, int ledNumber);
+    void                        addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior);
+    void                        addDeviceMappingEntry(int entryNum, String name, int ledNumber);
     void                        begin();
-    inline const ConfigEntry*   cfgEntries() const { return m_cfgEntries; }
+    inline const QList<ConfigEntry>& cfgEntries() { return m_cfgEntries; }
     void                        deleteAllColorMappingEntries();
     void                        deleteAllDeviceMappingEntries();
     bool                        deleteColorMappingEntry(int entryNum);
@@ -136,17 +133,17 @@ public:
     inline const String&        getClockTimeZone() const { return m_cfgClockTimeZone; }
 #endif // HSD_CLOCK_ENABLED
     int                         getColorMapIndex(const String& msg) const;
-    inline const ColorMapping*  getColorMapping(int index) { return m_cfgColorMapping.get(index); }
+    inline const ColorMapping&  getColorMapping(unsigned int index) { return m_cfgColorMapping[index]; }
     uint32_t                    getDefaultColor(String key) const;
     String                      getDefaultColor(uint32_t value) const;
     String                      getDevice(int ledNumber) const;
-    inline const DeviceMapping* getDeviceMapping(int index) const { return m_cfgDeviceMapping.get(index); }
+    inline const DeviceMapping& getDeviceMapping(int index) const { return m_cfgDeviceMapping[index]; }
     inline const String&        getHost() const { return m_cfgHost; }
-    inline Behavior             getLedBehavior(int colorMapIndex) const { return m_cfgColorMapping.get(colorMapIndex)->behavior; }
+    inline Behavior             getLedBehavior(unsigned int colorMapIndex) const { return m_cfgColorMapping[colorMapIndex].behavior; }
     inline uint8_t              getLedBrightness() const { return m_cfgLedBrightness; }
-    inline uint32_t             getLedColor(int colorMapIndex) const { return m_cfgColorMapping.get(colorMapIndex)->color; }
+    inline uint32_t             getLedColor(unsigned int colorMapIndex) const { return m_cfgColorMapping[colorMapIndex].color; }
     inline uint8_t              getLedDataPin() const { return m_cfgLedDataPin; }
-    int                         getLedNumber(const String& device) const;
+    uint8_t                     getLedNumber(const String& device) const;
     inline const String&        getMqttOutTopic() const { return m_cfgMqttOutTopic; }
     String                      getMqttOutTopic(const String& topic) const;
     inline const String&        getMqttPassword() const { return m_cfgMqttPassword; }
@@ -172,9 +169,7 @@ public:
     String                      groupDescription(Group group) const;
     String                      hex2string(uint32_t value) const;
     inline bool                 isColorMappingDirty() const { return m_cfgColorMappingDirty; }
-    inline bool                 isColorMappingFull() const { return m_cfgColorMapping.isFull(); }
     inline bool                 isDeviceMappingDirty() const { return m_cfgDeviceMappingDirty; }
-    inline bool                 isDeviceMappingFull() const { return m_cfgDeviceMapping.isFull(); }
     bool                        readFile(const String& fileName, String& content) const;
     bool                        readConfigFile();
     uint32_t                    string2hex(String value) const;
@@ -182,45 +177,45 @@ public:
 
 private:
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
-    bool                                  m_cfgBluetoothEnabled;
+    bool                 m_cfgBluetoothEnabled;
 #endif    
 #ifdef HSD_CLOCK_ENABLED
-    uint8_t                               m_cfgClockBrightness;
-    bool                                  m_cfgClockEnabled;
-    uint16_t                              m_cfgClockNTPInterval;
-    String                                m_cfgClockNTPServer;
-    uint8_t                               m_cfgClockPinCLK;
-    uint8_t                               m_cfgClockPinDIO;
-    String                                m_cfgClockTimeZone;
+    uint8_t              m_cfgClockBrightness;
+    bool                 m_cfgClockEnabled;
+    uint16_t             m_cfgClockNTPInterval;
+    String               m_cfgClockNTPServer;
+    uint8_t              m_cfgClockPinCLK;
+    uint8_t              m_cfgClockPinDIO;
+    String               m_cfgClockTimeZone;
 #endif // HSD_CLOCK_ENABLED
-    PreAllocatedLinkedList<ColorMapping>  m_cfgColorMapping;
-    bool                                  m_cfgColorMappingDirty;
-    PreAllocatedLinkedList<DeviceMapping> m_cfgDeviceMapping;
-    bool                                  m_cfgDeviceMappingDirty;
-    String                                m_cfgHost;
-    uint8_t                               m_cfgLedBrightness;
-    uint8_t                               m_cfgLedDataPin;
-    String                                m_cfgMqttOutTopic;
-    String                                m_cfgMqttPassword;
-    uint16_t                              m_cfgMqttPort;
-    String                                m_cfgMqttServer;
-    String                                m_cfgMqttStatusTopic;
+    QList<ColorMapping>  m_cfgColorMapping;
+    bool                 m_cfgColorMappingDirty;
+    QList<DeviceMapping> m_cfgDeviceMapping;
+    bool                 m_cfgDeviceMappingDirty;
+    String               m_cfgHost;
+    uint8_t              m_cfgLedBrightness;
+    uint8_t              m_cfgLedDataPin;
+    String               m_cfgMqttOutTopic;
+    String               m_cfgMqttPassword;
+    uint16_t             m_cfgMqttPort;
+    String               m_cfgMqttServer;
+    String               m_cfgMqttStatusTopic;
 #ifdef MQTT_TEST_TOPIC
-    String                                m_cfgMqttTestTopic;
+    String               m_cfgMqttTestTopic;
 #endif // MQTT_TEST_TOPIC    
-    String                                m_cfgMqttUser;
-    uint8_t                               m_cfgNumberOfLeds;
+    String               m_cfgMqttUser;
+    uint8_t              m_cfgNumberOfLeds;
 #ifdef HSD_SENSOR_ENABLED
-    bool                                  m_cfgSensorI2CEnabled;
-    uint16_t                              m_cfgSensorInterval;
-    uint8_t                               m_cfgSensorPin;
-    bool                                  m_cfgSensorSonoffEnabled;
-    uint16_t                              m_cfgSensorAltitude;
+    bool                 m_cfgSensorI2CEnabled;
+    uint16_t             m_cfgSensorInterval;
+    uint8_t              m_cfgSensorPin;
+    bool                 m_cfgSensorSonoffEnabled;
+    uint16_t             m_cfgSensorAltitude;
 #endif // HSD_SENSOR_ENABLED
-    String                                m_cfgWifiPSK;
-    String                                m_cfgWifiSSID;
+    String               m_cfgWifiPSK;
+    String               m_cfgWifiSSID;
     
-    ConfigEntry*                          m_cfgEntries;
+    QList<ConfigEntry>   m_cfgEntries;
 };
 
 #endif // HSDCONFIG_H

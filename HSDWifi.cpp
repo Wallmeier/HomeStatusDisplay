@@ -13,7 +13,7 @@ HSDWifi::HSDWifi(const HSDConfig& config) :
     m_accessPointActive(false),
     m_lastConnectStatus(false),
     m_wasConnected(false)
-{  
+{
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ void HSDWifi::handleConnection() {
         }
         m_lastConnectStatus = isConnected;
     }
-  
+
     if (!isConnected && !m_accessPointActive) {  
         if (m_connectFailure) {
             startAccessPoint();
@@ -55,10 +55,10 @@ void HSDWifi::handleConnection() {
                 if (m_numConnectRetriesDone == 0) {
                     Serial.print(F("Starting Wifi connection to "));
                     Serial.println(m_config.getWifiSSID());
-      
+
                     WiFi.mode(WIFI_STA);
                     WiFi.begin(m_config.getWifiSSID().c_str(), m_config.getWifiPSK().c_str());
-      
+
                     m_numConnectRetriesDone++;
                 } else if (m_numConnectRetriesDone < m_maxConnectRetries) {
                     m_numConnectRetriesDone++;

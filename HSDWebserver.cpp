@@ -123,10 +123,9 @@ void HSDWebserver::deliverConfigPage() {
 
     html = F("\t<form action=\"/cfgmain\">\n\t\t<table class=\"cfg\">\n");
 
-    const HSDConfig::ConfigEntry* entries = m_config.cfgEntries();
-    HSDConfig::Group lastGroup = HSDConfig::Group::_Last;
-    int idx(0);
-    do {
+    const QList<HSDConfig::ConfigEntry>& entries = m_config.cfgEntries();
+    HSDConfig::Group lastGroup = HSDConfig::Group::__Last;
+    for (size_t idx = 0; idx < entries.size(); idx++) {
         if (entries[idx].group != lastGroup) {
             lastGroup = entries[idx].group;
             m_server.sendContent(html);
@@ -178,7 +177,7 @@ void HSDWebserver::deliverConfigPage() {
                 break;
         }
         html += F("</td></tr>\n");
-    } while (entries[++idx].group != HSDConfig::Group::_Last);
+    };
 
     html += F("\t\t</table>\n"
              "\t\t<p>\n"
@@ -342,8 +341,8 @@ void HSDWebserver::deliverColorMappingPage() {
                            "</tr>\n"));
 
     for (uint32_t i = 0; i < m_config.getNumberOfColorMappingEntries(); i++) {
-        const HSDConfig::ColorMapping* mapping = m_config.getColorMapping(i);
-        sendColorMappingTableEntry(i, mapping, m_config.hex2string(mapping->color));
+        const HSDConfig::ColorMapping& mapping = m_config.getColorMapping(i);
+        sendColorMappingTableEntry(i, mapping, m_config.hex2string(mapping.color));
     }
 
     html  = F("\t</table>\n");
@@ -357,14 +356,8 @@ void HSDWebserver::deliverColorMappingPage() {
     html += F("</p>\n");
     m_server.sendContent(html);
 
-    html = "";
-    if (m_config.isColorMappingFull()) {
-        html += F("\t<p>Edit entry (add not possible, entry limit reached):</p>\n");
-        html += getColorMappingTableAddEntryForm(m_config.getNumberOfColorMappingEntries(), true);
-    } else {
-        html += F("\t<p>Add/edit entry:</p>\n");
-        html += getColorMappingTableAddEntryForm(m_config.getNumberOfColorMappingEntries(), false);
-    }
+    html = F("\t<p>Add/edit entry:</p>\n");
+    html += getColorMappingTableAddEntryForm(m_config.getNumberOfColorMappingEntries(), false);
     html += F("\t<p>\n\t\tDelete Entry:</p>\n");
     html += getDeleteForm();
     if (m_config.isColorMappingDirty()) {
@@ -389,8 +382,9 @@ bool HSDWebserver::addColorMappingEntry() {
             uint32_t color = m_config.getDefaultColor(m_server.arg("c"));
             if (color == 0)
                 color = m_config.string2hex(m_server.arg("c"));
-            success = m_config.addColorMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), color,
-                                                   (HSDConfig::Behavior)(m_server.arg("b").toInt()));
+            m_config.addColorMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), color,
+                                          (HSDConfig::Behavior)(m_server.arg("b").toInt()));
+            success = true;
         } else {
             Serial.print(F("Skipping empty entry"));
         }
@@ -445,18 +439,13 @@ void HSDWebserver::deliverDeviceMappingPage() {
                            "<td class=\"colMap\">Led</td>"
                            "</tr>\n"));
     for (uint32_t i = 0; i < m_config.getNumberOfDeviceMappingEntries(); i++) {
-        const HSDConfig::DeviceMapping* mapping = m_config.getDeviceMapping(i);
+        const HSDConfig::DeviceMapping& mapping = m_config.getDeviceMapping(i);
         sendDeviceMappingTableEntry(i, mapping);
     }
 
     html = F("\t</table>\n");
-    if (m_config.isDeviceMappingFull()) {
-        html += F("\t<p>Edit entry (add not possible, entry limit reached):</p>\n");
-        html += getDeviceMappingTableAddEntryForm(m_config.getNumberOfDeviceMappingEntries(), true);
-    } else {
-        html += F("\t<p>Add/edit entry:</p>\n");
-        html += getDeviceMappingTableAddEntryForm(m_config.getNumberOfDeviceMappingEntries(), false);
-    }
+    html += F("\t<p>Add/edit entry:</p>\n");
+    html += getDeviceMappingTableAddEntryForm(m_config.getNumberOfDeviceMappingEntries(), false);
     html += F("\t<p>Delete Entry:</p>\n");
     html += getDeleteForm();
     if (m_config.isDeviceMappingDirty()) {
@@ -477,10 +466,12 @@ void HSDWebserver::deliverDeviceMappingPage() {
 bool HSDWebserver::addDeviceMappingEntry() {
     bool success(false);
     if (m_server.hasArg("i") && m_server.hasArg("n") && m_server.hasArg("l")) {
-        if (m_server.arg("n") != "")
-            success = m_config.addDeviceMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), m_server.arg("l").toInt());
-        else
+        if (m_server.arg("n") != "") {
+            m_config.addDeviceMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), m_server.arg("l").toInt());
+            success = true;
+        } else {
             Serial.print(F("Skipping empty entry"));
+        }
     }
     return success;
 }
@@ -531,10 +522,10 @@ void HSDWebserver::checkReboot() {
 
 bool HSDWebserver::updateMainConfig() {
     bool needSave(false);
-    const HSDConfig::ConfigEntry* entries = m_config.cfgEntries();
+    const QList<HSDConfig::ConfigEntry>& entries = m_config.cfgEntries();
     String key = m_config.groupDescription(entries[0].group) + "." + entries[0].key;
     if (m_server.hasArg(key)) {
-        for (int idx = 0; entries[idx].group != HSDConfig::Group::_Last; idx++) {
+        for (size_t idx = 0; idx < entries.size(); idx++) {
             key = m_config.groupDescription(entries[idx].group) + "." + entries[idx].key;
             switch (entries[idx].type) {
                 case HSDConfig::DataType::String:
@@ -641,33 +632,33 @@ String HSDWebserver::behavior2String(HSDConfig::Behavior behavior) const {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDWebserver::sendColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping* mapping,
+void HSDWebserver::sendColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping& mapping,
                                               const String& colorString) {
     String html;
     html = entryNum % 2 == 0 ? F("\t\t<tr class='rlight'><td>") : F("\t\t<tr class='rdark'><td>");
     html += entryNum;
     html += F("</td><td>");
-    html += mapping->msg;
+    html += mapping.msg;
     html += F("</td><td>");
     html += F("<div class='hsdcolor' style='background-color:");
     html += colorString;
     html += F(";'></div>");
     html += colorString;
     html += F("</td><td>");
-    html += behavior2String(mapping->behavior);
+    html += behavior2String(mapping.behavior);
     html += F("</td></tr>\n");
     m_server.sendContent(html);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDWebserver::sendDeviceMappingTableEntry(int entryNum, const HSDConfig::DeviceMapping* mapping) {
+void HSDWebserver::sendDeviceMappingTableEntry(int entryNum, const HSDConfig::DeviceMapping& mapping) {
     String html = entryNum % 2 == 0 ? F("\t\t<tr class='rlight'><td>") : F("\t\t<tr class='rdark'><td>");
     html += entryNum;
     html += F("</td><td>");
-    html += mapping->device;
+    html += mapping.device;
     html += F("</td><td>");
-    html += mapping->ledNumber;
+    html += mapping.ledNumber;
     html += F("</td></tr>\n");
     m_server.sendContent(html);
 }
