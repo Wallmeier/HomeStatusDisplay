@@ -34,24 +34,6 @@ void HSDWebserver::begin() {
             deliverNotFoundPage();
         }
     });
-    m_server.on("/cfgExportDev", HTTP_GET, [=]() {
-        String content;
-        if (m_config.readFile(FILENAME_DEVMAPPING, content)) {
-            m_server.sendHeader("Content-Disposition", "attachment; filename=" + m_config.getHost() + "_devMapping.json");
-            m_server.send(200, "application/octet-stream;charset=utf-8", content);
-        } else {
-            deliverNotFoundPage();
-        }
-    });
-    m_server.on("/cfgExportCol", HTTP_GET, [=]() {
-        String content;
-        if (m_config.readFile(FILENAME_COLORMAPPING, content)) {
-            m_server.sendHeader("Content-Disposition", "attachment; filename=" + m_config.getHost() + "_colMapping.json");
-            m_server.send(200, "application/octet-stream;charset=utf-8", content);
-        } else {
-            deliverNotFoundPage();
-        }
-    });
     m_server.on("/cfgImport", HTTP_GET, [=]() {
         m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         m_server.send(200);
@@ -73,7 +55,7 @@ void HSDWebserver::begin() {
         } else if (upload.status == UPLOAD_FILE_END) {
             if (m_file) {
                 m_file.close();
-                m_config.readMainConfigFile();
+                m_config.readConfigFile();
             }
             Serial.setDebugOutput(false);
         } else {
@@ -210,7 +192,7 @@ void HSDWebserver::deliverConfigPage() {
 
     if (needSave) {
         Serial.println(F("Main config has changed, storing it."));
-        m_config.saveMain();
+        m_config.writeConfigFile();
     }
 
     checkReboot();
@@ -330,7 +312,7 @@ void HSDWebserver::deliverStatusPage() {
 void HSDWebserver::deliverColorMappingPage() {
     if (needUndo()) {
         Serial.println(F("Need to undo changes to color mapping config"));
-        m_config.updateColorMapping();
+        m_config.readConfigFile();
     } else if (needAdd()) {
         Serial.println(F("Need to add color mapping config entry"));
         addColorMappingEntry();
@@ -342,7 +324,7 @@ void HSDWebserver::deliverColorMappingPage() {
         m_config.deleteAllColorMappingEntries();
     } else if(needSave()) {
         Serial.println(F("Need to save color mapping config"));
-        m_config.saveColorMapping();
+        m_config.writeConfigFile();
     }
 
     String html;
@@ -435,7 +417,7 @@ bool HSDWebserver::deleteColorMappingEntry() {
 void HSDWebserver::deliverDeviceMappingPage() {
     if (needUndo()) {
         Serial.println(F("Need to undo changes to device mapping config"));
-        m_config.updateDeviceMapping();
+        m_config.readConfigFile();
     } else if(needAdd()) {
         Serial.println(F("Need to add device mapping config entry"));
         addDeviceMappingEntry();
@@ -447,7 +429,7 @@ void HSDWebserver::deliverDeviceMappingPage() {
         m_config.deleteAllDeviceMappingEntries();
     } else if(needSave()) {
         Serial.println(F("Need to save device mapping config"));
-        m_config.saveDeviceMapping();
+        m_config.writeConfigFile();
     }
 
     String html;
@@ -683,7 +665,7 @@ void HSDWebserver::sendDeviceMappingTableEntry(int entryNum, const HSDConfig::De
     String html = entryNum % 2 == 0 ? F("\t\t<tr class='rlight'><td>") : F("\t\t<tr class='rdark'><td>");
     html += entryNum;
     html += F("</td><td>");
-    html += mapping->name;
+    html += mapping->device;
     html += F("</td><td>");
     html += mapping->ledNumber;
     html += F("</td></tr>\n");
@@ -710,20 +692,16 @@ String HSDWebserver::getDeviceMappingTableAddEntryForm(int newEntryNum, bool isF
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::getSaveForm() const {
-    String html;
-    html += F("\t<form>\n\t\t<input type='submit' class='buttonr' value='Save' name='save'>\n");
-    html += F("\t\t<input type='submit' class='buttonr' value='Undo' name='undo'>\n\t</form>\n");
-    return html;
+    return F("\t<form>\n\t\t<input type='submit' class='buttonr' value='Save' name='save'>\n"
+             "\t\t<input type='submit' class='buttonr' value='Undo' name='undo'>\n\t</form>\n");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::getDeleteForm() const {
-    String html;
-    html += F("\t<form>\n\t\t<input type='text' name='i' value='' size='5' maxlength='3' placeholder='Nr'><br/>\n");
-    html += F("\t\t<input type='submit' class='button' value='Delete' name='delete'>\n");
-    html += F("\t\t<input type='submit' class='button' value='Delete all' name='deleteall'>\n\t</form>\n");
-    return html;
+    return F("\t<form>\n\t\t<input type='text' name='i' value='' size='5' maxlength='3' placeholder='Nr'><br/>\n"
+             "\t\t<input type='submit' class='button' value='Delete' name='delete'>\n"
+             "\t\t<input type='submit' class='button' value='Delete all' name='deleteall'>\n\t</form>\n");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

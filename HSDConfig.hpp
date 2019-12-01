@@ -15,21 +15,12 @@
 #define MQTT_TEST_TOPIC
 #define HSD_BLUETOOTH_ENABLED
 
-#define JSON_KEY_COLORMAPPING_MSG      (F("m"))
-#define JSON_KEY_COLORMAPPING_COLOR    (F("c"))
-#define JSON_KEY_COLORMAPPING_BEHAVIOR (F("b"))
-#define JSON_KEY_DEVICEMAPPING_NAME    (F("n"))
-#define JSON_KEY_DEVICEMAPPING_LED     (F("l"))
 
 #define MAX_COLOR_MAP_ENTRIES          30
-#define MAX_COLOR_MAPPING_MSG_LEN      15
 #define MAX_DEVICE_MAP_ENTRIES         35
-#define MAX_DEVICE_MAPPING_NAME_LEN    25
 #define NUMBER_OF_DEFAULT_COLORS       9
 
 #define FILENAME_MAINCONFIG   "/config.json"
-#define FILENAME_COLORMAPPING "/colormapping.json"
-#define FILENAME_DEVMAPPING   "/devicemapping.json"
 
 class HSDConfig {
 public:
@@ -96,19 +87,14 @@ public:
      * This struct is used for mapping a device name to a led number, that means a specific position on the led stripe
      */
     struct DeviceMapping {
-        DeviceMapping() {
-            memset(name, 0, MAX_DEVICE_MAPPING_NAME_LEN);
-            ledNumber = 0;
+        DeviceMapping() : ledNumber(0) {
         }
 
-        DeviceMapping(String n, int l) {
-            strncpy(name, n.c_str(), MAX_DEVICE_MAPPING_NAME_LEN);
-            name[MAX_DEVICE_MAPPING_NAME_LEN] = '\0';
-            ledNumber = l;
+        DeviceMapping(String n, int l) : device(n), ledNumber(l) {
         }
 
-        int  ledNumber;                         // led number on which reactions for this device are displayed
-        char name[MAX_DEVICE_MAPPING_NAME_LEN]; // name of the device
+        String device;     // name of the device
+        int    ledNumber;  // led number on which reactions for this device are displayed
     };
 
     /*
@@ -116,22 +102,15 @@ public:
      * message to a led behavior (see LedSwitcher::ledState).
      */
     struct ColorMapping {
-        ColorMapping() {
-            memset(msg, 0, MAX_COLOR_MAPPING_MSG_LEN);
-            color = 0x000000;
-            behavior = Behavior::Off;
+        ColorMapping() : behavior(Behavior::Off), color(0x000000) {
         }
 
-        ColorMapping(String m, uint32_t c, Behavior b) {
-            strncpy(msg, m.c_str(), MAX_COLOR_MAPPING_MSG_LEN);
-            msg[MAX_COLOR_MAPPING_MSG_LEN] = '\0';
-            color = c;
-            behavior = b;
+        ColorMapping(String m, uint32_t c, Behavior b) : behavior(b), color(c), msg(m) {
         }
 
-        Behavior behavior;                           // led behavior for message
-        uint32_t color;                              // led color for message
-        char     msg[MAX_COLOR_MAPPING_MSG_LEN + 1]; // message
+        Behavior behavior; // led behavior for message
+        uint32_t color;    // led color for message
+        String   msg;      // message
     };
 
     HSDConfig();
@@ -197,23 +176,11 @@ public:
     inline bool                 isDeviceMappingDirty() const { return m_cfgDeviceMappingDirty; }
     inline bool                 isDeviceMappingFull() const { return m_cfgDeviceMapping.isFull(); }
     bool                        readFile(const String& fileName, String& content) const;
-    bool                        readMainConfigFile();
-    inline void                 saveColorMapping() { writeColorMappingConfigFile(); }
-    inline void                 saveDeviceMapping() { writeDeviceMappingConfigFile(); }
-    inline void                 saveMain() { writeMainConfigFile(); }
+    bool                        readConfigFile();
     uint32_t                    string2hex(String value) const;
-    inline void                 updateColorMapping() { readColorMappingConfigFile(); }
-    inline void                 updateDeviceMapping() { readDeviceMappingConfigFile(); }
+    void                        writeConfigFile() const;
 
 private:
-    void onFileWriteError() const;
-    bool readColorMappingConfigFile();
-    bool readDeviceMappingConfigFile();
-    bool writeFile(const String& fileName, JsonObject* data) const;
-    void writeColorMappingConfigFile();
-    void writeDeviceMappingConfigFile();
-    void writeMainConfigFile() const;
-
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
     bool                                  m_cfgBluetoothEnabled;
 #endif    
