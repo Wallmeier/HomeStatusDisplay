@@ -7,11 +7,9 @@
 #include <FS.h>
 #endif
 
-#define JSON_KEY_COLORMAPPING          (F("colorMapping"))
 #define JSON_KEY_COLORMAPPING_MSG      (F("message"))
 #define JSON_KEY_COLORMAPPING_COLOR    (F("color"))
 #define JSON_KEY_COLORMAPPING_BEHAVIOR (F("behavior"))
-#define JSON_KEY_DEVICEMAPPING         (F("deviceMapping"))
 #define JSON_KEY_DEVICEMAPPING_DEVICE  (F("device"))
 #define JSON_KEY_DEVICEMAPPING_LED     (F("led"))
 
@@ -45,39 +43,41 @@ HSDConfig::HSDConfig() :
     m_cfgSensorAltitude(0)
 #endif // HSD_SENSOR_ENABLED
 {
-    m_cfgEntries.push_back({Group::Wifi,      F("host"),          F("Hostname"),                      F("host"),                         DataType::String,   0, &m_cfgHost});
-    m_cfgEntries.push_back({Group::Wifi,      F("SSID"),          F("SSID"),                          F("SSID"),                         DataType::String,   0, &m_cfgWifiSSID});
-    m_cfgEntries.push_back({Group::Wifi,      F("PSK"),           F("Password"),                      F("Password"),                     DataType::Password, 0, &m_cfgWifiPSK});
-    m_cfgEntries.push_back({Group::Mqtt,      F("server"),        F("Server"),                        F("IP or hostname"),               DataType::String,   0, &m_cfgMqttServer});
-    m_cfgEntries.push_back({Group::Mqtt,      F("port"),          F("Port"),                          F("Port"),                         DataType::Word,     5, &m_cfgMqttPort});
-    m_cfgEntries.push_back({Group::Mqtt,      F("user"),          F("User"),                          F("User name"),                    DataType::String,   0, &m_cfgMqttUser});
-    m_cfgEntries.push_back({Group::Mqtt,      F("password"),      F("Password"),                      F("Password"),                     DataType::Password, 0, &m_cfgMqttPassword});
-    m_cfgEntries.push_back({Group::Mqtt,      F("statusTopic"),   F("Status topic"),                  F("#"),                            DataType::String,   0, &m_cfgMqttStatusTopic});
+    m_cfgEntries.push_back({Group::Wifi,      F("host"),          F("Hostname"),                      F("host"),                         DataType::String,        0, &m_cfgHost});
+    m_cfgEntries.push_back({Group::Wifi,      F("SSID"),          F("SSID"),                          F("SSID"),                         DataType::String,        0, &m_cfgWifiSSID});
+    m_cfgEntries.push_back({Group::Wifi,      F("PSK"),           F("Password"),                      F("Password"),                     DataType::Password,      0, &m_cfgWifiPSK});
+    m_cfgEntries.push_back({Group::Mqtt,      F("server"),        F("Server"),                        F("IP or hostname"),               DataType::String,        0, &m_cfgMqttServer});
+    m_cfgEntries.push_back({Group::Mqtt,      F("port"),          F("Port"),                          F("Port"),                         DataType::Word,          5, &m_cfgMqttPort});
+    m_cfgEntries.push_back({Group::Mqtt,      F("user"),          F("User"),                          F("User name"),                    DataType::String,        0, &m_cfgMqttUser});
+    m_cfgEntries.push_back({Group::Mqtt,      F("password"),      F("Password"),                      F("Password"),                     DataType::Password,      0, &m_cfgMqttPassword});
+    m_cfgEntries.push_back({Group::Mqtt,      F("statusTopic"),   F("Status topic"),                  F("#"),                            DataType::String,        0, &m_cfgMqttStatusTopic});
 #ifdef MQTT_TEST_TOPIC
-    m_cfgEntries.push_back({Group::Mqtt,      F("testTopic"),     F("Test topic"),                    F("#"),                            DataType::String,   0, &m_cfgMqttTestTopic});
+    m_cfgEntries.push_back({Group::Mqtt,      F("testTopic"),     F("Test topic"),                    F("#"),                            DataType::String,        0, &m_cfgMqttTestTopic});
 #endif // MQTT_TEST_TOPIC
-    m_cfgEntries.push_back({Group::Mqtt,      F("outTopic"),      F("Outgoing topic"),                F("#"),                            DataType::String,   0, &m_cfgMqttOutTopic});
-    m_cfgEntries.push_back({Group::Leds,      F("count"),         F("Number of LEDs"),                F("0"),                            DataType::Byte,     3, &m_cfgNumberOfLeds});
-    m_cfgEntries.push_back({Group::Leds,      F("pin"),           F("LED pin"),                       F("0"),                            DataType::Byte,     2, &m_cfgLedDataPin});
-    m_cfgEntries.push_back({Group::Leds,      F("brightness"),    F("Brightness"),                    F("0-255"),                        DataType::Byte,     3, &m_cfgLedBrightness});
+    m_cfgEntries.push_back({Group::Mqtt,      F("outTopic"),      F("Outgoing topic"),                F("#"),                            DataType::String,        0, &m_cfgMqttOutTopic});
+    m_cfgEntries.push_back({Group::Leds,      F("count"),         F("Number of LEDs"),                F("0"),                            DataType::Byte,          3, &m_cfgNumberOfLeds});
+    m_cfgEntries.push_back({Group::Leds,      F("pin"),           F("LED pin"),                       F("0"),                            DataType::Byte,          2, &m_cfgLedDataPin});
+    m_cfgEntries.push_back({Group::Leds,      F("brightness"),    F("Brightness"),                    F("0-255"),                        DataType::Byte,          3, &m_cfgLedBrightness});
+    m_cfgEntries.push_back({Group::Leds,      F("colorMapping"),  nullptr,                            nullptr,                           DataType::ColorMapping,  0, &m_cfgColorMapping});
+    m_cfgEntries.push_back({Group::Leds,      F("deviceMapping"), nullptr,                            nullptr,                           DataType::DeviceMapping, 0, &m_cfgDeviceMapping});
 #ifdef HSD_CLOCK_ENABLED
-    m_cfgEntries.push_back({Group::Clock,     F("enabled"),       F("Enable"),                        nullptr,                           DataType::Bool,     0, &m_cfgClockEnabled});
-    m_cfgEntries.push_back({Group::Clock,     F("CLK"),           F("CLK pin"),                       F("0"),                            DataType::Byte,     2, &m_cfgClockPinCLK});
-    m_cfgEntries.push_back({Group::Clock,     F("DIO"),           F("DIO pin"),                       F("0"),                            DataType::Byte,     2, &m_cfgClockPinDIO});
-    m_cfgEntries.push_back({Group::Clock,     F("brightness"),    F("Brightness"),                    F("0-8"),                          DataType::Byte,     1, &m_cfgClockBrightness});
-    m_cfgEntries.push_back({Group::Clock,     F("timezone"),      F("Time zone"),                     F("CET-1CEST,M3.5.0/2,M10.5.0/3"), DataType::String,   0, &m_cfgClockTimeZone});
-    m_cfgEntries.push_back({Group::Clock,     F("server"),        F("NTP server"),                    F("pool.ntp.org"),                 DataType::String,   0, &m_cfgClockNTPServer});
-    m_cfgEntries.push_back({Group::Clock,     F("interval"),      F("NTP update interval (min.)"),    F("20"),                           DataType::Word,     5, &m_cfgClockNTPInterval});
+    m_cfgEntries.push_back({Group::Clock,     F("enabled"),       F("Enable"),                        nullptr,                           DataType::Bool,          0, &m_cfgClockEnabled});
+    m_cfgEntries.push_back({Group::Clock,     F("CLK"),           F("CLK pin"),                       F("0"),                            DataType::Byte,          2, &m_cfgClockPinCLK});
+    m_cfgEntries.push_back({Group::Clock,     F("DIO"),           F("DIO pin"),                       F("0"),                            DataType::Byte,          2, &m_cfgClockPinDIO});
+    m_cfgEntries.push_back({Group::Clock,     F("brightness"),    F("Brightness"),                    F("0-8"),                          DataType::Byte,          1, &m_cfgClockBrightness});
+    m_cfgEntries.push_back({Group::Clock,     F("timezone"),      F("Time zone"),                     F("CET-1CEST,M3.5.0/2,M10.5.0/3"), DataType::String,        0, &m_cfgClockTimeZone});
+    m_cfgEntries.push_back({Group::Clock,     F("server"),        F("NTP server"),                    F("pool.ntp.org"),                 DataType::String,        0, &m_cfgClockNTPServer});
+    m_cfgEntries.push_back({Group::Clock,     F("interval"),      F("NTP update interval (min.)"),    F("20"),                           DataType::Word,          5, &m_cfgClockNTPInterval});
 #endif // HSD_CLOCK_ENABLED
 #ifdef HSD_SENSOR_ENABLED
-    m_cfgEntries.push_back({Group::Sensors,   F("sonoffEnabled"), F("Sonoff SI7021"),                 nullptr,                           DataType::Bool,     0, &m_cfgSensorSonoffEnabled});
-    m_cfgEntries.push_back({Group::Sensors,   F("sonoffPin"),     F("Data pin"),                      F("0"),                            DataType::Byte,     2, &m_cfgSensorPin});
-    m_cfgEntries.push_back({Group::Sensors,   F("interval"),      F("Sensor update interval (min.)"), F("5"),                            DataType::Word,     5, &m_cfgSensorInterval});
-    m_cfgEntries.push_back({Group::Sensors,   F("i2cEnabled"),    F("I2C"),                           nullptr,                           DataType::Bool,     0, &m_cfgSensorI2CEnabled});
-    m_cfgEntries.push_back({Group::Sensors,   F("altitude"),      F("Altitude"),                      F("0"),                            DataType::Word,     5, &m_cfgSensorAltitude});
+    m_cfgEntries.push_back({Group::Sensors,   F("sonoffEnabled"), F("Sonoff SI7021"),                 nullptr,                           DataType::Bool,          0, &m_cfgSensorSonoffEnabled});
+    m_cfgEntries.push_back({Group::Sensors,   F("sonoffPin"),     F("Data pin"),                      F("0"),                            DataType::Byte,          2, &m_cfgSensorPin});
+    m_cfgEntries.push_back({Group::Sensors,   F("interval"),      F("Sensor update interval (min.)"), F("5"),                            DataType::Word,          5, &m_cfgSensorInterval});
+    m_cfgEntries.push_back({Group::Sensors,   F("i2cEnabled"),    F("I2C"),                           nullptr,                           DataType::Bool,          0, &m_cfgSensorI2CEnabled});
+    m_cfgEntries.push_back({Group::Sensors,   F("altitude"),      F("Altitude"),                      F("0"),                            DataType::Word,          5, &m_cfgSensorAltitude});
 #endif // HSD_SENSOR_ENABLED
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
-    m_cfgEntries.push_back({Group::Bluetooth, F("enabled"),       F("Enable"),                        nullptr,                           DataType::Bool,     0, &m_cfgBluetoothEnabled});
+    m_cfgEntries.push_back({Group::Bluetooth, F("enabled"),       F("Enable"),                        nullptr,                           DataType::Bool,          0, &m_cfgBluetoothEnabled});
 #endif // HSD_BLUETOOTH_ENABLED
 }
 
@@ -98,13 +98,12 @@ void HSDConfig::begin() {
 
 bool HSDConfig::readFile(const String& fileName, String& content) const {
     bool success(false);
-    Serial.print(F("Reading config file ")); Serial.println(fileName);
+    Serial.print(F("Reading config file ")); Serial.print(fileName); Serial.print(F(": "));
     if (SPIFFS.exists(fileName)) {
         File configFile = SPIFFS.open(fileName, "r");
         if (configFile) {
             size_t size = configFile.size();
-            Serial.print(F("File size is "));
-            Serial.println(String(size) + " bytes");
+            Serial.printf("file size is %u bytes\n", size);
             char* buffer = new char[size + 1];
             buffer[size] = 0;
             configFile.readBytes(buffer, size);
@@ -112,11 +111,11 @@ bool HSDConfig::readFile(const String& fileName, String& content) const {
             delete[] buffer;
             success = true;
         } else {
-            Serial.println(F("File open failed"));
+            Serial.println(F("file open failed"));
         }
         configFile.close();
     } else {
-        Serial.println(F("File does not exist"));
+        Serial.println(F("file does not exist"));
     }
     return success;
 }
@@ -143,8 +142,9 @@ bool HSDConfig::readConfigFile() {
             JsonObject* json = nullptr;
             String groupName;
             for (size_t idx = 0; idx < m_cfgEntries.size(); idx++) {
-                if (prevGroup != m_cfgEntries[idx].group) {
-                    prevGroup = m_cfgEntries[idx].group;
+                const ConfigEntry& entry = m_cfgEntries[idx];
+                if (prevGroup != entry.group) {
+                    prevGroup = entry.group;
                     groupName = groupDescription(prevGroup);
                     groupName.toLowerCase();
                     if (root.containsKey(groupName))
@@ -156,58 +156,48 @@ bool HSDConfig::readConfigFile() {
                 Serial.print(F("  • "));
                 Serial.print(groupName);
                 Serial.print(F("."));
-                Serial.print(m_cfgEntries[idx].key);
-                for (int i = groupName.length() + 1 + strlen_P((PGM_P)m_cfgEntries[idx].key); i < maxLen; i++)
+                Serial.print(entry.key);
+                for (int i = groupName.length() + 1 + strlen_P((PGM_P)entry.key); i < maxLen; i++)
                     Serial.print(F(" "));
                 Serial.print(F(": "));
-                if (m_cfgEntries[idx].type == DataType::Password) {
+                if (entry.type == DataType::Password)
                     Serial.println("not shown");
-                } else if (json) {
-                    Serial.println((const char*)((*json)[m_cfgEntries[idx].key]));
-                }  else {
+                else if (json)
+                    Serial.println((*json)[entry.key].as<String>());
+                else
                     Serial.println(F(""));
-                }
-                if (json && json->containsKey(m_cfgEntries[idx].key)) {
-                    switch (m_cfgEntries[idx].type) {
+                if (json && json->containsKey(entry.key)) {
+                    switch (entry.type) {
                         case DataType::Password:
-                        case DataType::String: *(reinterpret_cast<String*> ( m_cfgEntries[idx].val)) = (*json)[m_cfgEntries[idx].key].as<String>(); break;
-                        case DataType::Bool:   *(reinterpret_cast<bool*>(    m_cfgEntries[idx].val)) = (*json)[m_cfgEntries[idx].key].as<bool>();   break;
-                        case DataType::Byte:   *(reinterpret_cast<uint8_t*>( m_cfgEntries[idx].val)) = (*json)[m_cfgEntries[idx].key].as<int>();    break;
-                        case DataType::Word:   *(reinterpret_cast<uint16_t*>(m_cfgEntries[idx].val)) = (*json)[m_cfgEntries[idx].key].as<int>();    break;
+                        case DataType::String: *(reinterpret_cast<String*> ( entry.val)) = (*json)[entry.key].as<String>(); break;
+                        case DataType::Bool:   *(reinterpret_cast<bool*>(    entry.val)) = (*json)[entry.key].as<bool>();   break;
+                        case DataType::Byte:   *(reinterpret_cast<uint8_t*>( entry.val)) = (*json)[entry.key].as<int>();    break;
+                        case DataType::Word:   *(reinterpret_cast<uint16_t*>(entry.val)) = (*json)[entry.key].as<int>();    break;
+                        case DataType::ColorMapping: {
+                            const JsonArray& colMap = (*json)[entry.key].as<JsonArray>();
+                            for (size_t i = 0; i < colMap.size(); i++) {
+                                const JsonObject& elem = colMap.get<JsonVariant>(i).as<JsonObject>();
+                                if (elem.containsKey(JSON_KEY_COLORMAPPING_MSG) && elem.containsKey(JSON_KEY_COLORMAPPING_COLOR) &&
+                                    elem.containsKey(JSON_KEY_COLORMAPPING_BEHAVIOR))
+                                    reinterpret_cast<QList<ColorMapping>*>(entry.val)->push_back(ColorMapping(elem[JSON_KEY_COLORMAPPING_MSG].as<String>(), 
+                                                                                                              elem[JSON_KEY_COLORMAPPING_COLOR].as<uint32_t>(), 
+                                                                                                              static_cast<Behavior>(elem[JSON_KEY_COLORMAPPING_BEHAVIOR].as<int>())));
+                            }
+                            break;
+                        }         
+                        case DataType::DeviceMapping: {
+                            const JsonArray& devMap = (*json)[entry.key].as<JsonArray>();
+                            for (size_t i = 0; i < devMap.size(); i++) {
+                                const JsonObject& elem = devMap.get<JsonVariant>(i).as<JsonObject>();
+                                if (elem.containsKey(JSON_KEY_DEVICEMAPPING_DEVICE) && elem.containsKey(JSON_KEY_DEVICEMAPPING_LED))
+                                    reinterpret_cast<QList<DeviceMapping>*>(entry.val)->push_back(DeviceMapping(elem[JSON_KEY_DEVICEMAPPING_DEVICE].as<String>(),
+                                                                                                                elem[JSON_KEY_DEVICEMAPPING_LED].as<int>()));
+                            }
+                            break;
+                        }
                     }
                 }
             } 
-            
-            if (root.containsKey(JSON_KEY_COLORMAPPING)) {
-                JsonArray& colMap = root[JSON_KEY_COLORMAPPING].as<JsonArray>();
-                int index(0);
-                for (size_t idx = 0; idx < colMap.size(); idx++) {
-                    JsonObject& elem = colMap.get<JsonVariant>(idx).as<JsonObject>();
-                    if (elem.containsKey(JSON_KEY_COLORMAPPING_MSG) && elem.containsKey(JSON_KEY_COLORMAPPING_COLOR) &&
-                        elem.containsKey(JSON_KEY_COLORMAPPING_BEHAVIOR)) {
-                        addColorMappingEntry(index, elem[JSON_KEY_COLORMAPPING_MSG].as<char*>(),
-                                             elem[JSON_KEY_COLORMAPPING_COLOR].as<uint32_t>(),
-                                            (Behavior)(elem[JSON_KEY_COLORMAPPING_BEHAVIOR].as<int>()));
-                        index++;
-                    }
-                }
-                m_cfgColorMappingDirty = false;
-            }
-            
-            if (root.containsKey(JSON_KEY_DEVICEMAPPING)) {
-                JsonArray& devMap = root[JSON_KEY_DEVICEMAPPING].as<JsonArray>();
-                int index(0);
-                for (size_t idx = 0; idx < devMap.size(); idx++) {
-                    JsonObject& elem = devMap.get<JsonVariant>(idx).as<JsonObject>();
-                    if (elem.containsKey(JSON_KEY_DEVICEMAPPING_DEVICE) && elem.containsKey(JSON_KEY_DEVICEMAPPING_LED)) {
-                        addDeviceMappingEntry(index, elem[JSON_KEY_DEVICEMAPPING_DEVICE].as<char*>(),
-                                              elem[JSON_KEY_DEVICEMAPPING_LED].as<int>());
-                        index++;
-                    }
-                }
-                m_cfgDeviceMappingDirty = false;
-            }
-            
             success = true;
         } else {
             Serial.println(F("Could not parse config data."));
@@ -227,42 +217,44 @@ void HSDConfig::writeConfigFile() const {
     Group prevGroup = Group::__Last;
     JsonObject* json = nullptr;
     for (size_t idx = 0; idx < m_cfgEntries.size(); idx++) {
-        if (prevGroup != m_cfgEntries[idx].group) {
-            prevGroup = m_cfgEntries[idx].group;
+        const ConfigEntry& entry = m_cfgEntries[idx];
+        if (prevGroup != entry.group) {
+            prevGroup = entry.group;
             String groupName = groupDescription(prevGroup);
             groupName.toLowerCase();
             json = &root.createNestedObject(groupName);
         }
-        switch (m_cfgEntries[idx].type) {
+        switch (entry.type) {
             case DataType::Password:
-            case DataType::String: (*json)[m_cfgEntries[idx].key] = *(reinterpret_cast<String*> ( m_cfgEntries[idx].val)); break;
-            case DataType::Bool:   (*json)[m_cfgEntries[idx].key] = *(reinterpret_cast<bool*>(    m_cfgEntries[idx].val)); break;
-            case DataType::Byte:   (*json)[m_cfgEntries[idx].key] = *(reinterpret_cast<uint8_t*>( m_cfgEntries[idx].val)); break;
-            case DataType::Word:   (*json)[m_cfgEntries[idx].key] = *(reinterpret_cast<uint16_t*>(m_cfgEntries[idx].val)); break;
+            case DataType::String: (*json)[entry.key] = *(reinterpret_cast<String*> ( entry.val)); break;
+            case DataType::Bool:   (*json)[entry.key] = *(reinterpret_cast<bool*>(    entry.val)); break;
+            case DataType::Byte:   (*json)[entry.key] = *(reinterpret_cast<uint8_t*>( entry.val)); break;
+            case DataType::Word:   (*json)[entry.key] = *(reinterpret_cast<uint16_t*>(entry.val)); break;
+            case DataType::ColorMapping: {
+                QList<ColorMapping>* list = reinterpret_cast<QList<ColorMapping>*>(entry.val);
+                JsonArray& colMapping = json->createNestedArray(entry.key);
+                for (unsigned int index = 0; index < list->size(); index++) {
+                    JsonObject& colorMappingEntry = colMapping.createNestedObject(); 
+                    const ColorMapping& mapping = (*list)[index];
+                    colorMappingEntry[JSON_KEY_COLORMAPPING_MSG] = mapping.msg;
+                    colorMappingEntry[JSON_KEY_COLORMAPPING_COLOR] = mapping.color;
+                    colorMappingEntry[JSON_KEY_COLORMAPPING_BEHAVIOR] = static_cast<int>(mapping.behavior);
+                }
+                break;
+            }
+            case DataType::DeviceMapping: {
+                QList<DeviceMapping>* list = reinterpret_cast<QList<DeviceMapping>*>(entry.val);
+                JsonArray& devMapping = json->createNestedArray(entry.key);
+                for (unsigned int index = 0; index < list->size(); index++) {
+                    JsonObject& deviceMappingEntry = devMapping.createNestedObject(); 
+                    const DeviceMapping& mapping = (*list)[index];
+                    deviceMappingEntry[JSON_KEY_DEVICEMAPPING_DEVICE] = mapping.device;
+                    deviceMappingEntry[JSON_KEY_DEVICEMAPPING_LED]  = static_cast<int>(mapping.ledNumber);
+                }
+                break;
+            }
         }
     }
-
-    JsonArray& colMapping = root.createNestedArray(JSON_KEY_COLORMAPPING);
-    for (unsigned int index = 0; index < m_cfgColorMapping.size(); index++) {
-        const ColorMapping& mapping = m_cfgColorMapping[index];
-        if (mapping.msg.length() > 0) {
-            JsonObject& colorMappingEntry = colMapping.createNestedObject(); 
-            colorMappingEntry[JSON_KEY_COLORMAPPING_MSG] = mapping.msg;
-            colorMappingEntry[JSON_KEY_COLORMAPPING_COLOR] = mapping.color;
-            colorMappingEntry[JSON_KEY_COLORMAPPING_BEHAVIOR] = static_cast<int>(mapping.behavior);
-        }
-    }
-
-    JsonArray& devMapping = root.createNestedArray(JSON_KEY_DEVICEMAPPING);
-    for (int index = 0; index < m_cfgDeviceMapping.size(); index++) {
-        const DeviceMapping& mapping = m_cfgDeviceMapping[index];
-        if (mapping.device.length() > 0) {
-            JsonObject& deviceMappingEntry = devMapping.createNestedObject();
-            deviceMappingEntry[JSON_KEY_DEVICEMAPPING_DEVICE] = mapping.device;
-            deviceMappingEntry[JSON_KEY_DEVICEMAPPING_LED]  = static_cast<int>(mapping.ledNumber);
-        }
-    }
-
     Serial.print(F("Writing config file "));
     Serial.println(FILENAME_MAINCONFIG);
     File configFile = SPIFFS.open(FILENAME_MAINCONFIG, "w+");

@@ -37,7 +37,9 @@ public:
         Password,
         Byte,
         Word,
-        Bool
+        Bool,
+        ColorMapping,
+        DeviceMapping
     };
     
     enum class Group : uint8_t {
@@ -84,11 +86,7 @@ public:
      * This struct is used for mapping a device name to a led number, that means a specific position on the led stripe
      */
     struct DeviceMapping {
-        DeviceMapping() : ledNumber(0) {
-        }
-
-        DeviceMapping(String n, uint8_t l) : device(n), ledNumber(l) {
-        }
+        DeviceMapping(String n, uint8_t l) : device(n), ledNumber(l) { }
 
         String  device;     // name of the device
         uint8_t ledNumber;  // led number on which reactions for this device are displayed
@@ -99,11 +97,7 @@ public:
      * message to a led behavior (see LedSwitcher::ledState).
      */
     struct ColorMapping {
-        ColorMapping() : behavior(Behavior::Off), color(0x000000) {
-        }
-
-        ColorMapping(String m, uint32_t c, Behavior b) : behavior(b), color(c), msg(m) {
-        }
+        ColorMapping(String m, uint32_t c, Behavior b) : behavior(b), color(c), msg(m) { }
 
         Behavior behavior; // led behavior for message
         uint32_t color;    // led color for message

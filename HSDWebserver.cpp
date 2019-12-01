@@ -126,52 +126,51 @@ void HSDWebserver::deliverConfigPage() {
     const QList<HSDConfig::ConfigEntry>& entries = m_config.cfgEntries();
     HSDConfig::Group lastGroup = HSDConfig::Group::__Last;
     for (size_t idx = 0; idx < entries.size(); idx++) {
-        if (entries[idx].group != lastGroup) {
+        const HSDConfig::ConfigEntry& entry = entries[idx];
+        if (entry.type == HSDConfig::DataType::ColorMapping || entry.type == HSDConfig::DataType::DeviceMapping)
+            continue;
+        if (entry.group != lastGroup) {
             lastGroup = entries[idx].group;
             m_server.sendContent(html);
             html  = F("\t\t\t<tr><td class=\"cfgTitle\" colspan=\"2\">");
-            html += m_config.groupDescription(entries[idx].group);
+            html += m_config.groupDescription(entry.group);
             html += F("</td></tr>\n");
         }
         html += F("\t\t\t<tr><td>");
-        html += entries[idx].label;
+        html += entry.label;
         html += F("</td><td><input name=\"");
-        html += m_config.groupDescription(entries[idx].group);
+        html += m_config.groupDescription(entry.group);
         html += F(".");
-        html += entries[idx].key;
+        html += entry.key;
         if (entries[idx].placeholder != nullptr) {
             html += F("\" placeholder=\"");
-            html += entries[idx].placeholder;
+            html += entry.placeholder;
         }
         html += F("\" type=\"");
-        switch (entries[idx].type) {
+        switch (entry.type) {
             case HSDConfig::DataType::String:
             case HSDConfig::DataType::Password:
-                html += entries[idx].type == HSDConfig::DataType::Password ? F("password") : F("text");
+                html += entry.type == HSDConfig::DataType::Password ? F("password") : F("text");
                 html += F("\" size=\"30\" value=\"");
-                html += *(reinterpret_cast<String*>(entries[idx].val));
+                html += *(reinterpret_cast<String*>(entry.val));
                 html += F("\">");
                 break;
 
             case HSDConfig::DataType::Byte:
-                html += F("text\" size=\"30\" maxlength=\"");
-                html += String(entries[idx].maxLength);
-                html += F("\" value=\"");
-                html += String(*(reinterpret_cast<uint8_t*>(entries[idx].val)));
-                html += F("\">");
-                break;
-
             case HSDConfig::DataType::Word:
                 html += F("text\" size=\"30\" maxlength=\"");
-                html += String(entries[idx].maxLength);
+                html += String(entry.maxLength);
                 html += F("\" value=\"");
-                html += String(*(reinterpret_cast<uint16_t*>(entries[idx].val)));
+                if (entry.type == HSDConfig::DataType::Byte)
+                    html += String(*(reinterpret_cast<uint8_t*>(entry.val)));
+                else
+                    html += String(*(reinterpret_cast<uint16_t*>(entry.val)));
                 html += F("\">");
                 break;
 
             case HSDConfig::DataType::Bool:
                 html += F("checkbox\"");
-                if (*(reinterpret_cast<bool*>(entries[idx].val)))
+                if (*(reinterpret_cast<bool*>(entry.val)))
                     html += F(" checked");
                 html += F(">");
                 break;
@@ -526,34 +525,37 @@ bool HSDWebserver::updateMainConfig() {
     String key = m_config.groupDescription(entries[0].group) + "." + entries[0].key;
     if (m_server.hasArg(key)) {
         for (size_t idx = 0; idx < entries.size(); idx++) {
-            key = m_config.groupDescription(entries[idx].group) + "." + entries[idx].key;
+            const HSDConfig::ConfigEntry& entry = entries[idx];
+            if (entry.type == HSDConfig::DataType::ColorMapping || entry.type == HSDConfig::DataType::DeviceMapping)
+                continue;
+            key = m_config.groupDescription(entry.group) + "." + entry.key;
             switch (entries[idx].type) {
                 case HSDConfig::DataType::String:
                 case HSDConfig::DataType::Password:
-                    if (*(reinterpret_cast<String*>(entries[idx].val)) != m_server.arg(key)) {
+                    if (*(reinterpret_cast<String*>(entry.val)) != m_server.arg(key)) {
                         needSave = true;
-                        *(reinterpret_cast<String*>(entries[idx].val)) = m_server.arg(key);
+                        *(reinterpret_cast<String*>(entry.val)) = m_server.arg(key);
                     }
                     break;
 
                 case HSDConfig::DataType::Byte:
-                    if (*(reinterpret_cast<uint8_t*>(entries[idx].val)) != m_server.arg(key).toInt()) {
+                    if (*(reinterpret_cast<uint8_t*>(entry.val)) != m_server.arg(key).toInt()) {
                         needSave = true;
-                        *(reinterpret_cast<uint8_t*>(entries[idx].val)) = m_server.arg(key).toInt();
+                        *(reinterpret_cast<uint8_t*>(entry.val)) = m_server.arg(key).toInt();
                     }
                     break;
 
                 case HSDConfig::DataType::Word:
-                    if (*(reinterpret_cast<uint16_t*>(entries[idx].val)) != m_server.arg(key).toInt()) {
+                    if (*(reinterpret_cast<uint16_t*>(entry.val)) != m_server.arg(key).toInt()) {
                         needSave = true;
-                        *(reinterpret_cast<uint16_t*>(entries[idx].val)) = m_server.arg(key).toInt();
+                        *(reinterpret_cast<uint16_t*>(entry.val)) = m_server.arg(key).toInt();
                     }
                     break;
 
                 case HSDConfig::DataType::Bool:
-                    if (*(reinterpret_cast<bool*>(entries[idx].val)) != m_server.hasArg(key)) {
+                    if (*(reinterpret_cast<bool*>(entry.val)) != m_server.hasArg(key)) {
                         needSave = true;
-                        *(reinterpret_cast<bool*>(entries[idx].val)) = m_server.hasArg(key);
+                        *(reinterpret_cast<bool*>(entry.val)) = m_server.hasArg(key);
                     }
                     break;
             }
