@@ -32,6 +32,28 @@ public:
         Flickering
     };
     
+    /*
+     * This struct is used for mapping a device name to a led number, that means a specific position on the led stripe
+     */
+    struct DeviceMapping {
+        DeviceMapping(String n, uint8_t l) : device(n), ledNumber(l) { }
+
+        String  device;     // name of the device
+        uint8_t ledNumber;  // led number on which reactions for this device are displayed
+    };
+
+    /*
+     * This struct is used for mapping a message for a specific
+     * message to a led behavior (see LedSwitcher::ledState).
+     */
+    struct ColorMapping {
+        ColorMapping(String m, uint32_t c, Behavior b) : behavior(b), color(c), msg(m) { }
+
+        Behavior behavior; // led behavior for message
+        uint32_t color;    // led color for message
+        String   msg;      // message
+    };
+
     enum class DataType : uint8_t {
         String = 0,
         Password,
@@ -53,13 +75,28 @@ public:
     };
     
     struct ConfigEntry {
+        ConfigEntry(Group g, const __FlashStringHelper* k, QList<ColorMapping>* v) : group(g), key(k), label(nullptr), placeholder(nullptr), type(DataType::ColorMapping), maxLength(0) { value.colMap = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, QList<DeviceMapping>* v) : group(g), key(k), label(nullptr), placeholder(nullptr), type(DataType::DeviceMapping), maxLength(0) { value.devMap = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, String* v, bool password = false) : group(g), key(k), label(l), placeholder(p), type(password ? DataType::Password : DataType::String), maxLength(0) { value.string = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, bool* v) : group(g), key(k), label(l), placeholder(nullptr), type(DataType::Bool), maxLength(0) { value.boolean = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, uint8_t m, uint8_t* v) : group(g), key(k), label(l), placeholder(p), type(DataType::Byte), maxLength(m) { value.byte = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, uint16_t* v) : group(g), key(k), label(l), placeholder(p), type(DataType::Byte), maxLength(5) { value.word = v; }
+        
         Group                      group;
         const __FlashStringHelper* key;
         const __FlashStringHelper* label;
         const __FlashStringHelper* placeholder;
         DataType                   type;
         uint8_t                    maxLength;
-        void*                      val;
+        //void*                      val;
+        union {
+            bool*                 boolean;
+            uint8_t*              byte;
+            QList<ColorMapping>*  colMap;
+            QList<DeviceMapping>* devMap;
+            String*               string;
+            uint16_t*             word;
+        } value;
     };
 
     /*
@@ -80,28 +117,6 @@ public:
         {"BLUE",   0x0000FF},
         {"CYAN",   0x00FFFF},
         {"WHITE",  0xFFFFFF}
-    };
-
-    /*
-     * This struct is used for mapping a device name to a led number, that means a specific position on the led stripe
-     */
-    struct DeviceMapping {
-        DeviceMapping(String n, uint8_t l) : device(n), ledNumber(l) { }
-
-        String  device;     // name of the device
-        uint8_t ledNumber;  // led number on which reactions for this device are displayed
-    };
-
-    /*
-     * This struct is used for mapping a message for a specific
-     * message to a led behavior (see LedSwitcher::ledState).
-     */
-    struct ColorMapping {
-        ColorMapping(String m, uint32_t c, Behavior b) : behavior(b), color(c), msg(m) { }
-
-        Behavior behavior; // led behavior for message
-        uint32_t color;    // led color for message
-        String   msg;      // message
     };
 
     HSDConfig();

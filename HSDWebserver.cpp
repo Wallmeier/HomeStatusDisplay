@@ -152,7 +152,7 @@ void HSDWebserver::deliverConfigPage() {
             case HSDConfig::DataType::Password:
                 html += entry.type == HSDConfig::DataType::Password ? F("password") : F("text");
                 html += F("\" size=\"30\" value=\"");
-                html += *(reinterpret_cast<String*>(entry.val));
+                html += *entry.value.string;
                 html += F("\">");
                 break;
 
@@ -162,15 +162,15 @@ void HSDWebserver::deliverConfigPage() {
                 html += String(entry.maxLength);
                 html += F("\" value=\"");
                 if (entry.type == HSDConfig::DataType::Byte)
-                    html += String(*(reinterpret_cast<uint8_t*>(entry.val)));
+                    html += String(*entry.value.byte);
                 else
-                    html += String(*(reinterpret_cast<uint16_t*>(entry.val)));
+                    html += String(*entry.value.word);
                 html += F("\">");
                 break;
 
             case HSDConfig::DataType::Bool:
                 html += F("checkbox\"");
-                if (*(reinterpret_cast<bool*>(entry.val)))
+                if (*entry.value.boolean)
                     html += F(" checked");
                 html += F(">");
                 break;
@@ -226,8 +226,8 @@ void HSDWebserver::deliverStatusPage() {
 
     html += F("<p>Device RAM stats (free, max, frag) [Bytes]: ");
     html += String(free) + ", " + String(max) + ", " + String(frag);
-    html += F("</p>\n");
-    html += F("<p>Device voltage: ");
+    html += F("</p>\n"
+              "<p>Device voltage: ");
     html += String(ESP.getVcc());
     html += F(" mV</p>\n");
 #endif
@@ -344,8 +344,8 @@ void HSDWebserver::deliverColorMappingPage() {
         sendColorMappingTableEntry(i, mapping, m_config.hex2string(mapping.color));
     }
 
-    html  = F("\t</table>\n");
-    html += F("\t<p>Default colors you can use instead of HEX colors:<br>\n\t");
+    html  = F("\t</table>\n"
+              "\t<p>Default colors you can use instead of HEX colors:<br>\n\t");
     for (uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
         String temp = m_config.DefaultColor[i].key;
         temp.toLowerCase();
@@ -442,8 +442,8 @@ void HSDWebserver::deliverDeviceMappingPage() {
         sendDeviceMappingTableEntry(i, mapping);
     }
 
-    html = F("\t</table>\n");
-    html += F("\t<p>Add/edit entry:</p>\n");
+    html  = F("\t</table>\n"
+              "\t<p>Add/edit entry:</p>\n");
     html += getDeviceMappingTableAddEntryForm(m_config.getNumberOfDeviceMappingEntries(), false);
     html += F("\t<p>Delete Entry:</p>\n");
     html += getDeleteForm();
@@ -532,30 +532,30 @@ bool HSDWebserver::updateMainConfig() {
             switch (entries[idx].type) {
                 case HSDConfig::DataType::String:
                 case HSDConfig::DataType::Password:
-                    if (*(reinterpret_cast<String*>(entry.val)) != m_server.arg(key)) {
+                    if (*entry.value.string != m_server.arg(key)) {
                         needSave = true;
-                        *(reinterpret_cast<String*>(entry.val)) = m_server.arg(key);
+                        *entry.value.string = m_server.arg(key);
                     }
                     break;
 
                 case HSDConfig::DataType::Byte:
-                    if (*(reinterpret_cast<uint8_t*>(entry.val)) != m_server.arg(key).toInt()) {
+                    if (*entry.value.byte != m_server.arg(key).toInt()) {
                         needSave = true;
-                        *(reinterpret_cast<uint8_t*>(entry.val)) = m_server.arg(key).toInt();
+                        *entry.value.byte = m_server.arg(key).toInt();
                     }
                     break;
 
                 case HSDConfig::DataType::Word:
-                    if (*(reinterpret_cast<uint16_t*>(entry.val)) != m_server.arg(key).toInt()) {
+                    if (*entry.value.word != m_server.arg(key).toInt()) {
                         needSave = true;
-                        *(reinterpret_cast<uint16_t*>(entry.val)) = m_server.arg(key).toInt();
+                        *entry.value.word = m_server.arg(key).toInt();
                     }
                     break;
 
                 case HSDConfig::DataType::Bool:
-                    if (*(reinterpret_cast<bool*>(entry.val)) != m_server.hasArg(key)) {
+                    if (*entry.value.boolean != m_server.hasArg(key)) {
                         needSave = true;
-                        *(reinterpret_cast<bool*>(entry.val)) = m_server.hasArg(key);
+                        *entry.value.boolean = m_server.hasArg(key);
                     }
                     break;
             }
@@ -593,26 +593,25 @@ void HSDWebserver::sendHeader(const char* title) {
     String header;
     header.reserve(500);
 
-    header  = F("<!doctype html>\n<html lang=\"en\">\n");
-    header += F("<head>\n\t<meta charset='utf-8'>\n");
-    header += F("\t<title>");
+    header  = F("<!doctype html>\n<html lang=\"en\">\n"
+                "<head>\n\t<meta charset='utf-8'>\n"
+                "\t<title>");
     header += m_config.getHost();
-    header += F("</title>\n");
-    header += F("\t<link rel=\"stylesheet\" href=\"/layout.css\">\n");
-    header += F("</head>\n");
-    header += F("<body>\n");
-    header += F("\t<span class=\"title\">");
+    header += F("</title>\n"
+                "\t<link rel=\"stylesheet\" href=\"/layout.css\">\n"
+                "</head>\n"
+                "<body>\n"
+                "\t<span class=\"title\">");
     header += m_config.getHost();
     header += F("</span>V");
     header += HSD_VERSION;
-    header += F("\n");
-    header += F("\t<form>\n\t\t<p>\n\t\t\t<input type='button' class='button' onclick=\"location.href='./'\" value='Status'>\n");
-    header += F("\t\t\t<input type='submit' class='button' value='Reboot' name='reset'>\n");
-    header += F("\t\t\t<input type='button' class='button' onclick=\"location.href='./update'\" value='Update Firmware'>\n\t\t</p>\n");
-    header += F("\t\t<p>\n\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgmain'\" value='Configuration'>\n");
-    header += F("\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgcolormapping'\" value='Color mapping'>\n");
-    header += F("\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgdevicemapping'\" value='Device mapping'>\n\t\t</p>\n\t</form>\n");
-    header += F("\t<h4>");
+    header += F("\n\t<form>\n\t\t<p>\n\t\t\t<input type='button' class='button' onclick=\"location.href='./'\" value='Status'>\n"
+                "\t\t\t<input type='submit' class='button' value='Reboot' name='reset'>\n"
+                "\t\t\t<input type='button' class='button' onclick=\"location.href='./update'\" value='Update Firmware'>\n\t\t</p>\n"
+                "\t\t<p>\n\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgmain'\" value='Configuration'>\n"
+                "\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgcolormapping'\" value='Color mapping'>\n"
+                "\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgdevicemapping'\" value='Device mapping'>\n\t\t</p>\n\t</form>\n"
+                "\t<h4>");
     header += title;
     header += F("</h4>\n");
     m_server.sendContent(header);
@@ -641,8 +640,7 @@ void HSDWebserver::sendColorMappingTableEntry(int entryNum, const HSDConfig::Col
     html += entryNum;
     html += F("</td><td>");
     html += mapping.msg;
-    html += F("</td><td>");
-    html += F("<div class='hsdcolor' style='background-color:");
+    html += F("</td><td><div class='hsdcolor' style='background-color:");
     html += colorString;
     html += F(";'></div>");
     html += colorString;
@@ -668,15 +666,15 @@ void HSDWebserver::sendDeviceMappingTableEntry(int entryNum, const HSDConfig::De
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::getDeviceMappingTableAddEntryForm(int newEntryNum, bool isFull) const {
-    String html = F("\t<form>\n\t\t<table>\n\t\t\t<tr>\n");
-    html += F("\t\t\t\t<td><input type='text' name='i' value='");
+    String html = F("\t<form>\n\t\t<table>\n\t\t\t<tr>\n"         
+                    "\t\t\t\t<td><input type='text' name='i' value='");
     html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='5' maxlength='3' placeholder='Nr'></td>\n");
-    html += F("\t\t\t\t<td><input type='text' name='n' value='' size='30' maxlength='25' placeholder='device name'></td>\n");
-    html += F("\t\t\t\t<td><input type='text' name='l' value='");
+    html += F("' size='5' maxlength='3' placeholder='Nr'></td>\n"
+              "\t\t\t\t<td><input type='text' name='n' value='' size='30' maxlength='25' placeholder='device name'></td>\n"
+              "\t\t\t\t<td><input type='text' name='l' value='");
     html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='6' maxlength='3' placeholder='led nr'></td>\n\t\t\t</tr>\n\t\t</table>\n");
-    html += F("\t\t<input type='submit' class='button' value='");
+    html += F("' size='6' maxlength='3' placeholder='led nr'></td>\n\t\t\t</tr>\n\t\t</table>\n"
+              "\t\t<input type='submit' class='button' value='");
     html += isFull ? F("Edit") : F("Add/Edit");
     html += F("' name='add'>\n\t</form>\n");
     return html;
@@ -701,13 +699,13 @@ String HSDWebserver::getDeleteForm() const {
 
 String HSDWebserver::getColorMappingTableAddEntryForm(int newEntryNum, bool isFull) const {
     String html;
-    html += F("\t<form>\n\t\t<table>\n\t\t\t<tr>\n");
-    html += F("\t\t\t\t<td><input type='text' name='i' value='");
+    html += F("\t<form>\n\t\t<table>\n\t\t\t<tr>\n"
+              "\t\t\t\t<td><input type='text' name='i' value='");
     html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='5' maxlength='3' placeholder='Nr'></td>\n");
-    html += F("\t\t\t\t<td><input type='text' name='n' value='' size='20' maxlength='15' placeholder='message name'></td>\n");
-    html += F("\t\t\t\t<td><input type='text' name='c' value='' size='10' maxlength='7' placeholder='#ffaabb' list='colorOptions'>");
-    html += F("<datalist id='colorOptions'>\n");
+    html += F("' size='5' maxlength='3' placeholder='Nr'></td>\n"
+              "\t\t\t\t<td><input type='text' name='n' value='' size='20' maxlength='15' placeholder='message name'></td>\n"
+              "\t\t\t\t<td><input type='text' name='c' value='' size='10' maxlength='7' placeholder='#ffaabb' list='colorOptions'>"
+              "<datalist id='colorOptions'>\n");
     for (uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
         String temp = HSDConfig::DefaultColor[i].key;
         temp.toLowerCase();
@@ -717,11 +715,11 @@ String HSDWebserver::getColorMappingTableAddEntryForm(int newEntryNum, bool isFu
         html += temp;
         html += F("</option>\n");
     }
-    html += F("\t\t\t\t</datalist></td>\n");
-    html += F("\t\t\t\t<td><select name='b'>");
+    html += F("\t\t\t\t</datalist></td>\n"
+              "\t\t\t\t<td><select name='b'>");
     html += getBehaviorOptions(HSDConfig::Behavior::On);
-    html += F("</select></td>\n\t\t\t</tr>\n\t\t</table>\n");
-    html += F("\t\t<input type='submit' class='button' value='");
+    html += F("</select></td>\n\t\t\t</tr>\n\t\t</table>\n"
+              "\t\t<input type='submit' class='button' value='");
     html += isFull ? F("Edit") : F("Add/Edit");
     html += F("' name='add'>\n\t</form>\n");
     return html;
@@ -735,9 +733,9 @@ String HSDWebserver::getColorMappingTableAddEntryForm(int newEntryNum, bool isFu
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDWebserver::getBehaviorOptions(HSDConfig::Behavior selectedBehavior) const {
-    String onSelect       =   (selectedBehavior == HSDConfig::Behavior::On)         ? SELECTED_STRING : EMPTY_STRING;
-    String blinkingSelect =   (selectedBehavior == HSDConfig::Behavior::Blinking)   ? SELECTED_STRING : EMPTY_STRING;
-    String flashingSelect =   (selectedBehavior == HSDConfig::Behavior::Flashing)   ? SELECTED_STRING : EMPTY_STRING;
+    String onSelect         = (selectedBehavior == HSDConfig::Behavior::On)         ? SELECTED_STRING : EMPTY_STRING;
+    String blinkingSelect   = (selectedBehavior == HSDConfig::Behavior::Blinking)   ? SELECTED_STRING : EMPTY_STRING;
+    String flashingSelect   = (selectedBehavior == HSDConfig::Behavior::Flashing)   ? SELECTED_STRING : EMPTY_STRING;
     String flickeringSelect = (selectedBehavior == HSDConfig::Behavior::Flickering) ? SELECTED_STRING : EMPTY_STRING;
 
     String html;
