@@ -174,6 +174,7 @@ bool HSDConfig::readConfigFile() {
                         case DataType::Byte:   *entry.value.byte    = (*json)[entry.key].as<int>();    break;
                         case DataType::Word:   *entry.value.word    = (*json)[entry.key].as<int>();    break;
                         case DataType::ColorMapping: {
+                            entry.value.colMap->clear();
                             const JsonArray& colMap = (*json)[entry.key].as<JsonArray>();
                             for (size_t i = 0; i < colMap.size(); i++) {
                                 const JsonObject& elem = colMap.get<JsonVariant>(i).as<JsonObject>();
@@ -186,6 +187,7 @@ bool HSDConfig::readConfigFile() {
                             break;
                         }         
                         case DataType::DeviceMapping: {
+                            entry.value.devMap->clear();
                             const JsonArray& devMap = (*json)[entry.key].as<JsonArray>();
                             for (size_t i = 0; i < devMap.size(); i++) {
                                 const JsonObject& elem = devMap.get<JsonVariant>(i).as<JsonObject>();
