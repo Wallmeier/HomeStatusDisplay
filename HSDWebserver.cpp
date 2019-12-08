@@ -21,19 +21,9 @@ HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt
 void HSDWebserver::begin() {
     Serial.println(F("Starting WebServer"));
     m_server.on("/", std::bind(&HSDWebserver::deliverStatusPage, this));
-    m_server.on("/layout.css", std::bind(&HSDWebserver::deliverCSS, this));
     m_server.on("/cfgmain", std::bind(&HSDWebserver::deliverConfigPage, this));
     m_server.on("/cfgcolormapping", std::bind(&HSDWebserver::deliverColorMappingPage, this));
     m_server.on("/cfgdevicemapping", std::bind(&HSDWebserver::deliverDeviceMappingPage, this));
-    m_server.on("/cfgExport", HTTP_GET, [=]() {
-        String content;
-        if (m_config.readFile(FILENAME_MAINCONFIG, content)) {
-            m_server.sendHeader("Content-Disposition", "attachment; filename=" + m_config.getHost() + "_export.json");
-            m_server.send(200, "application/octet-stream;charset=utf-8", content);
-        } else {
-            deliverNotFoundPage();
-        }
-    });
     m_server.on("/cfgImport", HTTP_GET, [=]() {
         m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         m_server.send(200);
@@ -60,6 +50,84 @@ void HSDWebserver::begin() {
             Serial.setDebugOutput(false);
         } else {
             Serial.printf("Config Import Failed Unexpectedly (likely broken connection): status=%d\n", upload.status);
+        }
+    });
+    m_server.on("/reboot", [=]() {
+        Serial.println(F("Rebooting ESP..."));
+        ESP.restart();
+    });
+    m_server.on("/colormapping.json", HTTP_GET, [=]() {
+        const QList<HSDConfig::ColorMapping>& colMap = m_config.getColorMap();
+        DynamicJsonBuffer jsonBuffer;
+        JsonArray& colMapping = jsonBuffer.createArray();
+        for (unsigned int index = 0; index < colMap.size(); index++) {
+            JsonObject& colorMappingEntry = colMapping.createNestedObject(); 
+            const HSDConfig::ColorMapping& mapping = colMap[index];
+            colorMappingEntry["id"] = index;
+            colorMappingEntry["msg"] = mapping.msg;
+            colorMappingEntry["col"] = m_config.hex2string(mapping.color);
+            colorMappingEntry["beh"] = static_cast<int>(mapping.behavior);
+        }
+        String json;
+        colMapping.printTo(json);
+        m_server.send(200, "text/json;charset=utf-8", json);
+    });
+    m_server.on("/colormapping.json", HTTP_PUT, [=]() {
+        if (m_server.hasArg("plain")) {
+            String data = m_server.arg("plain");
+            m_server.send(200);
+            Serial.print("Received colormapping.json: ");
+            Serial.println(data);
+            DynamicJsonBuffer jsonBuffer(data.length() + 1);
+            JsonArray& colMapping = jsonBuffer.parseArray(data);
+            QList<HSDConfig::ColorMapping> colMap;
+            for (size_t i = 0; i < colMapping.size(); i++) {
+                const JsonObject& elem = colMapping.get<JsonVariant>(i).as<JsonObject>();
+                colMap.push_back(HSDConfig::ColorMapping(elem["msg"].as<String>(), 
+                                                         m_config.string2hex(elem["col"].as<String>()), 
+                                                         static_cast<HSDConfig::Behavior>(elem["beh"].is<int>() ? elem["beh"].as<int>() : elem["beh"].as<String>().toInt())));
+            }
+            m_config.setColorMap(colMap);
+            m_config.writeConfigFile();
+        } else {
+            Serial.println(F("Bad request - no content for /colormapping.json"));
+            m_server.send(500);
+        }
+    });
+    m_server.on("/devicemapping.json", HTTP_GET, [=]() {
+        const QList<HSDConfig::DeviceMapping>& devMap = m_config.getDeviceMap();
+        DynamicJsonBuffer jsonBuffer;
+        JsonArray& devMapping = jsonBuffer.createArray();
+        for (unsigned int index = 0; index < devMap.size(); index++) {
+            JsonObject& deviceMappingEntry = devMapping.createNestedObject(); 
+            const HSDConfig::DeviceMapping& mapping = devMap[index];
+            deviceMappingEntry["id"] = index;
+            deviceMappingEntry["device"] = mapping.device;
+            deviceMappingEntry["led"] = mapping.ledNumber;
+        }
+        String json;
+        devMapping.printTo(json);
+        m_server.send(200, "text/json;charset=utf-8", json);
+    });
+    m_server.on("/devicemapping.json", HTTP_PUT, [=]() {
+        if (m_server.hasArg("plain")) {
+            String data = m_server.arg("plain");
+            m_server.send(200);
+            Serial.print("Received devicemapping.json: ");
+            Serial.println(data);
+            DynamicJsonBuffer jsonBuffer(data.length() + 1);
+            JsonArray& devMapping = jsonBuffer.parseArray(data);
+            QList<HSDConfig::DeviceMapping> devMap;
+            for (size_t i = 0; i < devMapping.size(); i++) {
+                const JsonObject& elem = devMapping.get<JsonVariant>(i).as<JsonObject>();
+                devMap.push_back(HSDConfig::DeviceMapping(elem["device"].as<String>(), 
+                                                          elem["led"].is<int>() ? elem["led"].as<int>() : elem["led"].as<String>().toInt()));
+            }
+            m_config.setDeviceMap(devMap);
+            m_config.writeConfigFile();
+        } else {
+            Serial.println(F("Bad request - no content for /devicemapping.json"));
+            m_server.send(500);
         }
     });
 #ifdef ARDUINO_ARCH_ESP32
@@ -181,7 +249,7 @@ void HSDWebserver::deliverConfigPage() {
     html += F("\t\t</table>\n"
              "\t\t<p>\n"
              "\t\t\t<input type='submit' class='button' value='Save'>\n"
-             "\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgExport'\" value='Export'>\n"
+             "\t\t\t<input type='button' class='button' onclick=\"location.href='/config.json'\" value='Export'>\n"
              "\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgImport'\" value='Import'>\n"
              "\t\t</p>\n"
              "\t</form>\n</body>\n</html>");
@@ -192,8 +260,6 @@ void HSDWebserver::deliverConfigPage() {
         Serial.println(F("Main config has changed, storing it."));
         m_config.writeConfigFile();
     }
-
-    checkReboot();
     Serial.print(F("Free RAM: ")); Serial.println(ESP.getFreeHeap());
 }
 
@@ -301,219 +367,63 @@ void HSDWebserver::deliverStatusPage() {
     html += F("</body></html>");
     m_server.sendContent(html);
     m_server.sendContent("");
-
-    checkReboot();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::deliverColorMappingPage() {
-    if (needUndo()) {
-        Serial.println(F("Need to undo changes to color mapping config"));
-        m_config.readConfigFile();
-    } else if (needAdd()) {
-        Serial.println(F("Need to add color mapping config entry"));
-        addColorMappingEntry();
-    } else if(needDelete()) {
-        Serial.println(F("Need to delete color mapping config entry"));
-        deleteColorMappingEntry();
-    } else if(needDeleteAll()) {
-        Serial.println(F("Need to delete all color mapping config entries"));
-        m_config.deleteAllColorMappingEntries();
-    } else if(needSave()) {
-        Serial.println(F("Need to save color mapping config"));
-        m_config.writeConfigFile();
-    }
-
-    String html;
-    html.reserve(1000);
-
     m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     m_server.send(200);
-    sendHeader("Color mapping configuration");
-    m_server.sendContent(F("\t<table class=\"colMap\">\n"
-                           "\t\t<tr class=\"colMap\">"
-                           "<td class=\"colMapTitle\">Nr</td>"
-                           "<td class=\"colMapTitle\">Message</td>"
-                           "<td class=\"colMapTitle\">Color</td>"
-                           "<td class=\"colMapTitle\">Behavior</td>"
-                           "</tr>\n"));
-
-    for (uint32_t i = 0; i < m_config.getNumberOfColorMappingEntries(); i++) {
-        const HSDConfig::ColorMapping& mapping = m_config.getColorMapping(i);
-        sendColorMappingTableEntry(i, mapping, m_config.hex2string(mapping.color));
-    }
-
-    html  = F("\t</table>\n"
-              "\t<p>Default colors you can use instead of HEX colors:<br>\n\t");
-    for (uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
-        String temp = m_config.DefaultColor[i].key;
-        temp.toLowerCase();
-        html += temp;
-        html += F(" ");
-    }
-    html += F("</p>\n");
-    m_server.sendContent(html);
-
-    html = F("\t<p>Add/edit entry:</p>\n");
-    html += getColorMappingTableAddEntryForm(m_config.getNumberOfColorMappingEntries(), false);
-    html += F("\t<p>\n\t\tDelete Entry:</p>\n");
-    html += getDeleteForm();
-    if (m_config.isColorMappingDirty()) {
-        html += F("\t<p style='color:red'>Unsaved changes! Press Save to make them permanent,<br/>\n\tor Undo to revert to last saved version!</p>\n");
-        html += getSaveForm();
-    }
-    html += F("</body>\n</html>");
-    m_server.sendContent(html);
+    sendHeader("Color mapping configuration", true);
+    m_server.sendContent(F("\t<div id='colmap-table' class='table'></div>\n"
+                           "\t<script type='text/javascript' src='js/colmap.js'></script>\n"
+                           "\t<p>\n"
+                           "\t\t<input type='button' class='button' onclick='var maxIdx=getMaxIdx(coltable); coltable.addData([{id:maxIdx, msg:\"\", col:\"#00FF00\", beh:1}], false)' value='Add Row'>\n"
+                           "\t\t<input type='button' class='button' onclick='coltable.clearData()' value='Delete All'>\n"
+                           "\t\t<input type='button' class='button' onclick='coltable.undo()' value='Undo'><br>\n"
+                           "\t\t<input type='button' class='button' onclick='saveTable(coltable, \"/colormapping.json\")' value='Save'>\n"
+                           "\t</p>\n"
+                           "</body>\n</html>"));
     m_server.sendContent("");
-
-    checkReboot();
-
     Serial.print(F("Free RAM: ")); Serial.println(ESP.getFreeHeap());
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-bool HSDWebserver::addColorMappingEntry() {
-    bool success(false);
-    if (m_server.hasArg("i") && m_server.hasArg("n") && m_server.hasArg("c") && m_server.hasArg("b")) {
-        if (m_server.arg("n") != "") {
-            uint32_t color = m_config.getDefaultColor(m_server.arg("c"));
-            if (color == 0)
-                color = m_config.string2hex(m_server.arg("c"));
-            m_config.addColorMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), color,
-                                          (HSDConfig::Behavior)(m_server.arg("b").toInt()));
-            success = true;
-        } else {
-            Serial.print(F("Skipping empty entry"));
-        }
-    }
-    return success;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-bool HSDWebserver::deleteColorMappingEntry() {
-    bool success(false);
-    int entryNum(0);
-
-    if (m_server.hasArg("i")) {
-        entryNum = m_server.arg("i").toInt();
-// TODO check conversion status
-        success = m_config.deleteColorMappingEntry(entryNum);
-    }
-    return success;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::deliverDeviceMappingPage() {
-    if (needUndo()) {
-        Serial.println(F("Need to undo changes to device mapping config"));
-        m_config.readConfigFile();
-    } else if(needAdd()) {
-        Serial.println(F("Need to add device mapping config entry"));
-        addDeviceMappingEntry();
-    } else if(needDelete()) {
-        Serial.println(F("Need to delete device mapping config entry"));
-        deleteDeviceMappingEntry();
-    } else if(needDeleteAll()) {
-        Serial.println(F("Need to delete all device mapping config entries"));
-        m_config.deleteAllDeviceMappingEntries();
-    } else if(needSave()) {
-        Serial.println(F("Need to save device mapping config"));
-        m_config.writeConfigFile();
-    }
-
-    String html;
-    html.reserve(1000);
-
     m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     m_server.send(200);
-    sendHeader("Device mapping configuration");
-    m_server.sendContent(F("\t<table class=\"colMap\">\n"
-                           "\t\t<tr class=\"colMap\">"
-                           "<td class=\"colMap\">Nr</td>"
-                           "<td class=\"colMap\">Device</td>"
-                           "<td class=\"colMap\">Led</td>"
-                           "</tr>\n"));
-    for (uint32_t i = 0; i < m_config.getNumberOfDeviceMappingEntries(); i++) {
-        const HSDConfig::DeviceMapping& mapping = m_config.getDeviceMapping(i);
-        sendDeviceMappingTableEntry(i, mapping);
-    }
-
-    html  = F("\t</table>\n"
-              "\t<p>Add/edit entry:</p>\n");
-    html += getDeviceMappingTableAddEntryForm(m_config.getNumberOfDeviceMappingEntries(), false);
-    html += F("\t<p>Delete Entry:</p>\n");
-    html += getDeleteForm();
-    if (m_config.isDeviceMappingDirty()) {
-        html += F("\t<p style='color:red'>Unsaved changes! Press ""Save"" to make them permanent, or they will be lost on next reboot!</p>\n");
-        html += getSaveForm();
-    }
-    html += F("</body>\n</html>");
-    m_server.sendContent(html);
+    sendHeader("Device mapping configuration", true);
+    m_server.sendContent(F("\t<div id='devmap-table' class='table'></div>\n"
+                           "\t<script type='text/javascript' src='js/devmap.js'></script>\n"
+                           "\t<p>\n"
+                           "\t\t<input type='button' class='button' onclick='var maxIdx=getMaxIdx(devtable); devtable.addData([{id:maxIdx, device:\"\", led:0}], false)' value='Add Row'>\n"
+                           "\t\t<input type='button' class='button' onclick='devtable.clearData()' value='Delete All'>\n"
+                           "\t\t<input type='button' class='button' onclick='devtable.undo()' value='Undo'><br>\n"
+                           "\t\t<input type='button' class='button' onclick='saveTable(devtable, \"/devicemapping.json\")' value='Save'>\n"
+                           "\t</p>\n"
+                           "</body>\n</html>"));
     m_server.sendContent("");
-
-    checkReboot();
-
     Serial.print(F("Free RAM: ")); Serial.println(ESP.getFreeHeap());
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-bool HSDWebserver::addDeviceMappingEntry() {
-    bool success(false);
-    if (m_server.hasArg("i") && m_server.hasArg("n") && m_server.hasArg("l")) {
-        if (m_server.arg("n") != "") {
-            m_config.addDeviceMappingEntry(m_server.arg("i").toInt(), m_server.arg("n"), m_server.arg("l").toInt());
-            success = true;
-        } else {
-            Serial.print(F("Skipping empty entry"));
-        }
-    }
-    return success;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-bool HSDWebserver::deleteDeviceMappingEntry() {
-    bool success(false);
-    int entryNum(0);
-
-    if (m_server.hasArg("i")) {
-        entryNum = m_server.arg("i").toInt();
-// TODO check conversion status
-        success = m_config.deleteDeviceMappingEntry(entryNum);
-    }
-
-    return success;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
 void HSDWebserver::deliverNotFoundPage() {
-    String html = F("File Not Found\n\n");
-    html += F("URI: ");
-    html += m_server.uri();
-    html += F("\nMethod: ");
-    html += (m_server.method() == HTTP_GET) ? F("GET") : F("POST");
-    html += F("\nArguments: ");
-    html += m_server.args();
-    html += F("\n");
-
-    for (uint8_t i = 0; i < m_server.args(); i++)
-        html += " " + m_server.argName(i) + ": " + m_server.arg(i) + "\n";
-
-    m_server.send(404, F("text/plain"), html);
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDWebserver::checkReboot() {
-    if (m_server.hasArg(F("reset"))) {
-        Serial.println(F("Rebooting ESP."));
-        ESP.restart();
+    if (!handleFileRead(m_server.uri())) {
+        Serial.print("File not found: ");
+        Serial.println(m_server.uri());
+        String html = F("File Not Found\n\n"
+                        "URI: ");
+        html += m_server.uri();
+        html += F("\nMethod: ");
+        html += (m_server.method() == HTTP_GET) ? F("GET") : F("POST");
+        html += F("\nArguments: ");
+        html += m_server.args();
+        html += F("\n");
+        for (uint8_t i = 0; i < m_server.args(); i++)
+            html += " " + m_server.argName(i) + ": " + m_server.arg(i) + "\n";
+        m_server.send(404, F("text/plain"), html);
     }
 }
 
@@ -566,47 +476,34 @@ bool HSDWebserver::updateMainConfig() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDWebserver::deliverCSS() {
-    Serial.println(F("Delivering /layout.css"));
-    m_server.sendHeader("Cache-Control", "max-age=86400"); // load only once a day
-    m_server.send(200, F("text/css"), F(
-        "body { background-color:#e5e5e5; font-family:Verdana,Arial,Helvetica; }\n"
-        "span.title { font-size: xx-large; }\n"
-        "table.cfg { border-spacing:2; border-width:0; width:400px; }\n"
-        "table.colMap { border-spacing:2; border-width:1; }\n"
-        "td { padding:0; }\n"
-        "td.cfgTitle { font-size: large; font-weight: bold; }\n"
-        "td.colMap { padding:1; }\n"
-        "td.colMapTitle { padding:1; font-size: large; font-weight: bold; }\n"
-        "tr.colMap { background-color:#828282; }\n"
-        ".button { border-radius:0; height:30px; width:120px; border:0; background-color:black; color:#fff; margin:5px; cursor:pointer; }\n" // Header buttons
-        ".buttonr {border-radius:0; height:30px; width:120px; border:0; background-color:red; color:#fff; margin:5px; cursor:pointer; }\n"
-        ".hsdcolor { width:15px; height:15px; border:1px black solid; float:left; margin-right:5px; }\n" // Used on status page
-        ".rdark { background-color:#f9f9f9; }\n"
-        ".rlight { background-color:#e5e5e5; }\n"
-    ));
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDWebserver::sendHeader(const char* title) {
+void HSDWebserver::sendHeader(const char* title, bool useTable) {
     String header;
-    header.reserve(500);
+    header.reserve(useTable ? 750 : 500);
 
     header  = F("<!doctype html>\n<html lang=\"en\">\n"
                 "<head>\n\t<meta charset='utf-8'>\n"
                 "\t<title>");
     header += m_config.getHost();
     header += F("</title>\n"
-                "\t<link rel=\"stylesheet\" href=\"/layout.css\">\n"
-                "</head>\n"
+                "\t<link rel='stylesheet' href='/css/layout.css'>\n"
+                "\t<script type='text/javascript' src='/js/statusdisplay.js'></script>\n");
+    if (useTable)
+        header += F("\t<link rel='stylesheet' href='/css/tabulator.min.css'>\n"
+                    "\t<script type='text/javascript' src='js/tabulator_core.min.js'></script>\n"
+                    "\t<script type='text/javascript' src='js/accessor.min.js'></script>\n"
+                    "\t<script type='text/javascript' src='js/ajax.min.js'></script>\n"
+                    "\t<script type='text/javascript' src='js/edit.min.js'></script>\n"
+                    "\t<script type='text/javascript' src='js/format.min.js'></script>\n"
+                    "\t<script type='text/javascript' src='js/history.min.js'></script>\n"
+                    "\t<script type='text/javascript' src='js/validate.min.js'></script>\n");     
+    header += F("</head>\n"
                 "<body>\n"
-                "\t<span class=\"title\">");
+                "\t<span class='title'>");
     header += m_config.getHost();
     header += F("</span>V");
     header += HSD_VERSION;
     header += F("\n\t<form>\n\t\t<p>\n\t\t\t<input type='button' class='button' onclick=\"location.href='./'\" value='Status'>\n"
-                "\t\t\t<input type='submit' class='button' value='Reboot' name='reset'>\n"
+                "\t\t\t<input type='button' class='button' onclick='reboot()' value='Reboot'>\n"
                 "\t\t\t<input type='button' class='button' onclick=\"location.href='./update'\" value='Update Firmware'>\n\t\t</p>\n"
                 "\t\t<p>\n\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgmain'\" value='Configuration'>\n"
                 "\t\t\t<input type='button' class='button' onclick=\"location.href='./cfgcolormapping'\" value='Color mapping'>\n"
@@ -633,115 +530,43 @@ String HSDWebserver::behavior2String(HSDConfig::Behavior behavior) const {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDWebserver::sendColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping& mapping,
-                                              const String& colorString) {
-    String html;
-    html = entryNum % 2 == 0 ? F("\t\t<tr class='rlight'><td>") : F("\t\t<tr class='rdark'><td>");
-    html += entryNum;
-    html += F("</td><td>");
-    html += mapping.msg;
-    html += F("</td><td><div class='hsdcolor' style='background-color:");
-    html += colorString;
-    html += F(";'></div>");
-    html += colorString;
-    html += F("</td><td>");
-    html += behavior2String(mapping.behavior);
-    html += F("</td></tr>\n");
-    m_server.sendContent(html);
-}
+bool HSDWebserver::handleFileRead(String path) {
+    String filepath;
+    if (SPIFFS.exists(path)) { 
+        Serial.println("handleFileRead: " + path);
+        filepath = path;
+    } else if (SPIFFS.exists(path + ".gz")) {
+        Serial.println("handleFileRead: " + path + ".gz");
+        // m_server.sendHeader("Content-Encoding", "gzip"); // automatically added by the framework
+        filepath = path + ".gz";
+    }   
 
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDWebserver::sendDeviceMappingTableEntry(int entryNum, const HSDConfig::DeviceMapping& mapping) {
-    String html = entryNum % 2 == 0 ? F("\t\t<tr class='rlight'><td>") : F("\t\t<tr class='rdark'><td>");
-    html += entryNum;
-    html += F("</td><td>");
-    html += mapping.device;
-    html += F("</td><td>");
-    html += mapping.ledNumber;
-    html += F("</td></tr>\n");
-    m_server.sendContent(html);
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-String HSDWebserver::getDeviceMappingTableAddEntryForm(int newEntryNum, bool isFull) const {
-    String html = F("\t<form>\n\t\t<table>\n\t\t\t<tr>\n"         
-                    "\t\t\t\t<td><input type='text' name='i' value='");
-    html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='5' maxlength='3' placeholder='Nr'></td>\n"
-              "\t\t\t\t<td><input type='text' name='n' value='' size='30' maxlength='25' placeholder='device name'></td>\n"
-              "\t\t\t\t<td><input type='text' name='l' value='");
-    html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='6' maxlength='3' placeholder='led nr'></td>\n\t\t\t</tr>\n\t\t</table>\n"
-              "\t\t<input type='submit' class='button' value='");
-    html += isFull ? F("Edit") : F("Add/Edit");
-    html += F("' name='add'>\n\t</form>\n");
-    return html;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-String HSDWebserver::getSaveForm() const {
-    return F("\t<form>\n\t\t<input type='submit' class='buttonr' value='Save' name='save'>\n"
-             "\t\t<input type='submit' class='buttonr' value='Undo' name='undo'>\n\t</form>\n");
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-String HSDWebserver::getDeleteForm() const {
-    return F("\t<form>\n\t\t<input type='text' name='i' value='' size='5' maxlength='3' placeholder='Nr'><br/>\n"
-             "\t\t<input type='submit' class='button' value='Delete' name='delete'>\n"
-             "\t\t<input type='submit' class='button' value='Delete all' name='deleteall'>\n\t</form>\n");
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-String HSDWebserver::getColorMappingTableAddEntryForm(int newEntryNum, bool isFull) const {
-    String html;
-    html += F("\t<form>\n\t\t<table>\n\t\t\t<tr>\n"
-              "\t\t\t\t<td><input type='text' name='i' value='");
-    html += isFull ? newEntryNum - 1 : newEntryNum;
-    html += F("' size='5' maxlength='3' placeholder='Nr'></td>\n"
-              "\t\t\t\t<td><input type='text' name='n' value='' size='20' maxlength='15' placeholder='message name'></td>\n"
-              "\t\t\t\t<td><input type='text' name='c' value='' size='10' maxlength='7' placeholder='#ffaabb' list='colorOptions'>"
-              "<datalist id='colorOptions'>\n");
-    for (uint8_t i = 1; i < NUMBER_OF_DEFAULT_COLORS; i++) {
-        String temp = HSDConfig::DefaultColor[i].key;
-        temp.toLowerCase();
-        html += F("\t\t\t\t\t<option value='");
-        html += temp;
-        html += F("'>");
-        html += temp;
-        html += F("</option>\n");
+    if (filepath.length() > 0) {
+        String contentType = getContentType(path);
+//        m_server.sendHeader("Cache-Control", "max-age=86400");
+        File file = SPIFFS.open(filepath, "r");
+        size_t sent = m_server.streamFile(file, contentType);
+        file.close();
+        return true;
     }
-    html += F("\t\t\t\t</datalist></td>\n"
-              "\t\t\t\t<td><select name='b'>");
-    html += getBehaviorOptions(HSDConfig::Behavior::On);
-    html += F("</select></td>\n\t\t\t</tr>\n\t\t</table>\n"
-              "\t\t<input type='submit' class='button' value='");
-    html += isFull ? F("Edit") : F("Add/Edit");
-    html += F("' name='add'>\n\t</form>\n");
-    return html;
+    return false;    
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-#define SELECTED_STRING (F("selected='selected'"))
-#define EMPTY_STRING    (F(""))
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-String HSDWebserver::getBehaviorOptions(HSDConfig::Behavior selectedBehavior) const {
-    String onSelect         = (selectedBehavior == HSDConfig::Behavior::On)         ? SELECTED_STRING : EMPTY_STRING;
-    String blinkingSelect   = (selectedBehavior == HSDConfig::Behavior::Blinking)   ? SELECTED_STRING : EMPTY_STRING;
-    String flashingSelect   = (selectedBehavior == HSDConfig::Behavior::Flashing)   ? SELECTED_STRING : EMPTY_STRING;
-    String flickeringSelect = (selectedBehavior == HSDConfig::Behavior::Flickering) ? SELECTED_STRING : EMPTY_STRING;
-
-    String html;
-    html += F("<option "); html += onSelect;         html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::On);         html += F("'>On</option>");
-    html += F("<option "); html += blinkingSelect;   html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::Blinking);   html += F("'>Blink</option>");
-    html += F("<option "); html += flashingSelect;   html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::Flashing);   html += F("'>Flash</option>");
-    html += F("<option "); html += flickeringSelect; html += F(" value='"); html += static_cast<uint8_t>(HSDConfig::Behavior::Flickering); html += F("'>Flicker</option>");
-    return html;
+String HSDWebserver::getContentType(String filename) {
+    if (filename.endsWith(".html")) {
+        return "text/html";
+    } else if (filename.endsWith(".css")) {
+        return "text/css";
+    } else if (filename.endsWith(".js")) {
+        return "text/javascript"; // application
+    } else if (filename.endsWith(".ico")) {
+        return "image/x-icon";
+    } else if (filename.endsWith(".json")) {
+        m_server.sendHeader("Content-Disposition", "attachment; filename=" + (filename.lastIndexOf('/') == -1 ? filename : filename.substring(filename.lastIndexOf('/') + 1)));
+       return "application/octet-stream;charset=utf-8";
+    } else {
+        return "text/plain";
+    }
 }

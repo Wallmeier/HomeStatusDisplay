@@ -28,8 +28,6 @@ HSDConfig::HSDConfig() :
     m_cfgClockPinDIO(0),
     m_cfgClockTimeZone("CET-1CEST,M3.5.0/2,M10.5.0/3"),
 #endif // HSD_CLOCK_ENABLED
-    m_cfgColorMappingDirty(false),
-    m_cfgDeviceMappingDirty(false),
     m_cfgHost("HomeStatusDisplay"),
     m_cfgLedBrightness(50),
     m_cfgLedDataPin(0),
@@ -96,116 +94,108 @@ void HSDConfig::begin() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-bool HSDConfig::readFile(const String& fileName, String& content) const {
+bool HSDConfig::readConfigFile() {
     bool success(false);
-    Serial.print(F("Reading config file ")); Serial.print(fileName); Serial.print(F(": "));
-    if (SPIFFS.exists(fileName)) {
-        File configFile = SPIFFS.open(fileName, "r");
+    String fileBuffer;
+
+    Serial.print(F("Reading config file ")); Serial.print(FILENAME_MAINCONFIG); Serial.print(F(": "));
+    if (SPIFFS.exists(FILENAME_MAINCONFIG)) {
+        File configFile = SPIFFS.open(FILENAME_MAINCONFIG, "r");
         if (configFile) {
             size_t size = configFile.size();
             Serial.printf("file size is %u bytes\n", size);
             char* buffer = new char[size + 1];
             buffer[size] = 0;
             configFile.readBytes(buffer, size);
-            content = buffer;
+            fileBuffer = buffer;
             delete[] buffer;
-            success = true;
+            configFile.close();
+            
+            DynamicJsonBuffer jsonBuffer(fileBuffer.length() + 1);
+            JsonObject& root = jsonBuffer.parseObject(fileBuffer);
+            if (root.success()) {
+                Serial.println(F("Config data successfully parsed."));
+                int maxLen(0), len(0);
+                for (size_t idx = 0; idx < m_cfgEntries.size(); idx++) {
+                    len = strlen_P((PGM_P)m_cfgEntries[idx].key) + groupDescription(m_cfgEntries[idx].group).length() + 1;
+                    if (len > maxLen)
+                        maxLen = len;
+                }
+
+                Group prevGroup = Group::__Last;
+                JsonObject* json = nullptr;
+                String groupName;
+                for (size_t idx = 0; idx < m_cfgEntries.size(); idx++) {
+                    const ConfigEntry& entry = m_cfgEntries[idx];
+                    if (prevGroup != entry.group) {
+                        prevGroup = entry.group;
+                        groupName = groupDescription(prevGroup);
+                        groupName.toLowerCase();
+                        if (root.containsKey(groupName))
+                            json = &root[groupName].as<JsonObject>();
+                        else
+                            json = nullptr;
+                    }
+
+                    Serial.print(F("  • "));
+                    Serial.print(groupName);
+                    Serial.print(F("."));
+                    Serial.print(entry.key);
+                    for (int i = groupName.length() + 1 + strlen_P((PGM_P)entry.key); i < maxLen; i++)
+                        Serial.print(F(" "));
+                    Serial.print(F(": "));
+                    if (entry.type == DataType::Password)
+                        Serial.println("not shown");
+                    else if (json)
+                        Serial.println((*json)[entry.key].as<String>());
+                    else
+                        Serial.println(F(""));
+                    if (json && json->containsKey(entry.key)) {
+                        switch (entry.type) {
+                            case DataType::Password:
+                            case DataType::String: *entry.value.string  = (*json)[entry.key].as<String>(); break;
+                            case DataType::Bool:   *entry.value.boolean = (*json)[entry.key].as<bool>();   break;
+                            case DataType::Byte:   *entry.value.byte    = (*json)[entry.key].as<int>();    break;
+                            case DataType::Word:   *entry.value.word    = (*json)[entry.key].as<int>();    break;
+                            case DataType::ColorMapping: {
+                                entry.value.colMap->clear();
+                                const JsonArray& colMap = (*json)[entry.key].as<JsonArray>();
+                                for (size_t i = 0; i < colMap.size(); i++) {
+                                    const JsonObject& elem = colMap.get<JsonVariant>(i).as<JsonObject>();
+                                    if (elem.containsKey(JSON_KEY_COLORMAPPING_MSG) && elem.containsKey(JSON_KEY_COLORMAPPING_COLOR) &&
+                                        elem.containsKey(JSON_KEY_COLORMAPPING_BEHAVIOR))
+                                        entry.value.colMap->push_back(ColorMapping(elem[JSON_KEY_COLORMAPPING_MSG].as<String>(), 
+                                                                                   elem[JSON_KEY_COLORMAPPING_COLOR].as<uint32_t>(), 
+                                                                                   static_cast<Behavior>(elem[JSON_KEY_COLORMAPPING_BEHAVIOR].as<int>())));
+                                }
+                                break;
+                            }         
+                            case DataType::DeviceMapping: {
+                                entry.value.devMap->clear();
+                                const JsonArray& devMap = (*json)[entry.key].as<JsonArray>();
+                                for (size_t i = 0; i < devMap.size(); i++) {
+                                    const JsonObject& elem = devMap.get<JsonVariant>(i).as<JsonObject>();
+                                    if (elem.containsKey(JSON_KEY_DEVICEMAPPING_DEVICE) && elem.containsKey(JSON_KEY_DEVICEMAPPING_LED))
+                                        entry.value.devMap->push_back(DeviceMapping(elem[JSON_KEY_DEVICEMAPPING_DEVICE].as<String>(),
+                                                                                    elem[JSON_KEY_DEVICEMAPPING_LED].as<int>()));
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } 
+                success = true;
+            } else {
+                Serial.println(F("Could not parse config data."));
+            }
         } else {
             Serial.println(F("file open failed"));
         }
-        configFile.close();
     } else {
-        Serial.println(F("file does not exist"));
+        Serial.println(F("File does not exist"));
     }
-    return success;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-bool HSDConfig::readConfigFile() {
-    bool success(false);
-    String fileBuffer;
-
-    if (readFile(FILENAME_MAINCONFIG, fileBuffer)) {
-        DynamicJsonBuffer jsonBuffer(fileBuffer.length() + 1);
-        JsonObject& root = jsonBuffer.parseObject(fileBuffer);
-        if (root.success()) {
-            Serial.println(F("Config data successfully parsed."));
-            int maxLen(0), len(0);
-            for (size_t idx = 0; idx < m_cfgEntries.size(); idx++) {
-                len = strlen_P((PGM_P)m_cfgEntries[idx].key) + groupDescription(m_cfgEntries[idx].group).length() + 1;
-                if (len > maxLen)
-                    maxLen = len;
-            }
-
-            Group prevGroup = Group::__Last;
-            JsonObject* json = nullptr;
-            String groupName;
-            for (size_t idx = 0; idx < m_cfgEntries.size(); idx++) {
-                const ConfigEntry& entry = m_cfgEntries[idx];
-                if (prevGroup != entry.group) {
-                    prevGroup = entry.group;
-                    groupName = groupDescription(prevGroup);
-                    groupName.toLowerCase();
-                    if (root.containsKey(groupName))
-                        json = &root[groupName].as<JsonObject>();
-                    else
-                        json = nullptr;
-                }
-
-                Serial.print(F("  • "));
-                Serial.print(groupName);
-                Serial.print(F("."));
-                Serial.print(entry.key);
-                for (int i = groupName.length() + 1 + strlen_P((PGM_P)entry.key); i < maxLen; i++)
-                    Serial.print(F(" "));
-                Serial.print(F(": "));
-                if (entry.type == DataType::Password)
-                    Serial.println("not shown");
-                else if (json)
-                    Serial.println((*json)[entry.key].as<String>());
-                else
-                    Serial.println(F(""));
-                if (json && json->containsKey(entry.key)) {
-                    switch (entry.type) {
-                        case DataType::Password:
-                        case DataType::String: *entry.value.string  = (*json)[entry.key].as<String>(); break;
-                        case DataType::Bool:   *entry.value.boolean = (*json)[entry.key].as<bool>();   break;
-                        case DataType::Byte:   *entry.value.byte    = (*json)[entry.key].as<int>();    break;
-                        case DataType::Word:   *entry.value.word    = (*json)[entry.key].as<int>();    break;
-                        case DataType::ColorMapping: {
-                            entry.value.colMap->clear();
-                            const JsonArray& colMap = (*json)[entry.key].as<JsonArray>();
-                            for (size_t i = 0; i < colMap.size(); i++) {
-                                const JsonObject& elem = colMap.get<JsonVariant>(i).as<JsonObject>();
-                                if (elem.containsKey(JSON_KEY_COLORMAPPING_MSG) && elem.containsKey(JSON_KEY_COLORMAPPING_COLOR) &&
-                                    elem.containsKey(JSON_KEY_COLORMAPPING_BEHAVIOR))
-                                    entry.value.colMap->push_back(ColorMapping(elem[JSON_KEY_COLORMAPPING_MSG].as<String>(), 
-                                                                  elem[JSON_KEY_COLORMAPPING_COLOR].as<uint32_t>(), 
-                                                                  static_cast<Behavior>(elem[JSON_KEY_COLORMAPPING_BEHAVIOR].as<int>())));
-                            }
-                            break;
-                        }         
-                        case DataType::DeviceMapping: {
-                            entry.value.devMap->clear();
-                            const JsonArray& devMap = (*json)[entry.key].as<JsonArray>();
-                            for (size_t i = 0; i < devMap.size(); i++) {
-                                const JsonObject& elem = devMap.get<JsonVariant>(i).as<JsonObject>();
-                                if (elem.containsKey(JSON_KEY_DEVICEMAPPING_DEVICE) && elem.containsKey(JSON_KEY_DEVICEMAPPING_LED))
-                                    entry.value.devMap->push_back(DeviceMapping(elem[JSON_KEY_DEVICEMAPPING_DEVICE].as<String>(),
-                                                                  elem[JSON_KEY_DEVICEMAPPING_LED].as<int>()));
-                            }
-                            break;
-                        }
-                    }
-                }
-            } 
-            success = true;
-        } else {
-            Serial.println(F("Could not parse config data."));
-        }
-    } else {
-        Serial.println(F("Creating default main config file."));
+    if (!success) {
+        Serial.println(F("File does not exist - creating default main config file."));
         writeConfigFile();
     }
     return success;
@@ -266,62 +256,6 @@ void HSDConfig::writeConfigFile() const {
         SPIFFS.format();
         Serial.println(F("Done."));
     }
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDConfig::addDeviceMappingEntry(int entryNum, String name, int ledNumber) {
-    Serial.print(F("Adding or editing device mapping entry at index "));
-    Serial.println(String(entryNum) + " with name " + name + ", LED number " + String(ledNumber));
-
-    DeviceMapping mapping(name, ledNumber);
-
-    m_cfgDeviceMapping.set(entryNum, mapping);
-    m_cfgDeviceMappingDirty = true;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-bool HSDConfig::deleteDeviceMappingEntry(int entryNum) {
-    bool removed(m_cfgDeviceMapping.removeAt(entryNum));
-    if (removed)
-        m_cfgDeviceMappingDirty = true;
-    return removed;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDConfig::deleteAllDeviceMappingEntries() {
-    m_cfgDeviceMapping.clear();
-    m_cfgDeviceMappingDirty = true;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDConfig::addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior) {
-    Serial.print(F("Adding or editing color mapping entry at index "));
-    Serial.println(String(entryNum) + ", new values: name " + msg + ", color " + String(color) + ", behavior " + String(static_cast<uint8_t>(behavior)));
-
-    ColorMapping mapping(msg, color, behavior);
-
-    m_cfgColorMapping.set(entryNum, mapping);
-    m_cfgColorMappingDirty = true;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-bool HSDConfig::deleteColorMappingEntry(int entryNum) {
-    bool removed(m_cfgColorMapping.removeAt(entryNum));
-    if (removed)
-        m_cfgColorMappingDirty = true;
-    return removed;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDConfig::deleteAllColorMappingEntries() {
-    m_cfgColorMapping.clear();
-    m_cfgColorMappingDirty = true;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -416,5 +350,27 @@ String HSDConfig::groupDescription(Group group) const {
         case Group::Clock:     return F("Clock");
         case Group::Sensors:   return F("Sensors");
         case Group::Bluetooth: return F("Bluetooth");
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+void HSDConfig::setColorMap(QList<ColorMapping>& values) {
+    m_cfgColorMapping.clear();
+    while (values.size() > 0) {
+        ColorMapping& val = values.front();
+        m_cfgColorMapping.push_back(val);
+        values.pop_front();
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+void HSDConfig::setDeviceMap(QList<DeviceMapping>& values) {
+    m_cfgDeviceMapping.clear();
+    while (values.size() > 0) {
+        DeviceMapping& val = values.front();
+        m_cfgDeviceMapping.push_back(val);
+        values.pop_front();
     }
 }

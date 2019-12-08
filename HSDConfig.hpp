@@ -6,7 +6,8 @@
 
 #include "QList.h"
 
-#define HSD_VERSION (F("0.9"))
+#define HSD_VERSION         (F("0.9"))
+#define FILENAME_MAINCONFIG (F("/config.json"))
 
 // comment out next line if you do not need the clock module
 #define HSD_CLOCK_ENABLED
@@ -16,8 +17,6 @@
 #define HSD_BLUETOOTH_ENABLED
 
 #define NUMBER_OF_DEFAULT_COLORS       9
-
-#define FILENAME_MAINCONFIG   "/config.json"
 
 class HSDConfig {
 public:
@@ -88,7 +87,6 @@ public:
         const __FlashStringHelper* placeholder;
         DataType                   type;
         uint8_t                    maxLength;
-        //void*                      val;
         union {
             bool*                 boolean;
             uint8_t*              byte;
@@ -121,16 +119,10 @@ public:
 
     HSDConfig();
 
-    void                        addColorMappingEntry(int entryNum, String msg, uint32_t color, Behavior behavior);
-    void                        addDeviceMappingEntry(int entryNum, String name, int ledNumber);
-    void                        begin();
+    void                             begin();
     inline const QList<ConfigEntry>& cfgEntries() { return m_cfgEntries; }
-    void                        deleteAllColorMappingEntries();
-    void                        deleteAllDeviceMappingEntries();
-    bool                        deleteColorMappingEntry(int entryNum);
-    bool                        deleteDeviceMappingEntry(int entryNum);
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
-    inline bool                 getBluetoothEnabled() const { return m_cfgBluetoothEnabled; }
+    inline bool                      getBluetoothEnabled() const { return m_cfgBluetoothEnabled; }
 #endif
 #ifdef HSD_CLOCK_ENABLED
     inline uint8_t              getClockBrightness() const { return m_cfgClockBrightness; }
@@ -141,12 +133,12 @@ public:
     inline uint8_t              getClockPinDIO() const { return m_cfgClockPinDIO; }
     inline const String&        getClockTimeZone() const { return m_cfgClockTimeZone; }
 #endif // HSD_CLOCK_ENABLED
+    inline const QList<ColorMapping>& getColorMap() const { return m_cfgColorMapping; }
     int                         getColorMapIndex(const String& msg) const;
-    inline const ColorMapping&  getColorMapping(unsigned int index) { return m_cfgColorMapping[index]; }
     uint32_t                    getDefaultColor(String key) const;
     String                      getDefaultColor(uint32_t value) const;
     String                      getDevice(int ledNumber) const;
-    inline const DeviceMapping& getDeviceMapping(int index) const { return m_cfgDeviceMapping[index]; }
+    inline const QList<DeviceMapping>& getDeviceMap() const { return m_cfgDeviceMapping; }
     inline const String&        getHost() const { return m_cfgHost; }
     inline Behavior             getLedBehavior(unsigned int colorMapIndex) const { return m_cfgColorMapping[colorMapIndex].behavior; }
     inline uint8_t              getLedBrightness() const { return m_cfgLedBrightness; }
@@ -177,10 +169,9 @@ public:
     inline const String&        getWifiSSID() const { return m_cfgWifiSSID; }
     String                      groupDescription(Group group) const;
     String                      hex2string(uint32_t value) const;
-    inline bool                 isColorMappingDirty() const { return m_cfgColorMappingDirty; }
-    inline bool                 isDeviceMappingDirty() const { return m_cfgDeviceMappingDirty; }
-    bool                        readFile(const String& fileName, String& content) const;
     bool                        readConfigFile();
+    void                        setColorMap(QList<ColorMapping>& values);
+    void                        setDeviceMap(QList<DeviceMapping>& values);
     uint32_t                    string2hex(String value) const;
     void                        writeConfigFile() const;
 
@@ -198,9 +189,7 @@ private:
     String               m_cfgClockTimeZone;
 #endif // HSD_CLOCK_ENABLED
     QList<ColorMapping>  m_cfgColorMapping;
-    bool                 m_cfgColorMappingDirty;
     QList<DeviceMapping> m_cfgDeviceMapping;
-    bool                 m_cfgDeviceMappingDirty;
     String               m_cfgHost;
     uint8_t              m_cfgLedBrightness;
     uint8_t              m_cfgLedDataPin;

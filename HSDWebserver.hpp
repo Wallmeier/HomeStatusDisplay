@@ -25,32 +25,15 @@ public:
 #endif // HSD_SENSOR_ENABLED  
 
 private:
-    bool          addColorMappingEntry();
-    bool          addDeviceMappingEntry();
     String        behavior2String(HSDConfig::Behavior behavior) const;
-    void          checkReboot();
-    bool          deleteColorMappingEntry();
-    bool          deleteDeviceMappingEntry();
     void          deliverColorMappingPage();
-    void          deliverCSS();
     void          deliverConfigPage();
     void          deliverDeviceMappingPage();
     void          deliverNotFoundPage();
     void          deliverStatusPage();
-    String        getBehaviorOptions(HSDConfig::Behavior selectedBehavior) const;
-    String        getColorMappingTableAddEntryForm(int newEntryNum, bool isFull) const;
-    String        getDeleteForm() const;
-    String        getDeviceMappingTableAddEntryForm(int newEntryNum, bool isFull) const;
-    String        getSaveForm() const;
-    inline bool   needAdd() { return m_server.hasArg("add"); }
-    inline bool   needDelete() { return m_server.hasArg("delete"); }
-    inline bool   needDeleteAll() { return m_server.hasArg("deleteall"); }
-    inline bool   needSave() { return m_server.hasArg("save"); }
-    inline bool   needUndo() { return (m_server.hasArg("undo")); }
-    void          sendColorMappingTableEntry(int entryNum, const HSDConfig::ColorMapping& mapping, const String& colorString);
-    void          sendDeviceMappingTableEntry(int entryNum, const HSDConfig::DeviceMapping& mapping);
-    void          sendHeader(const char* title);
-    bool          updateDeviceMappingConfig();
+    String        getContentType(String filename);
+    bool          handleFileRead(String path);
+    void          sendHeader(const char* title, bool useTable = false);
     bool          updateMainConfig();
 
     HSDConfig&              m_config;
