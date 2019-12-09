@@ -27,7 +27,7 @@ HSDLeds::~HSDLeds() {
 void HSDLeds::begin() {
     m_numLeds = m_config.getNumberOfLeds();
     m_pLedState = new LedState[m_numLeds];
-    Serial.printf("Starting LEDs on pin %d (length %d)\n", m_config.getLedDataPin(), m_numLeds);
+    Serial.printf("Starting LEDs on pin %d (length %d)\r\n", m_config.getLedDataPin(), m_numLeds);
     m_stripe.setPin(m_config.getLedDataPin());
     m_stripe.updateLength(m_numLeds);
     m_stripe.updateType(NEO_GRB + NEO_KHZ800);

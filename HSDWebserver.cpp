@@ -35,10 +35,10 @@ void HSDWebserver::begin() {
         HTTPUpload& upload = m_server.upload();
         if (upload.status == UPLOAD_FILE_START) {
             Serial.setDebugOutput(true);
-            Serial.printf("Import config: %s\n", upload.filename.c_str());
+            Serial.printf("Import config: %s\r\n", upload.filename.c_str());
             m_file = SPIFFS.open(FILENAME_MAINCONFIG, "w+");
             if (!m_file)
-                Serial.printf("Failed to open %s\n", FILENAME_MAINCONFIG);
+                Serial.printf("Failed to open %s\r\n", FILENAME_MAINCONFIG);
         } else if (upload.status == UPLOAD_FILE_WRITE) {
             if (m_file && m_file.write(upload.buf, upload.currentSize) != upload.currentSize)
                 Serial.println("Failed to write file");
@@ -146,7 +146,7 @@ void HSDWebserver::begin() {
         HTTPUpload& upload = m_server.upload();
         if (upload.status == UPLOAD_FILE_START) {
             Serial.setDebugOutput(true);
-            Serial.printf("Update: %s\n", upload.filename.c_str());
+            Serial.printf("Update: %s\r\n", upload.filename.c_str());
             if (!Update.begin()) { //start with max available size
                 Update.printError(Serial);
             }
@@ -156,13 +156,13 @@ void HSDWebserver::begin() {
             }
         } else if (upload.status == UPLOAD_FILE_END) {
             if (Update.end(true)) { //true to set the size to the current progress
-                Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+                Serial.printf("Update Success: %u\r\nRebooting...\r\n", upload.totalSize);
             } else {
                 Update.printError(Serial);
             }
             Serial.setDebugOutput(false);
         } else {
-            Serial.printf("Update Failed Unexpectedly (likely broken connection): status=%d\n", upload.status);
+            Serial.printf("Update Failed Unexpectedly (likely broken connection): status=%d\r\n", upload.status);
         }
     });
 #endif // ARDUINO_ARCH_ESP32

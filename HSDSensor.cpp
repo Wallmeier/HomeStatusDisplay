@@ -250,7 +250,7 @@ void HSDSensor::i2cscan(bool& hasBmp, bool& hasTsl) const {
     Serial.print(  F("00:         "));
     for (byte address = 3; address <= 119; address++) {
         if (address % 16 == 0) { // new line
-            Serial.print(F("\n"));
+            Serial.print(F("\r\n"));
             Serial.print(String(address / 16));
             Serial.print(F("0:"));
         }

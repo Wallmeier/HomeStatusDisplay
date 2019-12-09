@@ -82,8 +82,7 @@ HSDConfig::HSDConfig() :
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDConfig::begin() {
-    Serial.printf("\nInitializing config (%u entries) - using ArduinoJson version %s\n", m_cfgEntries.size(), ARDUINOJSON_VERSION);
-
+    Serial.printf("\r\nInitializing config (%u entries) - using ArduinoJson version %s\r\n", m_cfgEntries.size(), ARDUINOJSON_VERSION);
     if (SPIFFS.begin()) {
         Serial.println(F("Mounted file system."));
         readConfigFile();
@@ -103,7 +102,7 @@ bool HSDConfig::readConfigFile() {
         File configFile = SPIFFS.open(FILENAME_MAINCONFIG, "r");
         if (configFile) {
             size_t size = configFile.size();
-            Serial.printf("file size is %u bytes\n", size);
+            Serial.printf("file size is %u bytes\r\n", size);
             char* buffer = new char[size + 1];
             buffer[size] = 0;
             configFile.readBytes(buffer, size);

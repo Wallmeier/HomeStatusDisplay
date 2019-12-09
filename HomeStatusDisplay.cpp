@@ -1,6 +1,13 @@
 #include "HomeStatusDisplay.hpp"
 
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
+
+#ifdef ARDUINO_ARCH_ESP32
+#include <ESPmDNS.h>
+#else
+#include <ESP8266mDNS.h>
+#endif
 
 #define ONE_MINUTE_MILLIS (60000)
 
@@ -31,6 +38,45 @@ void HomeStatusDisplay::begin() {
     Serial.println(F(""));
 
     m_config.begin();
+    ArduinoOTA.setHostname(m_config.getHost().c_str());
+    ArduinoOTA.onStart([=]() {
+        String type;
+        if (ArduinoOTA.getCommand() == U_FLASH) {
+            type = "sketch";
+        } else { // U_FS
+            // NOTE: if updating FS this would be the place to unmount FS using FS.end()
+            type = "filesystem";
+            SPIFFS.end();
+        }
+        Serial.println("ArduinoOTA: start updating " + type);
+        m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("BLUE"));
+    });
+    ArduinoOTA.onEnd([=]() {
+        Serial.println("ArduinoOTA: end");
+        m_leds.clear();
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        static int val = 0;
+        int newVal = progress / (total / 100);
+        if (newVal != val) {
+            Serial.printf("ArduinoOTA: progress: %u%%\r\n", newVal);
+            val = newVal;
+        }
+    });
+    ArduinoOTA.onError([=](ota_error_t error) {
+        Serial.printf("ArduinoOTA: error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR)
+            Serial.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR)
+            Serial.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR)
+            Serial.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR)
+            Serial.println("Receive Failed");
+        else if (error == OTA_END_ERROR)
+            Serial.println("End Failed");
+        m_leds.clear();
+    });    
     m_leds.begin();
     m_wifi.begin();
     m_webServer.begin();
@@ -224,6 +270,8 @@ void HomeStatusDisplay::checkConnections() {
         if (!m_mqttHandler.connected())
             m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("ORANGE"));
         lastWifiConnectionState = true;
+        ArduinoOTA.begin();
+        MDNS.addService("http", "tcp", 80);
     } else if (lastWifiConnectionState && !m_wifi.connected()) {
         m_leds.clear();
         lastWifiConnectionState = false;
@@ -231,4 +279,6 @@ void HomeStatusDisplay::checkConnections() {
 
     if (!m_wifi.connected())
         m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("RED"));
+    else
+        ArduinoOTA.handle();
 }
