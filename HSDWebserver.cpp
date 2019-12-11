@@ -1,8 +1,15 @@
 #include "HSDWebserver.hpp"
 
+#include <StreamString.h>
 #ifdef ARDUINO_ARCH_ESP32
 #include <Update.h>
+#else
+extern "C" uint32_t _FS_start;
+extern "C" uint32_t _FS_end;
+#include <Updater.h>
 #endif // ARDUINO_ARCH_ESP32
+
+
 
 HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt& mqtt) :
     m_config(config),
@@ -11,9 +18,6 @@ HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt
     m_mqtt(mqtt),
     m_server(80)
 {
-#ifndef ARDUINO_ARCH_ESP32
-    m_updateServer.setup(&m_server);
-#endif
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -130,42 +134,72 @@ void HSDWebserver::begin() {
             m_server.send(500);
         }
     });
-#ifdef ARDUINO_ARCH_ESP32
     m_server.on("/update", HTTP_GET, [=]() {
         m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         m_server.send(200);
         sendHeader("Update");
-        m_server.sendContent(F("\t<form method='POST' action='/update' enctype='multipart/form-data'>\n\t\t<input type='file' name='update'>\n\t\t<input type='submit' value='Update'>\n\t</form>\n</body>"));
+        m_server.sendContent(F("\t<form method='POST' action='/update' enctype='multipart/form-data'>\n"
+                               "\t\tFirmware:<br>\n"
+                               "\t\t<input type='file' size='40' accept='.bin' name='firmware'>\n"
+                               "\t\t<input type='submit' value='Update Firmware'>\n"
+                               "\t</form><br>\n"
+                               "\t\tFileSystem:<br>\n"
+                               "\t\t<input type='file' size='40' accept='.bin' name='filesystem'>\n"
+                               "\t\t<input type='submit' value='Update FileSystem'>\n"
+                               "\t</form>\n"
+                               "</body>"));
         m_server.sendContent("");
     });
     m_server.on("/update", HTTP_POST, [=]() {
-        m_server.sendHeader("Connection", "close");
-        m_server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-        ESP.restart();
+        if (Update.hasError()) {
+            m_server.send(200, F("text/html"), String(F("Update error: ")) + m_updaterError);
+        } else {
+            m_server.client().setNoDelay(true);
+            m_server.send(200, F("text/html"), F("<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Rebooting..."));
+            delay(100);
+            m_server.client().stop();
+            ESP.restart();
+        }
     }, [=]() {
         HTTPUpload& upload = m_server.upload();
         if (upload.status == UPLOAD_FILE_START) {
+            m_updaterError = String();
             Serial.setDebugOutput(true);
             Serial.printf("Update: %s\r\n", upload.filename.c_str());
-            if (!Update.begin()) { //start with max available size
-                Update.printError(Serial);
-            }
-        } else if (upload.status == UPLOAD_FILE_WRITE) {
-            if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-                Update.printError(Serial);
-            }
-        } else if (upload.status == UPLOAD_FILE_END) {
-            if (Update.end(true)) { //true to set the size to the current progress
-                Serial.printf("Update Success: %u\r\nRebooting...\r\n", upload.totalSize);
+            
+            if (upload.name == "filesystem") {
+#ifndef ARDUINO_ARCH_ESP32
+                size_t fsSize = ((size_t) &_FS_end - (size_t) &_FS_start);
+#endif                
+                SPIFFS.end();
+#ifdef ARDUINO_ARCH_ESP32
+                if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_SPIFFS)) //start with max available size
+#else
+                if (!Update.begin(fsSize, U_FS)) //start with max available size
+#endif    
+                    Update.printError(Serial);
             } else {
-                Update.printError(Serial);
+                uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+                if (!Update.begin(maxSketchSpace, U_FLASH)) //start with max available size
+                    setUpdaterError();
             }
+        } else if (upload.status == UPLOAD_FILE_WRITE && !m_updaterError.length()) {
+            if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
+                setUpdaterError();
+        } else if (upload.status == UPLOAD_FILE_END && !m_updaterError.length()) {
+            if (Update.end(true))  //true to set the size to the current progress
+                Serial.printf("Update Success: %u\r\nRebooting...\r\n", upload.totalSize);
+            else
+                setUpdaterError();
             Serial.setDebugOutput(false);
+        } else if (upload.status == UPLOAD_FILE_ABORTED){
+            Update.end();
+            Serial.println("Update was aborted");
         } else {
             Serial.printf("Update Failed Unexpectedly (likely broken connection): status=%d\r\n", upload.status);
         }
+        delay(0);
     });
-#endif // ARDUINO_ARCH_ESP32
     m_server.onNotFound(std::bind(&HSDWebserver::deliverNotFoundPage, this));
     m_server.begin();
 }
@@ -569,4 +603,13 @@ String HSDWebserver::getContentType(String filename) {
     } else {
         return "text/plain";
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+void HSDWebserver::setUpdaterError() {
+    Update.printError(Serial);
+    StreamString str;
+    Update.printError(str);
+    m_updaterError = str.c_str();
 }

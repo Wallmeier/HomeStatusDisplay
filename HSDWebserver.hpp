@@ -6,7 +6,6 @@
 #include <WebServer.h>
 #else
 #include <ESP8266WebServer.h>
-#include <ESP8266HTTPUpdateServer.h>
 #include <FS.h>
 #endif
 
@@ -34,6 +33,7 @@ private:
     String        getContentType(String filename);
     bool          handleFileRead(String path);
     void          sendHeader(const char* title, bool useTable = false);
+    void          setUpdaterError();
     bool          updateMainConfig();
 
     HSDConfig&              m_config;
@@ -48,8 +48,8 @@ private:
     WebServer               m_server;
 #else
     ESP8266WebServer        m_server;
-    ESP8266HTTPUpdateServer m_updateServer; 
-#endif // ARDUINO_ARCH_ESP32    
+#endif // ARDUINO_ARCH_ESP32
+    String                  m_updaterError;
 };
 
 #endif // HSDWEBSERVER_H
