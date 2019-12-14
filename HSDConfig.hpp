@@ -74,17 +74,18 @@ public:
     };
     
     struct ConfigEntry {
-        ConfigEntry(Group g, const __FlashStringHelper* k, QList<ColorMapping>* v) : group(g), key(k), label(nullptr), placeholder(nullptr), type(DataType::ColorMapping), maxLength(0) { value.colMap = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, QList<DeviceMapping>* v) : group(g), key(k), label(nullptr), placeholder(nullptr), type(DataType::DeviceMapping), maxLength(0) { value.devMap = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, String* v, bool password = false) : group(g), key(k), label(l), placeholder(p), type(password ? DataType::Password : DataType::String), maxLength(0) { value.string = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, bool* v) : group(g), key(k), label(l), placeholder(nullptr), type(DataType::Bool), maxLength(0) { value.boolean = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, uint8_t m, uint8_t* v) : group(g), key(k), label(l), placeholder(p), type(DataType::Byte), maxLength(m) { value.byte = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, uint16_t* v) : group(g), key(k), label(l), placeholder(p), type(DataType::Byte), maxLength(5) { value.word = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, QList<ColorMapping>* v) : group(g), help(nullptr), key(k), label(nullptr), pattern(nullptr), type(DataType::ColorMapping), maxLength(0) { value.colMap = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, QList<DeviceMapping>* v) : group(g), help(nullptr), key(k), label(nullptr), pattern(nullptr), type(DataType::DeviceMapping), maxLength(0) { value.devMap = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, const __FlashStringHelper* h, String* v, bool password = false) : group(g), help(h), key(k), label(l), pattern(p), type(password ? DataType::Password : DataType::String), maxLength(0) { value.string = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, bool* v) : group(g), help(nullptr), key(k), label(l), pattern(nullptr), type(DataType::Bool), maxLength(0) { value.boolean = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, const __FlashStringHelper* h, uint8_t m, uint8_t* v) : group(g), key(k), label(l), help(h), pattern(p), type(DataType::Byte), maxLength(m) { value.byte = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, const __FlashStringHelper* h, uint16_t* v) : group(g), key(k), label(l), help(h), pattern(p), type(DataType::Byte), maxLength(5) { value.word = v; }
         
         Group                      group;
+        const __FlashStringHelper* help;
         const __FlashStringHelper* key;
         const __FlashStringHelper* label;
-        const __FlashStringHelper* placeholder;
+        const __FlashStringHelper* pattern;        
         DataType                   type;
         uint8_t                    maxLength;
         union {

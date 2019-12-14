@@ -41,38 +41,38 @@ HSDConfig::HSDConfig() :
     m_cfgSensorAltitude(0)
 #endif // HSD_SENSOR_ENABLED
 {
-    m_cfgEntries.push_back(ConfigEntry(Group::Wifi, F("host"), F("Hostname"), F("host"), &m_cfgHost));
-    m_cfgEntries.push_back(ConfigEntry(Group::Wifi, F("SSID"), F("SSID"), F("SSID"), &m_cfgWifiSSID));
-    m_cfgEntries.push_back(ConfigEntry(Group::Wifi, F("PSK"), F("Password"), F("Password"), &m_cfgWifiPSK, true));
-    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("server"), F("Server"), F("IP or hostname"), &m_cfgMqttServer));
-    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("port"), F("Port"), F("Port"), &m_cfgMqttPort));
-    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("user"), F("User"), F("User name"), &m_cfgMqttUser));
-    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("password"), F("Password"), F("Password"), &m_cfgMqttPassword, true));
-    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("statusTopic"), F("Status topic"), F("#"), &m_cfgMqttStatusTopic));
+    m_cfgEntries.push_back(ConfigEntry(Group::Wifi, F("host"), F("Hostname"), F("[A-Za-z0-9\\-]{1,15}"), F("host"), &m_cfgHost));
+    m_cfgEntries.push_back(ConfigEntry(Group::Wifi, F("SSID"), F("SSID"), F(".{1,32}"), F("SSID"), &m_cfgWifiSSID));
+    m_cfgEntries.push_back(ConfigEntry(Group::Wifi, F("PSK"), F("Password"), F(".{8,63}"), F("Password"), &m_cfgWifiPSK, true));
+    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("server"), F("Server"), nullptr, F("IP or hostname"), &m_cfgMqttServer));
+    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("port"), F("Port"), F("^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"), F("Port"), &m_cfgMqttPort));
+    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("user"), F("User"), nullptr, F("User name"), &m_cfgMqttUser));
+    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("password"), F("Password"), nullptr, F("Password"), &m_cfgMqttPassword, true));
+    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("statusTopic"), F("Status topic"), nullptr, F("#"), &m_cfgMqttStatusTopic));
 #ifdef MQTT_TEST_TOPIC
-    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("testTopic"), F("Test topic"), F("#"), &m_cfgMqttTestTopic));
+    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("testTopic"), F("Test topic"), nullptr, F("#"), &m_cfgMqttTestTopic));
 #endif // MQTT_TEST_TOPIC
-    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("outTopic"), F("Outgoing topic"), F("#"), &m_cfgMqttOutTopic));
-    m_cfgEntries.push_back(ConfigEntry(Group::Leds, F("count"), F("Number of LEDs"), F("0"), 3, &m_cfgNumberOfLeds));
-    m_cfgEntries.push_back(ConfigEntry(Group::Leds, F("pin"), F("LED pin"), F("0"), 2, &m_cfgLedDataPin));
-    m_cfgEntries.push_back(ConfigEntry(Group::Leds, F("brightness"), F("Brightness"), F("0-255"), 3, &m_cfgLedBrightness));
+    m_cfgEntries.push_back(ConfigEntry(Group::Mqtt, F("outTopic"), F("Outgoing topic"), nullptr, F("#"), &m_cfgMqttOutTopic));
+    m_cfgEntries.push_back(ConfigEntry(Group::Leds, F("count"), F("Number of LEDs"), F("[0-9]{1,3}"), F("0"), 3, &m_cfgNumberOfLeds));
+    m_cfgEntries.push_back(ConfigEntry(Group::Leds, F("pin"), F("LED pin"), F("[0-9]{1,2}"), F("0"), 2, &m_cfgLedDataPin));
+    m_cfgEntries.push_back(ConfigEntry(Group::Leds, F("brightness"), F("Brightness"), F("[0-9]{1,3}"), F("0-255"), 3, &m_cfgLedBrightness));
     m_cfgEntries.push_back(ConfigEntry(Group::Leds, F("colorMapping"), &m_cfgColorMapping));
     m_cfgEntries.push_back(ConfigEntry(Group::Leds, F("deviceMapping"), &m_cfgDeviceMapping));
 #ifdef HSD_CLOCK_ENABLED
     m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("enabled"), F("Enable"), &m_cfgClockEnabled));
-    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("CLK"), F("CLK pin"), F("0"), 2, &m_cfgClockPinCLK));
-    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("DIO"), F("DIO pin"), F("0"), 2, &m_cfgClockPinDIO));
-    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("brightness"), F("Brightness"), F("0-8"), 1, &m_cfgClockBrightness));
-    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("timezone"), F("Time zone"), F("CET-1CEST,M3.5.0/2,M10.5.0/3"), &m_cfgClockTimeZone));
-    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("server"), F("NTP server"), F("pool.ntp.org"), &m_cfgClockNTPServer));
-    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("interval"), F("NTP update interval (min.)"), F("20"), &m_cfgClockNTPInterval));
+    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("CLK"), F("CLK pin"), F("[0-9]{1,2}"), F("0"), 2, &m_cfgClockPinCLK));
+    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("DIO"), F("DIO pin"), F("[0-9]{1,2}"), F("0"), 2, &m_cfgClockPinDIO));
+    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("brightness"), F("Brightness"), F("[0-8]"), F("0-8"), 1, &m_cfgClockBrightness));
+    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("timezone"), F("Time zone"), nullptr, F("CET-1CEST,M3.5.0/2,M10.5.0/3"), &m_cfgClockTimeZone));
+    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("server"), F("NTP server"), nullptr, F("pool.ntp.org"), &m_cfgClockNTPServer));
+    m_cfgEntries.push_back(ConfigEntry(Group::Clock, F("interval"), F("NTP update interval (min.)"), F("[0-9]{1,6}"), F("20"), &m_cfgClockNTPInterval));
 #endif // HSD_CLOCK_ENABLED
 #ifdef HSD_SENSOR_ENABLED
     m_cfgEntries.push_back(ConfigEntry(Group::Sensors, F("sonoffEnabled"), F("Sonoff SI7021"), &m_cfgSensorSonoffEnabled));
-    m_cfgEntries.push_back(ConfigEntry(Group::Sensors, F("sonoffPin"), F("Data pin"), F("0"), 2, &m_cfgSensorPin));
-    m_cfgEntries.push_back(ConfigEntry(Group::Sensors, F("interval"), F("Sensor update interval (min.)"), F("5"), &m_cfgSensorInterval));
+    m_cfgEntries.push_back(ConfigEntry(Group::Sensors, F("sonoffPin"), F("Data pin"), F("[0-9]{1,2}"), F("0"), 2, &m_cfgSensorPin));
+    m_cfgEntries.push_back(ConfigEntry(Group::Sensors, F("interval"), F("Sensor update interval (min.)"), F("[0-9]{1,6}"), F("5"), &m_cfgSensorInterval));
     m_cfgEntries.push_back(ConfigEntry(Group::Sensors, F("i2cEnabled"), F("I2C"), &m_cfgSensorI2CEnabled));
-    m_cfgEntries.push_back(ConfigEntry(Group::Sensors, F("altitude"), F("Altitude"), F("0"), &m_cfgSensorAltitude));
+    m_cfgEntries.push_back(ConfigEntry(Group::Sensors, F("altitude"), F("Altitude"), F("[0-9]{1,4}"), F("0"), &m_cfgSensorAltitude));
 #endif // HSD_SENSOR_ENABLED
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
     m_cfgEntries.push_back(ConfigEntry(Group::Bluetooth, F("enabled"), F("Enable"), &m_cfgBluetoothEnabled));

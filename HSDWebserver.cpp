@@ -242,7 +242,7 @@ void HSDWebserver::deliverConfigPage() {
     m_server.send(200);
     sendHeader("General configuration");
 
-    html = F("\t<form action=\"/cfgmain\">\n\t\t<table class=\"cfg\">\n");
+    html = F("\t<form action='/cfgmain'>\n\t\t<table class='cfg'>\n");
 
     const QList<HSDConfig::ConfigEntry>& entries = m_config.cfgEntries();
     HSDConfig::Group lastGroup = HSDConfig::Group::__Last;
@@ -253,44 +253,48 @@ void HSDWebserver::deliverConfigPage() {
         if (entry.group != lastGroup) {
             lastGroup = entries[idx].group;
             m_server.sendContent(html);
-            html  = F("\t\t\t<tr><td class=\"cfgTitle\" colspan=\"2\">");
+            html  = F("\t\t\t<tr><td class='cfgTitle' colspan='2'>");
             html += m_config.groupDescription(entry.group);
             html += F("</td></tr>\n");
         }
         html += F("\t\t\t<tr><td>");
         html += entry.label;
-        html += F("</td><td><input name=\"");
+        html += F("</td><td><input name='");
         html += m_config.groupDescription(entry.group);
         html += F(".");
         html += entry.key;
-        if (entries[idx].placeholder != nullptr) {
-            html += F("\" placeholder=\"");
-            html += entry.placeholder;
+        if (entries[idx].help != nullptr) {
+            html += F("' placeholder='");
+            html += entry.help;
         }
-        html += F("\" type=\"");
+        if (entries[idx].pattern != nullptr) {
+            html += F("' pattern='");
+            html += entry.pattern;
+        }
+        html += F("' type='");
         switch (entry.type) {
             case HSDConfig::DataType::String:
             case HSDConfig::DataType::Password:
                 html += entry.type == HSDConfig::DataType::Password ? F("password") : F("text");
-                html += F("\" size=\"30\" value=\"");
+                html += F("' size='30' value='");
                 html += *entry.value.string;
-                html += F("\">");
+                html += F("'>");
                 break;
 
             case HSDConfig::DataType::Byte:
             case HSDConfig::DataType::Word:
-                html += F("text\" size=\"30\" maxlength=\"");
+                html += F("text' size='30' maxlength='");
                 html += String(entry.maxLength);
-                html += F("\" value=\"");
+                html += F("' value='");
                 if (entry.type == HSDConfig::DataType::Byte)
                     html += String(*entry.value.byte);
                 else
                     html += String(*entry.value.word);
-                html += F("\">");
+                html += F("'>");
                 break;
 
             case HSDConfig::DataType::Bool:
-                html += F("checkbox\"");
+                html += F("checkbox'");
                 if (*entry.value.boolean)
                     html += F(" checked");
                 html += F(">");
