@@ -9,8 +9,6 @@ extern "C" uint32_t _FS_end;
 #include <Updater.h>
 #endif // ARDUINO_ARCH_ESP32
 
-
-
 HSDWebserver::HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt& mqtt) :
     m_config(config),
     m_deviceUptimeMinutes(0),
@@ -32,7 +30,10 @@ void HSDWebserver::begin() {
         m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         m_server.send(200);
         sendHeader("Config Import");
-        m_server.sendContent(F("\t<form method='POST' action='/cfgImport' enctype='multipart/form-data'>\n\t\t<input type='file' name='import'>\n\t\t<input type='submit' value='Import'>\n\t</form>\n</body>"));
+        m_server.sendContent(F("\t<form method='POST' action='/cfgImport' enctype='multipart/form-data'>\n"
+                               "\t\t<input type='file' name='import'>\n"
+                               "\t\t<input type='submit' value='Import'>\n"
+                               "\t</form>\n</body>"));
         m_server.sendContent("");
     });
     m_server.on("/cfgImport", HTTP_POST, std::bind(&HSDWebserver::deliverConfigPage, this), [=]() {
@@ -133,6 +134,24 @@ void HSDWebserver::begin() {
             Serial.println(F("Bad request - no content for /devicemapping.json"));
             m_server.send(500);
         }
+    });
+    m_server.on("/stat.json", HTTP_GET, [=]() {
+        DynamicJsonBuffer jsonBuffer;
+        JsonObject& root = jsonBuffer.createObject();
+        root["devStat"] = getDeviceStat();
+        root["ip"] = WiFi.localIP().toString();
+        root["mqtt"] = m_mqtt.connected() ? "connected to" : "disconnected from";
+        root["rssi"] = WiFi.RSSI();
+#ifdef HSD_SENSOR_ENABLED
+        root["sensor"] = m_sensorData;
+#endif
+        root["uptime"] = getUptimeString();
+#ifndef ARDUINO_ARCH_ESP32
+        root["voltage"] = ESP.getVcc();
+#endif
+        String json;
+        root.printTo(json);
+        m_server.send(200, "text/json;charset=utf-8", json);
     });
     m_server.on("/update", HTTP_GET, [=]() {
         m_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
@@ -307,66 +326,58 @@ void HSDWebserver::deliverStatusPage() {
     m_server.send(200);
     sendHeader("Status");
 
-    html = F("<p>Device uptime: ");
-    char buffer[50];
-    memset(buffer, 0, sizeof(buffer));
-    sprintf(buffer, "%lu days, %lu hours, %lu minutes", m_deviceUptimeMinutes / 1440, (m_deviceUptimeMinutes / 60) % 24,
-            m_deviceUptimeMinutes % 60);
-    html += String(buffer);
-    html += F("</p>\n");
+    html = F("\t<p>Device uptime: <span id='uptime'>");
+    html += getUptimeString();
+    html += F("</span></p>\n");
 
 #ifdef ARDUINO_ARCH_ESP32
-    html += F("<p>Device Heap stats (size, free, minFree, max) [Bytes]: ");
-    html += String(ESP.getHeapSize()) + ", " + String(ESP.getFreeHeap()) + ", " + String(ESP.getMinFreeHeap()) + ", " + String(ESP.getMaxAllocHeap()) + "</p>\n";
+    html += F("\t<p>Device Heap stats (size, free, minFree, max) [Bytes]: <span id='devStat'>");
+    html += getDeviceStat();
+    html += F("</span></p>\n");
 #else
-    uint32_t free;
-    uint16_t max;
-    uint8_t frag;
-    ESP.getHeapStats(&free, &max, &frag);
-
-    html += F("<p>Device RAM stats (free, max, frag) [Bytes]: ");
-    html += String(free) + ", " + String(max) + ", " + String(frag);
-    html += F("</p>\n"
-              "<p>Device voltage: ");
+    html += F("\t<p>Device RAM stats (free, max, frag) [Bytes]: <span id='devStat'>");
+    html += getDeviceStat();
+    html += F("</stat></p>\n"
+              "\t<p>Device voltage: <span id='voltage'>");
     html += String(ESP.getVcc());
-    html += F(" mV</p>\n");
+    html += F("</span> mV</p>\n");
 #endif
 
 #ifdef HSD_SENSOR_ENABLED
     if (m_config.getSensorSonoffEnabled() && m_sensorData.length() > 0) {
-        html += F("<p>Sensor: ");
+        html += F("\t<p>Sensor: <span id='sensor'>");
         html += m_sensorData;
-        html += F("</p>\n");
+        html += F("</span></p>\n");
     }
 #endif // HSD_SENSOR_ENABLED
 
     if (WiFi.status() == WL_CONNECTED) {
-        html += F("<p>Device is connected to WLAN <b>");
+        html += F("\t<p>Device is connected to WLAN <b>");
         html += WiFi.SSID();
-        html += F("</b><br/>IP address is <b>");
+        html += F("</b>, rssi <span id='rssi'>");
+        html += WiFi.RSSI();
+        html += F("</span> dBm<br/>\n\tIP address is <b><span id='ip'>");
         IPAddress ip = WiFi.localIP();
         char buffer[20];
         memset(buffer, 0, sizeof(buffer));
         sprintf(buffer, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
         html += String(buffer);
-        html += F("</b><br/>MAC address is <b>");
+        html += F("</span></b><br/>\n\tMAC address is <b>");
         html += WiFi.macAddress();
         html += F("</b></p>\n");
     } else {
-        html += F("<p>Device is not connected to local network</p>\n");
+        html += F("\t<p>Device is not connected to local network</p>\n");
     }
 
-    if (m_mqtt.connected()) {
-        html += F("<p>Device is connected to  MQTT broker <b>");
-        html += m_config.getMqttServer();
-        html += F("</b></p>\n");
-    } else {
-        html += F("<p>Device is not connected to an MQTT broker</p>\n");
-    }
+    html += F("\t<p>Device is <span id='mqtt'>");
+    html += m_mqtt.connected() ? F("connected to") : F("disconnected from");
+    html += F("</span> MQTT broker <b>");
+    html += m_config.getMqttServer();
+    html += F("</b></p>\n");
     m_server.sendContent(html);
 
     if (m_config.getNumberOfLeds() == 0) {
-        html = F("<p>No LEDs configured yet</p>\n");
+        html = F("\t<p>No LEDs configured yet</p>\n");
     } else {
         html = F("");
         int ledOnCount(0);
@@ -378,7 +389,7 @@ void HSDWebserver::deliverStatusPage() {
                 String colorName = m_config.getDefaultColor(color);
                 if (colorName == "")
                     colorName = m_config.hex2string(color);
-                html += F("<p><div class='hsdcolor' style='background-color:");
+                html += F("\t<p><div class='hsdcolor' style='background-color:");
                 html += m_config.hex2string(color);
                 html += F("';></div>&nbsp;");
                 html += F("LED <b>");
@@ -394,13 +405,41 @@ void HSDWebserver::deliverStatusPage() {
                 ledOnCount++;
             }
         }
-
         if (ledOnCount == 0)
-            html += F("<p>All LEDs are <b>off</b></p>\n");
+            html += F("\t<p>All LEDs are <b>off</b></p>\n");
+        html += F("\t<script type='text/javascript'>\n"
+                  "setInterval(function(){\n"
+                  "\tupdatePage('/stat.json');\n"
+                  "}, 60000);\n"
+                  "\t</script>\n");
     }
     html += F("</body></html>");
     m_server.sendContent(html);
     m_server.sendContent("");
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+String HSDWebserver::getUptimeString() const {
+    char buffer[50];
+    memset(buffer, 0, sizeof(buffer));
+    sprintf(buffer, "%lu days, %lu hours, %lu minutes", m_deviceUptimeMinutes / 1440, (m_deviceUptimeMinutes / 60) % 24,
+            m_deviceUptimeMinutes % 60);
+    return String(buffer);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+String HSDWebserver::getDeviceStat() const {
+#ifdef ARDUINO_ARCH_ESP32
+    return String(ESP.getHeapSize()) + ", " + String(ESP.getFreeHeap()) + ", " + String(ESP.getMinFreeHeap()) + ", " + String(ESP.getMaxAllocHeap());
+#else
+    uint32_t free;
+    uint16_t max;
+    uint8_t frag;
+    ESP.getHeapStats(&free, &max, &frag);
+    return String(free) + ", " + String(max) + ", " + String(frag);
+#endif    
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -31,6 +31,8 @@ private:
     void          deliverNotFoundPage();
     void          deliverStatusPage();
     String        getContentType(String filename);
+    String        getDeviceStat() const;
+    String        getUptimeString() const;
     bool          handleFileRead(String path);
     void          sendHeader(const char* title, bool useTable = false);
     void          setUpdaterError();

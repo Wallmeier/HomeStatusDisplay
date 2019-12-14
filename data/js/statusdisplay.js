@@ -21,3 +21,22 @@ function getMaxIdx(table) {
     }
     return res + 1;
 }
+
+function updatePage(path) {
+    console.log("Updating page, url: " + path);
+    var request = new XMLHttpRequest();
+    request.addEventListener('load', function(event) {
+        if (request.status == 200) {
+            var json = JSON.parse(request.responseText);
+            for (let key in json) {
+                var elem = document.getElementById(key);
+                if (elem != undefined)
+                    elem.innerHTML = json[key];
+            }            
+        } else {
+            console.warn(request.statusText, request.responseText);
+        }
+    });    
+    request.open('GET', path);
+    request.send();
+}
