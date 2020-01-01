@@ -1,19 +1,18 @@
 #ifndef HSDMQTT_H
 #define HSDMQTT_H
 
+#define MAX_IN_TOPICS        5
 #define MQTT_MAX_PACKET_SIZE 256
 
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef ESP32
 #include <WiFi.h>
-#else
+#elif defined(ESP8266)
 #include <ESP8266WiFi.h>
-#endif // ARDUINO_ARCH_ESP32
+#endif
 
 #include "HSDConfig.hpp"
-
-#define MAX_IN_TOPICS        5
 
 class HSDMqtt {
 public:
@@ -29,7 +28,7 @@ public:
     bool        reconnect() const; 
 
 private:
-    void        subscribe(const String& topic) const;
+    void subscribe(const String& topic) const;
 
     const HSDConfig&     m_config;
     String               m_inTopics[MAX_IN_TOPICS];

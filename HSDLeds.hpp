@@ -4,6 +4,13 @@
 #include "HSDConfig.hpp"
 #include <Adafruit_NeoPixel.h>
 
+#define LED_COLOR_NONE    0x000000
+#define LED_COLOR_BLUE    0x0000FF
+#define LED_COLOR_GREEN   0x00FF00
+#define LED_COLOR_ORANGE  0xFF4400
+#define LED_COLOR_RED     0xFF0000
+#define LED_COLOR_YELLOW  0xFFCC00
+
 class HSDLeds {
 public:  
     HSDLeds(const HSDConfig& config);

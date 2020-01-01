@@ -6,7 +6,7 @@
 
 #include "QList.h"
 
-#define HSD_VERSION         (F("0.9"))
+#define HSD_VERSION         "0.9"
 #define FILENAME_MAINCONFIG (F("/config.json"))
 
 // comment out next line if you do not need the clock module
@@ -15,8 +15,6 @@
 #define HSD_SENSOR_ENABLED
 #define MQTT_TEST_TOPIC
 #define HSD_BLUETOOTH_ENABLED
-
-#define NUMBER_OF_DEFAULT_COLORS       9
 
 class HSDConfig {
 public:
@@ -37,13 +35,12 @@ public:
     struct DeviceMapping {
         DeviceMapping(String n, uint8_t l) : device(n), ledNumber(l) { }
 
-        String  device;     // name of the device
-        uint8_t ledNumber;  // led number on which reactions for this device are displayed
+        String  device;    // name of the device
+        uint8_t ledNumber; // led number on which reactions for this device are displayed
     };
 
     /*
-     * This struct is used for mapping a message for a specific
-     * message to a led behavior (see LedSwitcher::ledState).
+     * This struct is used for mapping a message for a specific message to a led behavior (see LedSwitcher::ledState).
      */
     struct ColorMapping {
         ColorMapping(String m, uint32_t c, Behavior b) : behavior(b), color(c), msg(m) { }
@@ -56,9 +53,10 @@ public:
     enum class DataType : uint8_t {
         String = 0,
         Password,
-        Byte,
-        Word,
         Bool,
+        Gpio,
+        Slider,
+        Word,
         ColorMapping,
         DeviceMapping
     };
@@ -74,20 +72,21 @@ public:
     };
     
     struct ConfigEntry {
-        ConfigEntry(Group g, const __FlashStringHelper* k, QList<ColorMapping>* v) : group(g), help(nullptr), key(k), label(nullptr), pattern(nullptr), type(DataType::ColorMapping), maxLength(0) { value.colMap = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, QList<DeviceMapping>* v) : group(g), help(nullptr), key(k), label(nullptr), pattern(nullptr), type(DataType::DeviceMapping), maxLength(0) { value.devMap = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, const __FlashStringHelper* h, String* v, bool password = false) : group(g), help(h), key(k), label(l), pattern(p), type(password ? DataType::Password : DataType::String), maxLength(0) { value.string = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, bool* v) : group(g), help(nullptr), key(k), label(l), pattern(nullptr), type(DataType::Bool), maxLength(0) { value.boolean = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, const __FlashStringHelper* h, uint8_t m, uint8_t* v) : group(g), key(k), label(l), help(h), pattern(p), type(DataType::Byte), maxLength(m) { value.byte = v; }
-        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, const __FlashStringHelper* h, uint16_t* v) : group(g), key(k), label(l), help(h), pattern(p), type(DataType::Byte), maxLength(5) { value.word = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, QList<ColorMapping>* v) : group(g), key(k), label(nullptr), pattern(nullptr), patternMsg(nullptr), type(DataType::ColorMapping), maxVal(0) { value.colMap = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, QList<DeviceMapping>* v) : group(g), key(k), label(nullptr), pattern(nullptr), patternMsg(nullptr), type(DataType::DeviceMapping), maxVal(0) { value.devMap = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, const __FlashStringHelper* pm, String* v, bool password = false) : group(g), key(k), label(l), pattern(p), patternMsg(pm), type(password ? DataType::Password : DataType::String), maxVal(0) { value.string = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, bool* v) : group(g), key(k), label(l), pattern(nullptr), patternMsg(nullptr), type(DataType::Bool), maxVal(0) { value.boolean = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, uint8_t* v) : group(g), key(k), label(l), pattern(nullptr), patternMsg(nullptr), type(DataType::Gpio), maxVal(0) { value.byte = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, uint8_t max, uint8_t* v) : group(g), key(k), label(l), pattern(nullptr), patternMsg(nullptr), type(DataType::Slider), maxVal(max) { value.byte = v; }
+        ConfigEntry(Group g, const __FlashStringHelper* k, const __FlashStringHelper* l, const __FlashStringHelper* p, const __FlashStringHelper* pm, uint16_t* v) : group(g), key(k), label(l), pattern(p), patternMsg(pm), type(DataType::Word), maxVal(5) { value.word = v; }
         
         Group                      group;
-        const __FlashStringHelper* help;
         const __FlashStringHelper* key;
         const __FlashStringHelper* label;
-        const __FlashStringHelper* pattern;        
+        const __FlashStringHelper* pattern;
+        const __FlashStringHelper* patternMsg;
         DataType                   type;
-        uint8_t                    maxLength;
+        uint8_t                    maxVal;
         union {
             bool*                 boolean;
             uint8_t*              byte;
@@ -106,75 +105,59 @@ public:
         uint32_t    value;
     };
 
-    static const constexpr Map DefaultColor[NUMBER_OF_DEFAULT_COLORS] = {
-        {"NONE",   0x000000},
-        {"GREEN",  0x00FF00},
-        {"YELLOW", 0xFFCC00},
-        {"ORANGE", 0xFF4400},
-        {"RED",    0xFF0000},
-        {"PURPLE", 0xFF00FF},
-        {"BLUE",   0x0000FF},
-        {"CYAN",   0x00FFFF},
-        {"WHITE",  0xFFFFFF}
-    };
-
     HSDConfig();
 
-    void                             begin();
-    inline const QList<ConfigEntry>& cfgEntries() { return m_cfgEntries; }
+    void                               begin();
+    inline const QList<ConfigEntry>&   cfgEntries() { return m_cfgEntries; }
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
-    inline bool                      getBluetoothEnabled() const { return m_cfgBluetoothEnabled; }
+    inline bool                        getBluetoothEnabled() const { return m_cfgBluetoothEnabled; }
 #endif
 #ifdef HSD_CLOCK_ENABLED
-    inline uint8_t              getClockBrightness() const { return m_cfgClockBrightness; }
-    inline bool                 getClockEnabled() const { return m_cfgClockEnabled; }
-    inline uint16_t             getClockNTPInterval() const { return m_cfgClockNTPInterval; }
-    inline const String&        getClockNTPServer() const { return m_cfgClockNTPServer; }
-    inline uint8_t              getClockPinCLK() const { return m_cfgClockPinCLK; }
-    inline uint8_t              getClockPinDIO() const { return m_cfgClockPinDIO; }
-    inline const String&        getClockTimeZone() const { return m_cfgClockTimeZone; }
+    inline uint8_t                     getClockBrightness() const { return m_cfgClockBrightness; }
+    inline bool                        getClockEnabled() const { return m_cfgClockEnabled; }
+    inline uint8_t                     getClockNTPInterval() const { return m_cfgClockNTPInterval; }
+    inline const String&               getClockNTPServer() const { return m_cfgClockNTPServer; }
+    inline uint8_t                     getClockPinCLK() const { return m_cfgClockPinCLK; }
+    inline uint8_t                     getClockPinDIO() const { return m_cfgClockPinDIO; }
+    inline const String&               getClockTimeZone() const { return m_cfgClockTimeZone; }
 #endif // HSD_CLOCK_ENABLED
-    inline const QList<ColorMapping>& getColorMap() const { return m_cfgColorMapping; }
-    int                         getColorMapIndex(const String& msg) const;
-    uint32_t                    getDefaultColor(String key) const;
-    String                      getDefaultColor(uint32_t value) const;
-    String                      getDevice(int ledNumber) const;
+    inline const QList<ColorMapping>&  getColorMap() const { return m_cfgColorMapping; }
+    int                                getColorMapIndex(const String& msg) const;
+    String                             getDevice(int ledNumber) const;
     inline const QList<DeviceMapping>& getDeviceMap() const { return m_cfgDeviceMapping; }
-    inline const String&        getHost() const { return m_cfgHost; }
-    inline Behavior             getLedBehavior(unsigned int colorMapIndex) const { return m_cfgColorMapping[colorMapIndex].behavior; }
-    inline uint8_t              getLedBrightness() const { return m_cfgLedBrightness; }
-    inline uint32_t             getLedColor(unsigned int colorMapIndex) const { return m_cfgColorMapping[colorMapIndex].color; }
-    inline uint8_t              getLedDataPin() const { return m_cfgLedDataPin; }
-    uint8_t                     getLedNumber(const String& device) const;
-    inline const String&        getMqttOutTopic() const { return m_cfgMqttOutTopic; }
-    String                      getMqttOutTopic(const String& topic) const;
-    inline const String&        getMqttPassword() const { return m_cfgMqttPassword; }
-    inline uint16_t             getMqttPort() const { return m_cfgMqttPort; }
-    inline const String&        getMqttServer() const { return m_cfgMqttServer; }
-    inline const String&        getMqttStatusTopic() const { return m_cfgMqttStatusTopic; }
+    inline const String&               getHost() const { return m_cfgHost; }
+    inline Behavior                    getLedBehavior(unsigned int colorMapIndex) const { return m_cfgColorMapping[colorMapIndex].behavior; }
+    inline uint8_t                     getLedBrightness() const { return m_cfgLedBrightness; }
+    inline uint32_t                    getLedColor(unsigned int colorMapIndex) const { return m_cfgColorMapping[colorMapIndex].color; }
+    inline uint8_t                     getLedDataPin() const { return m_cfgLedDataPin; }
+    uint8_t                            getLedNumber(const String& device) const;
+    inline const String&               getMqttOutTopic() const { return m_cfgMqttOutTopic; }
+    String                             getMqttOutTopic(const String& topic) const;
+    inline const String&               getMqttPassword() const { return m_cfgMqttPassword; }
+    inline uint16_t                    getMqttPort() const { return m_cfgMqttPort; }
+    inline const String&               getMqttServer() const { return m_cfgMqttServer; }
+    inline const String&               getMqttStatusTopic() const { return m_cfgMqttStatusTopic; }
 #ifdef MQTT_TEST_TOPIC
-    inline const String&        getMqttTestTopic() const { return m_cfgMqttTestTopic; }
+    inline const String&               getMqttTestTopic() const { return m_cfgMqttTestTopic; }
 #endif    
-    inline const String&        getMqttUser() const { return m_cfgMqttUser; }
-    inline int                  getNumberOfColorMappingEntries() const { return m_cfgColorMapping.size(); }
-    inline int                  getNumberOfDeviceMappingEntries() const { return m_cfgDeviceMapping.size(); }
-    inline uint8_t              getNumberOfLeds() const { return m_cfgNumberOfLeds; }
+    inline const String&               getMqttUser() const { return m_cfgMqttUser; }
+    inline uint8_t                     getNumberOfLeds() const { return m_cfgNumberOfLeds; }
 #ifdef HSD_SENSOR_ENABLED
-    inline uint16_t             getSensorAltitude() const { return m_cfgSensorAltitude; }
-    inline bool                 getSensorI2CEnabled() const { return m_cfgSensorI2CEnabled; }
-    inline uint16_t             getSensorInterval() const { return m_cfgSensorInterval; }
-    inline uint8_t              getSensorPin() const { return m_cfgSensorPin; }
-    inline bool                 getSensorSonoffEnabled() const { return m_cfgSensorSonoffEnabled; }
+    inline uint16_t                    getSensorAltitude() const { return m_cfgSensorAltitude; }
+    inline bool                        getSensorI2CEnabled() const { return m_cfgSensorI2CEnabled; }
+    inline uint8_t                     getSensorInterval() const { return m_cfgSensorInterval; }
+    inline uint8_t                     getSensorPin() const { return m_cfgSensorPin; }
+    inline bool                        getSensorSonoffEnabled() const { return m_cfgSensorSonoffEnabled; }
 #endif // HSD_SENSOR_ENABLED
-    inline const String&        getWifiPSK() const { return m_cfgWifiPSK; }
-    inline const String&        getWifiSSID() const { return m_cfgWifiSSID; }
-    String                      groupDescription(Group group) const;
-    String                      hex2string(uint32_t value) const;
-    bool                        readConfigFile();
-    void                        setColorMap(QList<ColorMapping>& values);
-    void                        setDeviceMap(QList<DeviceMapping>& values);
-    uint32_t                    string2hex(String value) const;
-    void                        writeConfigFile() const;
+    inline const String&               getWifiPSK() const { return m_cfgWifiPSK; }
+    inline const String&               getWifiSSID() const { return m_cfgWifiSSID; }
+    String                             groupDescription(Group group) const;
+    String                             hex2string(uint32_t value) const;
+    bool                               readConfigFile();
+    void                               setColorMap(QList<ColorMapping>& values);
+    void                               setDeviceMap(QList<DeviceMapping>& values);
+    uint32_t                           string2hex(String value) const;
+    void                               writeConfigFile() const;
 
 private:
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
@@ -183,7 +166,7 @@ private:
 #ifdef HSD_CLOCK_ENABLED
     uint8_t              m_cfgClockBrightness;
     bool                 m_cfgClockEnabled;
-    uint16_t             m_cfgClockNTPInterval;
+    uint8_t              m_cfgClockNTPInterval;
     String               m_cfgClockNTPServer;
     uint8_t              m_cfgClockPinCLK;
     uint8_t              m_cfgClockPinDIO;
@@ -206,7 +189,7 @@ private:
     uint8_t              m_cfgNumberOfLeds;
 #ifdef HSD_SENSOR_ENABLED
     bool                 m_cfgSensorI2CEnabled;
-    uint16_t             m_cfgSensorInterval;
+    uint8_t              m_cfgSensorInterval;
     uint8_t              m_cfgSensorPin;
     bool                 m_cfgSensorSonoffEnabled;
     uint16_t             m_cfgSensorAltitude;

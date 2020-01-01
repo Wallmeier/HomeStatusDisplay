@@ -3,12 +3,6 @@
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 
-#ifdef ARDUINO_ARCH_ESP32
-#include <ESPmDNS.h>
-#else
-#include <ESP8266mDNS.h>
-#endif
-
 #define ONE_MINUTE_MILLIS (60000)
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -26,7 +20,7 @@ HomeStatusDisplay::HomeStatusDisplay() :
     m_sensor(nullptr),
 #endif
     m_webServer(m_config, m_leds, m_mqttHandler),
-    m_wifi(m_config)
+    m_wifi(m_config, m_leds, m_webServer)
 {
 }
 
@@ -49,7 +43,7 @@ void HomeStatusDisplay::begin() {
             SPIFFS.end();
         }
         Serial.println("ArduinoOTA: start updating " + type);
-        m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("BLUE"));
+        m_leds.setAll(HSDConfig::Behavior::On, LED_COLOR_BLUE);
     });
     ArduinoOTA.onEnd([=]() {
         Serial.println("ArduinoOTA: end");
@@ -59,7 +53,7 @@ void HomeStatusDisplay::begin() {
         static int val = 0;
         int newVal = progress / (total / 100);
         if (newVal != val) {
-            Serial.printf("ArduinoOTA: progress: %u%%\r\n", newVal);
+            Serial.printf("ArduinoOTA: progress: %u%%\n", newVal);
             val = newVal;
         }
     });
@@ -87,14 +81,12 @@ void HomeStatusDisplay::begin() {
         m_clock->begin();
     }
 #endif
-
 #ifdef HSD_SENSOR_ENABLED
     if (m_config.getSensorSonoffEnabled() || m_config.getSensorI2CEnabled()) {
         m_sensor = new HSDSensor(m_config);
-        m_sensor->begin();
+        m_sensor->begin(m_webServer);
     }
 #endif
-
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
     if (m_config.getBluetoothEnabled()) {
         m_bluetooth = new HSDBluetooth(m_config, m_mqttHandler);
@@ -108,12 +100,14 @@ void HomeStatusDisplay::begin() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HomeStatusDisplay::work() {
-    checkConnections();
+    checkMqttConnections();
     m_wifi.handleConnection();
-    m_webServer.handleClient(calcUptime());
+    calcUptime();
 
-    if (m_wifi.connected())
+    if (WiFi.isConnected()) {
         m_mqttHandler.handle();
+        ArduinoOTA.handle();
+    }
   
     m_leds.update();
 #ifdef HSD_CLOCK_ENABLED
@@ -128,18 +122,19 @@ void HomeStatusDisplay::work() {
     if (m_config.getSensorSonoffEnabled() || m_config.getSensorI2CEnabled())
         m_sensor->handle(m_webServer, m_mqttHandler);
 #endif // HSD_SENSOR_ENABLED
-    delay(1);
+    delay(10);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-unsigned long HomeStatusDisplay::calcUptime() {
+void HomeStatusDisplay::calcUptime() {
     static unsigned long oneMinuteTimerLast = 0;
     static unsigned long uptime = 0;
 
     if (millis() - oneMinuteTimerLast >= ONE_MINUTE_MILLIS) {
         uptime++;
         oneMinuteTimerLast = millis();
+        m_webServer.setUptime(uptime);
         
         Serial.println("Uptime: " + String(uptime) + " min");
 
@@ -169,7 +164,6 @@ unsigned long HomeStatusDisplay::calcUptime() {
             }
         }
     }
-    return uptime;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -189,8 +183,8 @@ void HomeStatusDisplay::mqttCallback(char* topic, byte* payload, unsigned int le
     } else 
 #endif // MQTT_TEST_TOPIC    
     if (isStatusTopic(mqttTopicString)) {
-        String device = getDevice(mqttTopicString);
-        handleStatus(device, mqttMsgString);
+        handleStatus(getDevice(mqttTopicString), mqttMsgString);
+        m_webServer.ledChange();
     }
 }
 
@@ -241,7 +235,7 @@ void HomeStatusDisplay::handleStatus(const String& device, const String& msg) {
             m_leds.set(ledNumber, HSDConfig::Behavior::On, color);
         } else {
             Serial.println("Unknown message " + msg + " for led number " + String(ledNumber) + ", set to OFF");
-            m_leds.set(ledNumber, HSDConfig::Behavior::Off, m_config.getDefaultColor("NONE"));
+            m_leds.set(ledNumber, HSDConfig::Behavior::Off, LED_COLOR_NONE);
         }
     } else {
         Serial.println("No LED defined for device " + device + ", ignoring it");
@@ -250,35 +244,16 @@ void HomeStatusDisplay::handleStatus(const String& device, const String& msg) {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HomeStatusDisplay::checkConnections() {
+void HomeStatusDisplay::checkMqttConnections() {
     static bool lastMqttConnectionState = false;
-    static bool lastWifiConnectionState = false;
     
     if (!lastMqttConnectionState && m_mqttHandler.connected()) {
-        m_leds.clear();
         lastMqttConnectionState = true;
+        m_webServer.updateStatusEntry(F("mqttStatus"), "connected");
+        m_leds.clear();
     } else if (lastMqttConnectionState && !m_mqttHandler.connected()) {
-        m_leds.clear();
         lastMqttConnectionState = false;
+        m_webServer.updateStatusEntry(F("mqttStatus"), "disconnected");
+        m_leds.setAll(HSDConfig::Behavior::On, LED_COLOR_YELLOW);
     }
-
-    if (!m_mqttHandler.connected() && m_wifi.connected())
-        m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("YELLOW"));
-  
-    if (!lastWifiConnectionState && m_wifi.connected()) {
-        m_leds.clear();
-        if (!m_mqttHandler.connected())
-            m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("ORANGE"));
-        lastWifiConnectionState = true;
-        ArduinoOTA.begin();
-        MDNS.addService("http", "tcp", 80);
-    } else if (lastWifiConnectionState && !m_wifi.connected()) {
-        m_leds.clear();
-        lastWifiConnectionState = false;
-    }
-
-    if (!m_wifi.connected())
-        m_leds.setAll(HSDConfig::Behavior::On, m_config.getDefaultColor("RED"));
-    else
-        ArduinoOTA.handle();
 }

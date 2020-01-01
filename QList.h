@@ -9,7 +9,7 @@ public:
     QList() : m_end(nullptr), m_len(0), m_start(nullptr) {} // Class constructor
     ~QList() { clear(); }                                   // Class destructor
 
-    void push_back(const T& i) { // Push item at the back of list
+    int push_back(const T& i) { // Push item at the back of list
         node* tmp = new node(i);
         if (m_end == nullptr) { // If list is empty
             m_start = tmp;
@@ -19,7 +19,7 @@ public:
             m_end->next = tmp;
             m_end = tmp;
         }
-        m_len++; // Increase size counter
+        return m_len++; // Increase size counter
     }
     
     void push_front(const T i) { // Push item at the front of the list

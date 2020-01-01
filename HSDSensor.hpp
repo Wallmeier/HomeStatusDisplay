@@ -12,7 +12,7 @@ class HSDSensor {
 public:
     HSDSensor(const HSDConfig& config);
     
-    void begin();
+    void begin(HSDWebserver& webServer);
     void handle(HSDWebserver& webServer, const HSDMqtt& mqtt) const;
 
 private:

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+	<title>HomeStatusDisplay</title>
+    <!-- Material Design Lite + additional components --> 
+    <link type="text/css" rel="stylesheet" href="css/material.min.css">
+    <script type="text/javascript" src="js/material.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    
+	<script type="text/javascript" src="js/statusdisplay.js"></script>
+    <style type="text/css">
+        .hidden>div {display:none;}
+        .visible>div {display:block;}
+        .page-content {padding:16px;}
+        .noPaddingTop {padding-top:0px;}
+    </style>
+  </head>
+  
+  <body onload="onPageLoad()">
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <span class="mdl-layout-title">HomeStatusDisplay %VERSION%</span>
+        </div>
+        <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
+          <a href="#scroll-tab-status" id="tabStat" class="mdl-layout__tab is-active">Status</a>
+          <a href="#scroll-tab-config" id="tabCfg"  class="mdl-layout__tab">Configuration</a>
+          <a href="#scroll-tab-colmap" id="tabCol"  class="mdl-layout__tab" onclick="coltable.setData('/ajax/colormapping.json')">Color Mapping</a>
+          <a href="#scroll-tab-devmap" id="tabDev"  class="mdl-layout__tab" onclick="devtable.setData('/ajax/devicemapping.json')">Device Mapping</a>
+          <a href="#scroll-tab-update" id="tabUpd"  class="mdl-layout__tab">Firmware Update</a>
+        </div>
+      </header>
+  
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout-title">HomeStatusDisplay</span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" onclick="document.getElementById('tabStat').click()">Status</a>
+          <a class="mdl-navigation__link" onclick="document.getElementById('tabCfg').click()">Configuration</a>
+          <a class="mdl-navigation__link" onclick="document.getElementById('tabCol').click()">Color Mapping</a>
+          <a class="mdl-navigation__link" onclick="document.getElementById('tabDev').click()">Device Mapping</a>
+          <a class="mdl-navigation__link" onclick="document.getElementById('tabUpd').click()">Firmware Update</a>
+          <a class="mdl-navigation__link" onclick="reboot()">Reboot</a>
+        </nav>      
+      </div>
+  
+      <main class="mdl-layout__content">
+        <div align="center" id="status.spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
+        
+        <section class="mdl-layout__tab-panel is-active" id="scroll-tab-status">
+          <div class="page-content">
+            <div id="status.content"></div>
+            <div id="noLeds" class="hidden"><p>All LEDs are <b>off</b></p></div>
+            <div id="led-table" class="table hidden"></div>            
+          </div>
+        </section>
+        
+        <section class="mdl-layout__tab-panel" id="scroll-tab-config">
+          <div class="page-content noPaddingTop">
+            <div class="mdl-tabs mdl-js-tabs">%CONFIG%
+              <!-- form id="formConfig" action="/cfgmain">
+                <div class="mdl-tabs__panel" id="tab-cfgSensors">
+                  <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="Sensors.sonoffEnabled">
+                    <input name="Sensors.sonoffEnabled" id="Sensors.sonoffEnabled" type="checkbox" class="mdl-switch__input" checked aonchange="document.getElementById('Sensors.sonoffPin').disabled = !this.checked; document.getElementById('Sensors.interval').disabled = !this.checked;">
+                    <span class="mdl-switch__label">Sonoff SI7021</span>
+                  </label>
+                  <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="Sensors.i2cEnabled">
+                    <input name="Sensors.i2cEnabled" id="Sensors.i2cEnabled" type="checkbox" class="mdl-switch__input" checked onchange="document.getElementById('Sensors.altitude').disabled = !this.checked;">
+                    <span class="mdl-switch__label">I2C</span>
+                  </label>
+                </div>
+              </form -->
+              <hr>
+              <p>
+                <form method='POST' action='/' enctype='multipart/form-data'>
+                  <div class="mdl-textfield mdl-js-textfield mdl-textfield--file">
+                    <input class="mdl-textfield__input" placeholder="No file chosen" type="text" id="txtCfgUpload" readonly />
+                    <div class="mdl-button mdl-button--icon mdl-button--file">
+                      <i class="material-icons">attach_file</i>
+                      <input type="file" name="import" accept='.json' id="cfg.import.file" onchange="document.getElementById('txtCfgUpload').value = this.files[0].name; document.getElementById('cfg.import').disabled = this.files.length == 0;" />
+                    </div>
+                    <span class="mdl-tooltip" for="cfg.import.file">Select configuration to import</span>
+                  </div>                         
+                  <button type="button" atype="submit" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="cfg.import" onclick="uploadConfig('cfg.import.file')" disabled>
+                    <i class="material-icons">publish</i><!-- cloud_upload -->
+                  </button>              
+                  <span class="mdl-tooltip" for="cfg.import">Import configuration</span>
+                  <button type="button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="cfg.export" onclick="location.href='/config.json'">
+                    <i class="material-icons">get_app</i><!-- cloud_download -->
+                  </button>
+                  <span class="mdl-tooltip" for="cfg.export">Export configuration</span>
+                  <button type="button" atype='submit' class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="cfg.save" onclick="saveConfig()">
+                    <i class="material-icons">save</i><!-- save_alt -->
+                  </button>
+                  <span class="mdl-tooltip" for="cfg.save">Save configuration</span>
+                </form>
+              </p>
+            </div>
+          </div>
+        </section>
+    
+        <section class="mdl-layout__tab-panel" id="scroll-tab-colmap">
+          <div class="page-content">
+            <div id='colmap-table' class='table'></div>
+            <br>
+            <p>
+              <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="coltable.add" onclick='var maxIdx=getMaxIdx(coltable); coltable.addData([{id:maxIdx, msg:"", col:"#00FF00", beh:1}], false)'>
+                <i class="material-icons">add</i>
+              </button>
+              <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="coltable.clear" onclick="coltable.clearData()">
+                <i class="material-icons">clear</i>
+              </button>
+              <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="coltable.undo" onclick="coltable.undo();">
+                <i class="material-icons">undo</i>
+              </button>
+              <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="coltable.save" onclick="saveTable(coltable, 'colorMapping')">
+                <i class="material-icons">save</i>
+              </button>
+              <div class="mdl-tooltip" for="coltable.add">Add new entry</div>
+              <div class="mdl-tooltip" for="coltable.clear">Clear complete table</div>
+              <div class="mdl-tooltip" for="coltable.undo">Undo</div>
+              <div class="mdl-tooltip" for="coltable.save">Save changes</div>
+            </p>
+          </div>
+        </section>
+        
+        <section class="mdl-layout__tab-panel" id="scroll-tab-devmap">
+          <div class="page-content">
+            <div id='devmap-table' class='table'></div>
+            <br>
+            <p>
+              <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="devtable.add" onclick='var maxIdx=getMaxIdx(devtable); devtable.addData([{id:maxIdx, device:"", led:0}], false)'>
+                <i class="material-icons">add</i>
+              </button>
+              <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="devtable.clear" onclick='devtable.clearData()'>
+                <i class="material-icons">clear</i>
+              </button>
+              <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="devtable.undo" onclick='devtable.undo()'>
+                <i class="material-icons">undo</i>
+              </button>
+              <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="devtable.save" onclick="saveTable(devtable, 'deviceMapping')">
+                <i class="material-icons">save</i>
+              </button>
+              <div class="mdl-tooltip" for="devtable.add">Add new entry</div>
+              <div class="mdl-tooltip" for="devtable.clear">Clear complete table</div>
+              <div class="mdl-tooltip" for="devtable.undo">Undo</div>
+              <div class="mdl-tooltip" for="devtable.save">Save changes</div>
+            </p>
+          </div>
+        </section>
+        
+        <section class="mdl-layout__tab-panel" id="scroll-tab-update">
+          <div class="page-content">
+            <h4>Firmware</h4>
+            <form method='POST' action='/update' enctype='multipart/form-data'>
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--file">
+                <input class="mdl-textfield__input" placeholder="No file chosen" type="text" id="txtFirmware" readonly />
+                <div class="mdl-button mdl-button--icon mdl-button--file">
+                  <i class="material-icons">attach_file</i>
+                  <input type="file" name="firmware" id="upd.firmware.file" accept='.bin' onchange="document.getElementById('txtFirmware').value=this.files[0].name; document.getElementById('upd.firmware').disabled = this.files.length == 0;" />
+                </div>
+                <span class="mdl-tooltip" for="upd.firmware.file">Select firmware image</span>
+              </div>            
+              <button type='submit' class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="upd.firmware" disabled>
+                <i class="material-icons">system_update_alt</i>
+              </button>            
+              <span class="mdl-tooltip" for="upd.firmware">Update Firmware</span>
+            </form>
+            <h4>FileSystem</h4>
+            <form method='POST' action='/update' enctype='multipart/form-data'>
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--file">
+                <input class="mdl-textfield__input" placeholder="No file chosen" type="text" id="txtFilesystem" readonly />
+                <div class="mdl-button mdl-button--icon mdl-button--file">
+                  <i class="material-icons">attach_file</i>
+                  <input type="file" name="filesystem" id="upd.filesystem.file" accept='.bin' onchange="document.getElementById('txtFilesystem').value=this.files[0].name; document.getElementById('upd.filesystem').disabled = this.files.length == 0;" />
+                </div>
+                <span class="mdl-tooltip" for="upd.filesystem.file">Select filesystem image</span>
+              </div>            
+              <button type='submit' class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="upd.filesystem" disabled>
+                <i class="material-icons">system_update_alt</i>
+              </button>
+              <span class="mdl-tooltip" for="upd.filesystem">Update Filesystem</span>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

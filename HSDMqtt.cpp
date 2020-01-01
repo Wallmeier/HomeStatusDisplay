@@ -29,9 +29,7 @@ void HSDMqtt::handle() {
     static bool first = true;
     static unsigned long millisLastConnectTry = 0;
     
-    if (connected()) {
-        m_pubSubClient.loop();
-    } else if (WiFi.status() == WL_CONNECTED) {
+    if (!m_pubSubClient.loop() && WiFi.isConnected()) {
         if (first || ((millis() - millisLastConnectTry) >= 10000)) { // alle 10 Sekunden testen
             first = false;
             millisLastConnectTry = millis();
@@ -46,28 +44,24 @@ bool HSDMqtt::reconnect() const {
     bool retval(false), connected(false);
   
     // Create a constant but unique client ID
-    String clientId = m_config.getHost();
-    clientId += "-";
     String mac = WiFi.macAddress();
     mac.replace(":", "");
-    clientId += mac.substring(6);
-
-    Serial.print(F("Connecting to MQTT broker "));
-    Serial.print(m_config.getMqttServer());
-    Serial.print(":" + String(m_config.getMqttPort()));
-    Serial.print(" with client id " + clientId + "... ");
+    char clientId[24];
+    snprintf(clientId, 24, "%s-%s", m_config.getHost().c_str(), mac.substring(6).c_str());
+    Serial.printf("Connecting to MQTT broker %s:%d with clientId %s...", m_config.getMqttServer().c_str(), 
+                  m_config.getMqttPort(), clientId);
 
     const String& willTopic = m_config.getMqttOutTopic("status");
     if (m_config.getMqttUser().length() == 0) {
         if (isTopicValid(willTopic))
-            connected = m_pubSubClient.connect(clientId.c_str(), willTopic.c_str(), 0, true, "off");
+            connected = m_pubSubClient.connect(clientId, willTopic.c_str(), 0, true, "off");
         else
-            connected = m_pubSubClient.connect(clientId.c_str());
+            connected = m_pubSubClient.connect(clientId);
     } else {
         if (isTopicValid(willTopic))
-            connected = m_pubSubClient.connect(clientId.c_str(), m_config.getMqttUser().c_str(), m_config.getMqttPassword().c_str(), willTopic.c_str(), 0, true, "off");
+            connected = m_pubSubClient.connect(clientId, m_config.getMqttUser().c_str(), m_config.getMqttPassword().c_str(), willTopic.c_str(), 0, true, "off");
         else
-            connected = m_pubSubClient.connect(clientId.c_str(), m_config.getMqttUser().c_str(), m_config.getMqttPassword().c_str());
+            connected = m_pubSubClient.connect(clientId, m_config.getMqttUser().c_str(), m_config.getMqttPassword().c_str());
     }
     if (connected) {
         Serial.println(F("connected"));
@@ -88,8 +82,7 @@ bool HSDMqtt::reconnect() const {
             subscribe(m_inTopics[index]);
         retval = true;
     } else {
-        Serial.print(F("failed, rc = "));
-        Serial.println(m_pubSubClient.state());
+        Serial.printf("failed, rc = %d\n", m_pubSubClient.state());
     }
     return retval;
 }

@@ -25,15 +25,15 @@ public:
     void work();
   
 private:
-    unsigned long calcUptime();
-    void          checkConnections();
-    String        getDevice(const String& statusTopic) const;
-    void          handleStatus(const String& device, const String& msg);
+    void   calcUptime();
+    void   checkMqttConnections();
+    String getDevice(const String& statusTopic) const;
+    void   handleStatus(const String& device, const String& msg);
 #ifdef MQTT_TEST_TOPIC
-    void          handleTest(const String& msg);
+    void   handleTest(const String& msg);
 #endif    
-    bool          isStatusTopic(const String& topic) const;
-    void          mqttCallback(char* topic, byte* payload, unsigned int length);
+    bool   isStatusTopic(const String& topic) const;
+    void   mqttCallback(char* topic, byte* payload, unsigned int length);
 
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
     HSDBluetooth* m_bluetooth;
