@@ -9,16 +9,16 @@
 
 class HSDClock {
 public:
-    HSDClock(const HSDConfig& config);
+    HSDClock(const HSDConfig* config);
 
     void begin();
     void handle();
 
 private:
-    const HSDConfig& m_config;
+    const HSDConfig* m_config;
     Timezone         m_local;
     uint8_t          m_oldTime;
-    TM1637           m_tm1637;
+    TM1637*          m_tm1637;
 };
 
 #endif // HSDCLOCK_H

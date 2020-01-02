@@ -10,10 +10,10 @@
 
 class HSDSensor {
 public:
-    HSDSensor(const HSDConfig& config);
+    HSDSensor(const HSDConfig* config);
     
-    void begin(HSDWebserver& webServer);
-    void handle(HSDWebserver& webServer, const HSDMqtt& mqtt) const;
+    void begin(HSDWebserver* webServer);
+    void handle(HSDWebserver* webServer, const HSDMqtt* mqtt) const;
 
 private:
     int32_t expectPulse(bool level) const;
@@ -23,7 +23,7 @@ private:
     bool    readSensor(float& temp, float& hum) const;
 
     Adafruit_BMP085_Unified*  m_bmp;
-    const HSDConfig&          m_config;
+    const HSDConfig*          m_config;
     uint32_t                  m_maxCycles;
     uint8_t                   m_pin;
     Adafruit_TSL2561_Unified* m_tsl;

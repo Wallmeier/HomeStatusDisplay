@@ -1,28 +1,30 @@
 #include "HSDClock.hpp"
 
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef ESP32
 #include <WiFi.h>
-#else
+#elif defined(ESP8266)
 #include <ESP8266WiFi.h>
-#endif // ARDUINO_ARCH_ESP32
+#endif
 
-HSDClock::HSDClock(const HSDConfig& config) :
+HSDClock::HSDClock(const HSDConfig* config) :
     m_config(config),
-    m_tm1637(242, 242) // default constructor missing, initialise with unrealistic pin
+    m_tm1637(nullptr)
 {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDClock::begin() {
-    m_tm1637 = TM1637(m_config.getClockPinCLK(), m_config.getClockPinDIO());
+    if (m_config->getClockPinCLK() != m_config->getClockPinDIO()) {
+        m_tm1637 = new TM1637(m_config->getClockPinCLK(), m_config->getClockPinDIO());
   
-    ezt::setServer(m_config.getClockNTPServer());
-    ezt::setInterval(m_config.getClockNTPInterval() * 60);
-    m_local.setPosix(m_config.getClockTimeZone());
+        ezt::setServer(m_config->getClockNTPServer());
+        ezt::setInterval(m_config->getClockNTPInterval() * 60);
+        m_local.setPosix(m_config->getClockTimeZone());
 
-    m_tm1637.set(m_config.getClockBrightness());  // set brightness
-    m_tm1637.init();
+        m_tm1637->set(m_config->getClockBrightness());  // set brightness
+        m_tm1637->init();
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -30,29 +32,31 @@ void HSDClock::begin() {
 void HSDClock::handle() {
     static bool initEZ = false;
     
-    if (initEZ || WiFi.status() == WL_CONNECTED) {
-        initEZ = true;
-        // for ezTime
-        ezt::events();
-    }
-
-    if (WiFi.status() == WL_CONNECTED && m_config.getClockPinCLK() != m_config.getClockPinDIO()) {
-        uint8_t new_time = m_local.hour() * 100 + m_local.minute();
-        if (new_time != m_oldTime) {
-            m_oldTime = new_time;
-            int8_t TimeDisp[4];
-            TimeDisp[0] = m_local.hour() / 10;
-            TimeDisp[1] = m_local.hour() % 10;
-            TimeDisp[2] = m_local.minute() / 10;
-            TimeDisp[3] = m_local.minute() % 10;
-            m_tm1637.point(1);
-            m_tm1637.display(TimeDisp);
+    if (m_tm1637) {    
+        if (initEZ || WiFi.isConnected()) {
+            initEZ = true;
+            // for ezTime
+            ezt::events();
         }
-    } else {
-        uint8_t new_time = -1;
-        if (new_time != m_oldTime) {
-            m_oldTime = new_time;
-            m_tm1637.clearDisplay();
+
+        if (WiFi.isConnected()) {
+            uint8_t new_time = m_local.hour() * 100 + m_local.minute();
+            if (new_time != m_oldTime) {
+                m_oldTime = new_time;
+                int8_t TimeDisp[4];
+                TimeDisp[0] = m_local.hour() / 10;
+                TimeDisp[1] = m_local.hour() % 10;
+                TimeDisp[2] = m_local.minute() / 10;
+                TimeDisp[3] = m_local.minute() % 10;
+                m_tm1637->point(1);
+                m_tm1637->display(TimeDisp);
+            }
+        } else {
+            uint8_t new_time = -1;
+            if (new_time != m_oldTime) {
+                m_oldTime = new_time;
+                m_tm1637->clearDisplay();
+            }
         }
     }
 }

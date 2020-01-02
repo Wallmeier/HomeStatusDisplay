@@ -1,15 +1,14 @@
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef ESP32
 
 #include "HSDBluetooth.hpp"
 
-// #include <functional>
 #include <BLEDevice.h>
 
 void onScanResult(BLEScanResults result) {
     Serial.print("Scan finished: "); Serial.println(result.getCount());
 }
 
-HSDBluetooth::HSDBluetooth(const HSDConfig& config, const HSDMqtt& mqtt) :
+HSDBluetooth::HSDBluetooth(const HSDConfig* config, const HSDMqtt* mqtt) :
     m_BLEScan(nullptr),
     m_config(config),
     m_mqtt(mqtt)
@@ -19,7 +18,7 @@ HSDBluetooth::HSDBluetooth(const HSDConfig& config, const HSDMqtt& mqtt) :
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDBluetooth::begin() {
-    Serial.println(F("Starting Bluetooth LE support..."));
+    Serial.println("Starting Bluetooth LE support...");
     BLEDevice::init("");
     m_BLEScan = BLEDevice::getScan(); //create new scan
     m_BLEScan->setAdvertisedDeviceCallbacks(this);
@@ -34,17 +33,16 @@ void HSDBluetooth::handle() {
     if (first || ((millis() - millisLastScan) >= 65555)) { // 10100
         first = false;
         millisLastScan = millis();
-        Serial.println(F("Starting Bluetooth scan"));
+        Serial.println("Starting Bluetooth scan");
         m_BLEScan->clearResults();   // delete results fromBLEScan buffer to release memory
         if (!m_BLEScan->start(10, onScanResult, true))
-            Serial.println(F("Failed to start Bluetooth Scan"));
+            Serial.println("Failed to start Bluetooth Scan");
     }    
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-int strpos(const char *haystack, const char *needle) //from @miere https://stackoverflow.com/users/548685/miere
-{
+int strpos(const char* haystack, const char* needle) { //from @miere https://stackoverflow.com/users/548685/miere
    char *p = strstr(haystack, needle);
    if (p)
       return p - haystack;
@@ -54,7 +52,7 @@ int strpos(const char *haystack, const char *needle) //from @miere https://stack
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDBluetooth::onResult(BLEAdvertisedDevice advertisedDevice) {
-    Serial.print(F("Advertised Device: ")); Serial.println(advertisedDevice.toString().c_str());
+    Serial.print("Advertised Device: "); Serial.println(advertisedDevice.toString().c_str());
     if (advertisedDevice.haveServiceData()) {
         if (strstr(advertisedDevice.getServiceDataUUID().toString().c_str(), "fe95") != nullptr) {
             std::string serviceData = advertisedDevice.getServiceData();
@@ -73,7 +71,7 @@ void HSDBluetooth::onResult(BLEAdvertisedDevice advertisedDevice) {
             if (pos != -1) {             
                 DynamicJsonBuffer jsonBuffer;
                 JsonObject& json = jsonBuffer.createObject();
-                Serial.println(F("mi flora data reading"));
+                Serial.println("mi flora data reading");
                 if (process_data(json, pos - 24, service_data)) {
                     String id = advertisedDevice.getAddress().toString().c_str();
                     json["id"] = id;
@@ -86,9 +84,9 @@ void HSDBluetooth::onResult(BLEAdvertisedDevice advertisedDevice) {
                     String mac = advertisedDevice.getAddress().toString().c_str();
                     mac.replace(":", "");
                     mac.toUpperCase();
-                    String topic = m_config.getMqttOutTopic("sensors/" + mac);
-                    if (m_mqtt.connected() && m_mqtt.isTopicValid(topic))
-                        m_mqtt.publish(topic, json);
+                    String topic = m_config->getMqttOutTopic("sensors/" + mac);
+                    if (m_mqtt->connected() && m_mqtt->isTopicValid(topic))
+                        m_mqtt->publish(topic, json);
                 }
             }
         }
@@ -186,4 +184,4 @@ void HSDBluetooth::revert_hex_data(const char* in, char* out, int l) const {
     out[l - 1] = '\0';
 } 
 
-#endif // ARDUINO_ARCH_ESP32
+#endif // ESP32

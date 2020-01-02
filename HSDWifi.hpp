@@ -14,7 +14,7 @@
 
 class HSDWifi {
 public:
-    HSDWifi(const HSDConfig& config, HSDLeds& leds, HSDWebserver& webserver);
+    HSDWifi(const HSDConfig* config, HSDLeds* leds, HSDWebserver* webserver);
 
     void   begin();
     void   handleConnection();
@@ -30,7 +30,7 @@ private:
     void   startAccessPoint();
 
     bool             m_accessPointActive;
-    const HSDConfig& m_config;
+    const HSDConfig* m_config;
     bool             m_connectFailure;
 #ifdef ESP8266
     WiFiEventHandler m_evOnConnect;
@@ -43,13 +43,13 @@ private:
     WiFiEventId_t    m_evOnGotIP;
 #endif
     bool             m_lastConnectStatus;
-    HSDLeds&         m_leds;
+    HSDLeds*         m_leds;
     int              m_maxConnectRetries;
     unsigned long    m_millisLastConnectTry;
     int              m_numConnectRetriesDone;
     int              m_retryDelay;
     bool             m_wasConnected;
-    HSDWebserver&    m_webserver;
+    HSDWebserver*    m_webserver;
 };
 
 #endif // HSDWIFI_H

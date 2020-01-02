@@ -1,25 +1,30 @@
 #ifndef HSDWEBSERVER_H
 #define HSDWEBSERVER_H
 
-#include <AsyncWebSocket.h>
-#include <ESPAsyncWebServer.h>
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef ESP32
 #include <SPIFFS.h>
-#else
+#include <WebServer.h>
+#elif defined(ESP8266)
+#include <ESP8266WebServer.h>
 #include <FS.h>
+#define WebServer ESP8266WebServer
+using namespace esp8266webserver;
 #endif
+#include <WebSocketsServer.h>
+#include <vector>
 
 #include "HSDConfig.hpp"
 #include "HSDLeds.hpp"
 #include "HSDMqtt.hpp"
-#include "QList.h"
+
+using namespace std;
 
 class HSDWebserver {  
 public:
     enum class StatusClass : uint8_t {
         Device = 0,
         Filesystem, // info ???
-        Firmware, // build (Schraubenschl�ssel)
+        Firmware, // build (Schraubenschluessel)
         Flash, // sd_card
         Heap,  // memory
         Mqtt,
@@ -29,46 +34,49 @@ public:
     };
     
     struct StatusEntry {
-        StatusEntry(StatusClass c, const __FlashStringHelper* l, const String& v, const __FlashStringHelper* u = nullptr, const __FlashStringHelper* id = nullptr) : id(id), label(l), type(c), unit(u), value(v) {}
+        StatusEntry(StatusClass c, const char* l, const String& v, const char* u = "", const char* id = "") : id(id), label(l), type(c), unit(u), value(v) {}
         
-        const __FlashStringHelper* id;
-        const __FlashStringHelper* label;
-        StatusClass                type;
-        const __FlashStringHelper* unit;
-        String                     value;
+        const String id;
+        const String label;
+        StatusClass  type;
+        const String unit;
+        String       value;
     };
 
-    HSDWebserver(HSDConfig& config, const HSDLeds& leds, const HSDMqtt& mqtt);
+    HSDWebserver(HSDConfig* config, const HSDLeds* leds, const HSDMqtt* mqtt);
 
     void        begin();
     void        ledChange();
-    inline void registerStatusEntry(StatusClass type, const __FlashStringHelper* label, const String& value, const __FlashStringHelper* unit = nullptr, const __FlashStringHelper* id = nullptr) { m_statusEntries.push_back(StatusEntry(type, label, value, unit, id)); }
+    inline void handle() { m_server->handleClient(); m_ws->loop(); }
+    inline void registerStatusEntry(StatusClass type, const char* label, const String& value, const char* unit = "", const char* id = "") { m_statusEntries.push_back(new StatusEntry(type, label, value, unit, id)); }
     void        setUptime(unsigned long& deviceUptime);
-    void        updateStatusEntry(const __FlashStringHelper* id, const String& value);
+    void        updateStatusEntry(const String& id, const String& value);
 
 private:
     void   createLedArray(JsonArray& leds) const;
     String createUpdateRequest() const;
+    void   deliverNotFoundPage();
     String getConfig() const;
     String getTypeName(StatusClass type) const;
     String getUptimeString(unsigned long& uptime) const;
-    void   handleUpload(AsyncWebServerRequest* request, const String& filename, size_t index, uint8_t* data, size_t len, bool final);
-    void   handleWebSocket(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsEventType type, void* arg, uint8_t* data, size_t len);
+    bool   handleFileRead(String path);
+    void   handleWebSocket(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
     void   importConfig(const String& filename, const String& content) const;
-    String processTemplates(const String& key);
+    String processTemplates(const String& key) const;
     void   saveColorMapping(const JsonArray& colMapping) const;
     void   saveConfig(const JsonObject& config) const;
     void   saveDeviceMapping(const JsonArray& devMapping) const;
+    void   sendAndProcessTemplate(const String& filePath);
     void   setUpdaterError();
 
-    HSDConfig&         m_config;
-    const HSDLeds&     m_leds;
-    const HSDMqtt&     m_mqtt;
-    AsyncWebServer     m_server;
-    QList<StatusEntry> m_statusEntries;
-    String             m_updaterError;
-    AsyncWebSocket     m_ws;
-    String             m_wsBuffer[DEFAULT_MAX_WS_CLIENTS];
+    HSDConfig*           m_config;
+    const HSDLeds*       m_leds;
+    const HSDMqtt*       m_mqtt;
+    WebServer*           m_server;
+    vector<StatusEntry*> m_statusEntries;
+    String               m_updaterError;
+    WebSocketsServer*    m_ws;
+    String               m_wsBuffer[WEBSOCKETS_SERVER_CLIENT_MAX];
 };
 
 #endif // HSDWEBSERVER_H

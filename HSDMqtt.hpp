@@ -1,8 +1,8 @@
 #ifndef HSDMQTT_H
 #define HSDMQTT_H
 
-#define MAX_IN_TOPICS        5
 #define MQTT_MAX_PACKET_SIZE 256
+#define MQTT_KEEPALIVE       30
 
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
@@ -16,11 +16,10 @@
 
 class HSDMqtt {
 public:
-    HSDMqtt(const HSDConfig& config, MQTT_CALLBACK_SIGNATURE);
+    HSDMqtt(const HSDConfig* config, MQTT_CALLBACK_SIGNATURE);
 
-    bool        addTopic(const String& topic);
     void        begin();
-    inline bool connected() const { return m_pubSubClient.connected(); }
+    inline bool connected() const { return m_pubSubClient->connected(); }
     void        handle();
     inline bool isTopicValid(const String& topic) const { return topic.length() > 0; }
     void        publish(const String& topic, String msg) const;
@@ -30,11 +29,9 @@ public:
 private:
     void subscribe(const String& topic) const;
 
-    const HSDConfig&     m_config;
-    String               m_inTopics[MAX_IN_TOPICS];
-    uint32_t             m_numberOfInTopics;
-    mutable PubSubClient m_pubSubClient;
-    WiFiClient           m_wifiClient;  
+    const HSDConfig*      m_config;
+    mutable PubSubClient* m_pubSubClient;
+    WiFiClient            m_wifiClient;  
 };
 
 #endif // HSDMQTT_H

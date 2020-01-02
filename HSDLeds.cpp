@@ -2,17 +2,15 @@
 
 #define NUMBER_OF_ELEMENTS(array)  (sizeof(array) / sizeof(array[0]))
 
-HSDLeds::HSDLeds(const HSDConfig& config) :
-    m_blinkOn(false),
-    m_flashOn(false),
-    m_flickerOn(false),
+HSDLeds::HSDLeds(const HSDConfig* config) :
     m_config(config),
     m_numLeds(0),
     m_pLedState(nullptr),
-    m_previousMillisBlink(0),
-    m_previousMillisFlash(0),
-    m_previousMillisFlicker(0)
+    m_stripe(new Adafruit_NeoPixel())
 {
+    for (uint8_t idx = 0; idx < 5; idx++)
+        m_behaviorOn[idx] = true;
+    m_behaviorOn[static_cast<uint8_t>(HSDConfig::Behavior::Off)] = false;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -20,48 +18,63 @@ HSDLeds::HSDLeds(const HSDConfig& config) :
 HSDLeds::~HSDLeds() {
     if (m_pLedState)
         delete[] m_pLedState;
+    if (m_stripe)
+        delete m_stripe;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDLeds::begin() {
-    m_numLeds = m_config.getNumberOfLeds();
+    m_numLeds = m_config->getNumberOfLeds();
     m_pLedState = new LedState[m_numLeds];
-    Serial.printf("Starting LEDs on pin %d (length %d)\r\n", m_config.getLedDataPin(), m_numLeds);
-    m_stripe.setPin(m_config.getLedDataPin());
-    m_stripe.updateLength(m_numLeds);
-    m_stripe.updateType(NEO_GRB + NEO_KHZ800);
-    m_stripe.setBrightness(m_config.getLedBrightness());
+    Serial.printf("Starting LEDs on pin %d (length %d)\n", m_config->getLedDataPin(), m_numLeds);
+    m_stripe->setPin(m_config->getLedDataPin());
+    m_stripe->updateLength(m_numLeds);
+    m_stripe->updateType(NEO_GRB + NEO_KHZ800);
+    m_stripe->setBrightness(m_config->getLedBrightness());
   
     clear();
-    m_stripe.begin();
+    m_stripe->begin();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDLeds::set(uint32_t ledNum, HSDConfig::Behavior behavior, uint32_t color) { 
+bool HSDLeds::set(uint32_t ledNum, HSDConfig::Behavior behavior, uint32_t color) { 
+    bool update(false);
     if (ledNum < m_numLeds) {
+        update |= m_pLedState[ledNum].behavior != behavior;
+        update |= m_pLedState[ledNum].color != color;
+        
         m_pLedState[ledNum].behavior = behavior;
         m_pLedState[ledNum].color = color;
-        updateStripe();
+        
+        if (update)
+            updateStripe();
     }
+    return update;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDLeds::setAll(HSDConfig::Behavior behavior, uint32_t color) {
-    for (uint32_t i = 0; i < m_numLeds; i++)
-        set(i, behavior, color);
-    updateStripe();
+void HSDLeds::setAllOn(uint32_t color) {
+    bool update(false);
+    for (uint32_t idx = 0; idx < m_numLeds; idx++) {
+        update |= m_pLedState[idx].behavior != HSDConfig::Behavior::On;
+        update |= m_pLedState[idx].color != color;
+
+        m_pLedState[idx].behavior = HSDConfig::Behavior::On;
+        m_pLedState[idx].color = color;
+    }
+    if (update)
+        updateStripe();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 uint32_t HSDLeds::getColor(uint32_t ledNum) const {
-    uint32_t color(LED_COLOR_NONE);
     if (ledNum < m_numLeds)
-        color = m_pLedState[ledNum].color;
-    return color;
+        return m_pLedState[ledNum].color;
+    return LED_COLOR_NONE;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -76,26 +89,22 @@ HSDConfig::Behavior HSDLeds::getBehavior(uint32_t ledNum) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDLeds::updateStripe() {
-    for (uint32_t i = 0; i < m_numLeds; i++) {
-        if ((m_pLedState[i].behavior == HSDConfig::Behavior::On) || 
-            ((m_pLedState[i].behavior == HSDConfig::Behavior::Blinking) && m_blinkOn) ||
-            ((m_pLedState[i].behavior == HSDConfig::Behavior::Flashing) && m_flashOn) ||
-            ((m_pLedState[i].behavior == HSDConfig::Behavior::Flickering) && m_flickerOn)) {
-            m_stripe.setPixelColor(i, m_pLedState[i].color);
-        } else {
-            m_stripe.setPixelColor(i, LED_COLOR_NONE);
-        }
+    for (uint8_t idx = 0; idx < m_numLeds; idx++) {
+        if (m_behaviorOn[static_cast<uint8_t>(m_pLedState[idx].behavior)])
+            m_stripe->setPixelColor(idx, m_pLedState[idx].color);
+        else
+            m_stripe->setPixelColor(idx, LED_COLOR_NONE);
     }
-    m_stripe.show();
+    m_stripe->show();
+    Serial.println("Stripe updated");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDLeds::clear() {
-    uint32_t color(LED_COLOR_NONE);
-    for (uint8_t i = 0; i < m_numLeds; i++) {
-        m_pLedState[i].behavior = HSDConfig::Behavior::Off;
-        m_pLedState[i].color = color;
+    for (uint8_t idx = 0; idx < m_numLeds; idx++) {
+        m_pLedState[idx].behavior = HSDConfig::Behavior::Off;
+        m_pLedState[idx].color = LED_COLOR_NONE;
     }
     updateStripe();
 }
@@ -103,52 +112,41 @@ void HSDLeds::clear() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDLeds::update() {
-    handleBlink(millis());
-    handleFlash(millis());
-    handleFlicker(millis());
-    updateStripe();
+    static unsigned long prevBlink(0), prevFlash(0), prevFlicker(0);
+    
+    unsigned long curMillis = millis();
+    bool update(false);
+    update |= checkCondition(HSDConfig::Behavior::Blinking, curMillis, prevBlink, 500, 500);
+    update |= checkCondition(HSDConfig::Behavior::Flashing, curMillis, prevFlash, 2000, 200);
+    update |= checkCondition(HSDConfig::Behavior::Flickering, curMillis, prevFlicker, 100, 100);
+    if (update)
+        updateStripe();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDLeds::handleBlink(unsigned long currentMillis) {
-    if (!m_blinkOn && (currentMillis - m_previousMillisBlink >= blinkOnTime)) {
-        m_blinkOn = true;
-        m_previousMillisBlink = currentMillis; 
-    } else if (m_blinkOn && (currentMillis - m_previousMillisBlink >= blinkOffTime)) {
-        m_blinkOn = false;
-        m_previousMillisBlink = currentMillis;
-    } 
+bool HSDLeds::checkCondition(HSDConfig::Behavior behavior, unsigned long curMillis, unsigned long& prev, uint32_t offTime, 
+                             uint32_t onTime) {
+    bool update(false);
+    uint8_t behIdx = static_cast<uint8_t>(behavior);
+    if (!m_behaviorOn[behIdx] && (curMillis - prev >= onTime)) {
+        m_behaviorOn[behIdx] = true;
+        prev = curMillis;
+        update = true;
+    } else if (m_behaviorOn[behIdx] && (curMillis - prev >= offTime)) {
+        m_behaviorOn[behIdx] = false;
+        prev = curMillis;
+        update = true;
+    }
+    if (update)
+        for (uint8_t idx = 0; idx < m_numLeds; idx++)
+            if (m_pLedState[idx].behavior == behavior && m_pLedState[idx].color != LED_COLOR_NONE)
+                return true;
+    return false;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-
-void HSDLeds::handleFlash(unsigned long currentMillis) {
-    if (!m_flashOn && (currentMillis - m_previousMillisFlash >= flashOnTime)) {
-        m_flashOn = true;
-        m_previousMillisFlash = currentMillis; 
-    } else if (m_flashOn && (currentMillis - m_previousMillisFlash >= flashOffTime)) {
-        m_flashOn = false;
-        m_previousMillisFlash = currentMillis;
-    } 
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-void HSDLeds::handleFlicker(unsigned long currentMillis) {
-    if (!m_flickerOn && (currentMillis - m_previousMillisFlicker >= flickerOnTime)) {
-        m_flickerOn = true;
-        m_previousMillisFlicker = currentMillis; 
-    } else if (m_flickerOn && (currentMillis - m_previousMillisFlicker >= flickerOffTime)) {
-        m_flickerOn = false;
-        m_previousMillisFlicker = currentMillis;
-    } 
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
 #ifdef MQTT_TEST_TOPIC
-
 void HSDLeds::test(uint32_t type) {
     clear();
     if (type == 1) { // left row on
@@ -206,5 +204,4 @@ void HSDLeds::test(uint32_t type) {
         }
     }
 }
-
 #endif // MQTT_TEST_TOPIC

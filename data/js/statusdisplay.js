@@ -90,22 +90,22 @@ function onPageLoad() {
     divSpinner.classList.remove("hidden");
     divSpinner.classList.add("visible");
     divSpinner.classList.add("is-active");
-    loadCss("css/file.css", function() {
-        console.log("css/file.css loaded");
-    });
-    loadCss("css/getmdl-select.min.css", function() {
-        console.log("css/getmdl-select.min.css loaded");
-        loadScript("js/getmdl-select.min.js", function() {
-            console.log("js/getmdl-select.min.js loaded");
-            getmdlSelect.init('.getmdl-select');
-        });
-    });
-    loadScript("js/tabulator_core.min.js", function() {
-        console.log("js/tabulator_core.min.js loaded");
-        loadScript("js/tabulator_mods.min.js", function() {
-            console.log("js/tabulator_mods.min.js loaded");
-            loadCss("css/tabulator-mat.min.css", function() {
-                console.log("css/tabulator-mat.min.css loaded");
+    // loadCss("css/file.css", function() {
+        // console.log("css/file.css loaded");
+    // });
+    // loadCss("css/getmdl-select.min.css", function() {
+        // console.log("css/getmdl-select.min.css loaded");
+        // loadScript("js/getmdl-select.min.js", function() {
+            // console.log("js/getmdl-select.min.js loaded");
+            // getmdlSelect.init('.getmdl-select');
+        // });
+    // });
+    // loadScript("js/tabulator_core.min.js", function() {
+        // console.log("js/tabulator_core.min.js loaded");
+        // loadScript("js/tabulator_mods.min.js", function() {
+            // console.log("js/tabulator_mods.min.js loaded");
+            // loadCss("css/tabulator-mat.min.css", function() {
+                // console.log("css/tabulator-mat.min.css loaded");
                 initColMapTable();
                 initDevMapTable();
                 initLedTable();
@@ -120,8 +120,8 @@ function onPageLoad() {
                         console.log("Received: " + request.responseText);
                         createStatusPage(JSON.parse(request.responseText));
 
-                        loadScript("js/rec-websocket.min.js", function() {
-                            socket = new ReconnectingWebSocket("ws://" + location.host + "/ws", null, {debug: true, reconnectInterval: 3000});
+                        // loadScript("js/rec-websocket.min.js", function() {
+                            socket = new ReconnectingWebSocket("ws://" + location.host + ":81/ws", null, {debug: true, reconnectInterval: 3000});
                             socket.onopen = function() {
                                 console.log("WebSocket connected");
                             };
@@ -146,7 +146,7 @@ function onPageLoad() {
                                     updateLedTable(jsonObject.data);
                                 }
                             };
-                        });
+                        // });
                     } else {
                         console.warn(request.statusText, request.responseText);
                     }
@@ -165,9 +165,9 @@ function onPageLoad() {
                 });
                 request2.open("GET", "/ajax/config.json");
                 request2.send();
-            });
-        });
-    });
+            // });
+        // });
+    // });
 };
 
 function initColMapTable() {

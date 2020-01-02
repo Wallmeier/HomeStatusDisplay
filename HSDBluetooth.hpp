@@ -1,4 +1,4 @@
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef ESP32
 
 #ifndef HSDBLUETOOTH_H
 #define HSDBLUETOOTH_H
@@ -12,7 +12,7 @@
 
 class HSDBluetooth : public BLEAdvertisedDeviceCallbacks {
 public:
-    HSDBluetooth(const HSDConfig& config, const HSDMqtt& mqtt);
+    HSDBluetooth(const HSDConfig* config, const HSDMqtt* mqtt);
 
     void begin();
     void handle();
@@ -23,9 +23,9 @@ private:
     void revert_hex_data(const char* in, char* out, int l) const;
     
     BLEScan*         m_BLEScan;
-    const HSDConfig& m_config;
-    const HSDMqtt&   m_mqtt;
+    const HSDConfig* m_config;
+    const HSDMqtt*   m_mqtt;
 };
 
 #endif // HSDBLUETOOTH_H
-#endif // ARDUINO_ARCH_ESP32
+#endif // ESP32
