@@ -29,54 +29,58 @@ HSDWifi::HSDWifi(const HSDConfig* config, HSDLeds* leds, HSDWebserver* webserver
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWifi::begin() {
-    m_leds->setAllOn(LED_COLOR_RED);
-    WiFi.setAutoConnect(false);
-    WiFi.persistent(false);
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(m_config->getWifiSSID().c_str(), m_config->getWifiPSK().c_str(), 0, nullptr, false);
+    if (m_config->getWifiSSID().length() > 0) {
+        m_leds->setAllOn(LED_COLOR_RED);
+        WiFi.setAutoConnect(false);
+        WiFi.persistent(false);
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(m_config->getWifiSSID().c_str(), m_config->getWifiPSK().c_str(), 0, nullptr, false);
     
 #ifdef ESP32    
-    if (!WiFi.setHostname(m_config->getHost().c_str()))
+        if (!WiFi.setHostname(m_config->getHost().c_str()))
 #elif defined(ESP8266)
-    WiFi.setSleepMode(WIFI_NONE_SLEEP);
-    if (!WiFi.hostname(m_config->getHost()))
+        WiFi.setSleepMode(WIFI_NONE_SLEEP);
+        if (!WiFi.hostname(m_config->getHost()))
 #endif // ARDUINO_ARCH_ESP32
-        Serial.printf("Failed to set hostname: %s\n", m_config->getHost().c_str());
-    Serial.println("WiFi settings");
-    Serial.printf("  • AutoConnect: %s\n", WiFi.getAutoConnect() ? "true" : "false");
-    Serial.printf("  • AutoReconnect: %s\n", WiFi.getAutoReconnect() ? "true" : "false");
+            Serial.printf("Failed to set hostname: %s\n", m_config->getHost().c_str());
+        Serial.println("WiFi settings");
+        Serial.printf("  • AutoConnect: %s\n", WiFi.getAutoConnect() ? "true" : "false");
+        Serial.printf("  • AutoReconnect: %s\n", WiFi.getAutoReconnect() ? "true" : "false");
 #ifdef ESP8266
-    Serial.printf("  • Hostname: %s\n", WiFi.hostname().c_str());
-    Serial.printf("  • PhyMode: %d\n", WiFi.getPhyMode());
-    Serial.printf("  • SleepMode: %d\n", WiFi.getSleepMode());
+        Serial.printf("  • Hostname: %s\n", WiFi.hostname().c_str());
+        Serial.printf("  • PhyMode: %d\n", WiFi.getPhyMode());
+        Serial.printf("  • SleepMode: %d\n", WiFi.getSleepMode());
 #elif defined(ESP32)
-    Serial.printf("  • Hostname: %s\n", WiFi.getHostname());
+        Serial.printf("  • Hostname: %s\n", WiFi.getHostname());
 #endif    
 #ifdef ESP8266
-    m_evOnConnect = WiFi.onStationModeConnected([=](const WiFiEventStationModeConnected& event) {
-        onConnect(event.ssid, printMac(event.bssid), event.channel);
-    });
-    m_evOnDisconnect = WiFi.onStationModeDisconnected([=](const WiFiEventStationModeDisconnected& event) {
-        onDisconnect(event.ssid, printMac(event.bssid), event.reason);
-    });
-    m_evOnGotIP = WiFi.onStationModeGotIP([=](const WiFiEventStationModeGotIP& event) {
-        onGotIP(event.ip.toString(), event.mask.toString(), event.gw.toString());
-    });
-    m_evOnDhcpTimeout = WiFi.onStationModeDHCPTimeout([]() {
-        Serial.println("DHCP timeout");
-    });
+        m_evOnConnect = WiFi.onStationModeConnected([=](const WiFiEventStationModeConnected& event) {
+            onConnect(event.ssid, printMac(event.bssid), event.channel);
+        });
+        m_evOnDisconnect = WiFi.onStationModeDisconnected([=](const WiFiEventStationModeDisconnected& event) {
+            onDisconnect(event.ssid, printMac(event.bssid), event.reason);
+        });
+        m_evOnGotIP = WiFi.onStationModeGotIP([=](const WiFiEventStationModeGotIP& event) {
+            onGotIP(event.ip.toString(), event.mask.toString(), event.gw.toString());
+        });
+        m_evOnDhcpTimeout = WiFi.onStationModeDHCPTimeout([]() {
+            Serial.println("DHCP timeout");
+        });
 #elif defined(ESP32)    
-    m_evOnConnect = WiFi.onEvent([=](WiFiEvent_t event, WiFiEventInfo_t info) {
-        onConnect(String(reinterpret_cast<const char*>(info.connected.ssid)), printMac(info.connected.bssid), info.connected.channel);
-    }, WiFiEvent_t::SYSTEM_EVENT_STA_CONNECTED);
-    m_evOnDisconnect = WiFi.onEvent([=](WiFiEvent_t event, WiFiEventInfo_t info) {
-        onDisconnect(String(reinterpret_cast<const char*>(info.disconnected.ssid)), printMac(info.disconnected.bssid), info.disconnected.reason);
-    }, WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
-    m_evOnGotIP = WiFi.onEvent([=](WiFiEvent_t event, WiFiEventInfo_t info) {
-        onGotIP(printIP(info.got_ip.ip_info.ip), printIP(info.got_ip.ip_info.netmask), printIP(info.got_ip.ip_info.gw));
-    }, WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
+        m_evOnConnect = WiFi.onEvent([=](WiFiEvent_t event, WiFiEventInfo_t info) {
+            onConnect(String(reinterpret_cast<const char*>(info.connected.ssid)), printMac(info.connected.bssid), info.connected.channel);
+        }, WiFiEvent_t::SYSTEM_EVENT_STA_CONNECTED);
+        m_evOnDisconnect = WiFi.onEvent([=](WiFiEvent_t event, WiFiEventInfo_t info) {
+            onDisconnect(String(reinterpret_cast<const char*>(info.disconnected.ssid)), printMac(info.disconnected.bssid), info.disconnected.reason);
+        }, WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
+        m_evOnGotIP = WiFi.onEvent([=](WiFiEvent_t event, WiFiEventInfo_t info) {
+            onGotIP(printIP(info.got_ip.ip_info.ip), printIP(info.got_ip.ip_info.netmask), printIP(info.got_ip.ip_info.gw));
+        }, WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
 #endif    
-    handleConnection();
+        handleConnection();
+    } else {
+        startAccessPoint();
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -128,6 +132,7 @@ void HSDWifi::handleConnection() {
 void HSDWifi::onConnect(const String& ssid, const String& bssid, uint8_t channel) const {
     static bool initialConnect = true;
     Serial.printf("Connected to WiFi '%s' on AP %s with channel %d\n", ssid.c_str(), bssid.c_str(), channel);
+    m_webserver->updateStatusEntry("ssid", ssid);
     m_webserver->updateStatusEntry("bssid", bssid);
     m_webserver->updateStatusEntry("channel", String(channel));
 
@@ -167,7 +172,7 @@ String HSDWifi::printIP(ip4_addr_t& ip) const {
 
 String HSDWifi::printMac(const uint8_t mac[6]) const {
     char res[20];
-    snprintf(res, 20, "%02x:%02x:%02x:%02x:%02x:%02x", (mac[0] & 0xff), (mac[1] & 0xff), (mac[2] & 0xff), 
+    snprintf(res, 20, "%02X:%02X:%02X:%02X:%02X:%02X", (mac[0] & 0xff), (mac[1] & 0xff), (mac[2] & 0xff), 
                                                        (mac[3] & 0xff), (mac[4] & 0xff), (mac[5] & 0xff));
     return String(res);
 }

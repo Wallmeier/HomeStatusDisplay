@@ -8,7 +8,6 @@
 #include <ESP8266WebServer.h>
 #include <FS.h>
 #define WebServer ESP8266WebServer
-using namespace esp8266webserver;
 #endif
 #include <WebSocketsServer.h>
 #include <vector>

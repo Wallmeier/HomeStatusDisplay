@@ -243,7 +243,7 @@ void HSDWebserver::begin() {
     m_statusEntries.push_back(new StatusEntry(StatusClass::Heap, "Lowest level of free heap since boot", String(ESP.getMinFreeHeap()), "Bytes", "minFree"));
     m_statusEntries.push_back(new StatusEntry(StatusClass::Heap, "Largest block of heap that can be allocated at once", String(ESP.getMaxAllocHeap()), "Bytes", "maxAllocHeap"));
 #endif
-    m_statusEntries.push_back(new StatusEntry(StatusClass::Network, "SSID", WiFi.SSID()));
+    m_statusEntries.push_back(new StatusEntry(StatusClass::Network, "SSID", WiFi.SSID(), "", "ssid"));
     m_statusEntries.push_back(new StatusEntry(StatusClass::Network, "BSSID", WiFi.BSSIDstr(), "", "bssid"));
     m_statusEntries.push_back(new StatusEntry(StatusClass::Network, "Channel", String(WiFi.channel()), "", "channel"));
     m_statusEntries.push_back(new StatusEntry(StatusClass::Network, "Rssi", String(WiFi.RSSI()), "dBm", "rssi"));
@@ -251,8 +251,7 @@ void HSDWebserver::begin() {
     m_statusEntries.push_back(new StatusEntry(StatusClass::Network, "IP address", WiFi.localIP().toString(), "", "ip"));
     m_statusEntries.push_back(new StatusEntry(StatusClass::Network, "Subnet Mask", WiFi.subnetMask().toString(), "", "subnetMask"));
     m_statusEntries.push_back(new StatusEntry(StatusClass::Network, "Gateway", WiFi.gatewayIP().toString(), "", "gateway"));
-    m_statusEntries.push_back(new StatusEntry(StatusClass::Mqtt, "Host", m_config->getMqttServer()));
-    m_statusEntries.push_back(new StatusEntry(StatusClass::Mqtt, "Port", String(m_config->getMqttPort())));
+    m_statusEntries.push_back(new StatusEntry(StatusClass::Mqtt, "Server", m_config->getMqttServer() + ":" + String(m_config->getMqttPort())));
     m_statusEntries.push_back(new StatusEntry(StatusClass::Mqtt, "Status", m_mqtt->connected() ? "Connected" : "Disconnected", "", "mqttStatus"));
 #ifdef ESP8266
     snprintf(buffer, 64, "%08X", ESP.getFlashChipId());
@@ -448,7 +447,11 @@ bool HSDWebserver::handleFileRead(String path) {
             m_server->sendHeader("Content-Disposition", "attachment; filename=" + (path.lastIndexOf('/') == -1 ? path : path.substring(path.lastIndexOf('/') + 1)));
             contentType = "application/octet-stream;charset=utf-8";
         } else {
-            contentType = StaticRequestHandler<WiFiServer>::getContentType(path);
+#ifdef ESP8266            
+            contentType = esp8266webserver::StaticRequestHandler<WiFiServer>::getContentType(path);
+#elif defined ESP32
+            contentType = StaticRequestHandler::getContentType(path);
+#endif            
         }
 //        m_server.sendHeader("Cache-Control", "max-age=86400");
         File file = SPIFFS.open(filepath, "r");

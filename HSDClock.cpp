@@ -31,6 +31,7 @@ void HSDClock::begin() {
 
 void HSDClock::handle() {
     static bool initEZ = false;
+    static int16_t oldTime = -1;
     
     if (m_tm1637) {    
         if (initEZ || WiFi.isConnected()) {
@@ -40,7 +41,7 @@ void HSDClock::handle() {
         }
 
         if (WiFi.isConnected()) {
-            uint8_t new_time = m_local.hour() * 100 + m_local.minute();
+            uint16_t new_time = m_local.hour() * 60 + m_local.minute();
             if (new_time != m_oldTime) {
                 m_oldTime = new_time;
                 int8_t TimeDisp[4];
@@ -52,9 +53,8 @@ void HSDClock::handle() {
                 m_tm1637->display(TimeDisp);
             }
         } else {
-            uint8_t new_time = -1;
-            if (new_time != m_oldTime) {
-                m_oldTime = new_time;
+            if (-1 != m_oldTime) {
+                m_oldTime = -1;
                 m_tm1637->clearDisplay();
             }
         }

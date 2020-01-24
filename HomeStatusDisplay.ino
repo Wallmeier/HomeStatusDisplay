@@ -1,6 +1,6 @@
-#ifndef ARDUINO_ARCH_ESP32
+#ifdef ESP8266
 ADC_MODE(ADC_VCC)
-#endif // ARDUINO_ARCH_ESP32
+#endif
 
 #include "HomeStatusDisplay.hpp"
 

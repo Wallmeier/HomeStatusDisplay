@@ -26,10 +26,10 @@ void HSDMqtt::handle() {
     if (WiFi.isConnected()) {
         if (m_pubSubClient->connected()) {
             if (!m_pubSubClient->loop()) 
-                Serial.printf("Mqtt disconnected - state=%d, clientState=%u\n", m_pubSubClient->state(), m_wifiClient.status());
+                Serial.printf("Mqtt disconnected - state=%d\n", m_pubSubClient->state());
         } else {
             if (first || ((millis() - millisLastConnectTry) >= 10000)) { // alle 10 Sekunden testen
-                Serial.printf("Mqtt not connected (state=%d, clientState=%u)\n", m_pubSubClient->state(), m_wifiClient.status());
+                Serial.printf("Mqtt not connected (state=%d)\n", m_pubSubClient->state());
                 first = false;
                 millisLastConnectTry = millis();
                 reconnect();

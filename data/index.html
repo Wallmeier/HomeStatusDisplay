@@ -58,10 +58,12 @@
         <div align="center" id="status.spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
         
         <section class="mdl-layout__tab-panel is-active" id="scroll-tab-status">
-          <div class="page-content">
-            <div id="status.content"></div>
-            <div id="noLeds" class="hidden"><p>All LEDs are <b>off</b></p></div>
-            <div id="led-table" class="table hidden"></div>            
+          <div class="page-content mdl-grid">
+            <div id="status.content" class="mdl-cell mdl-cell--6-col"></div>
+            <div class="mdl-cell mdl-cell--6-col">
+                <div id="noLeds" class="hidden"><p>All LEDs are <b>off</b></p></div>
+                <div id="led-table" class="table hidden"></div>            
+            </div>
           </div>
         </section>
         
