@@ -1,0 +1,4 @@
+Tabulator: http://tabulator.info/
+Material Design Lite: https://getmdl.io/components/
+Icons: https://material.io/resources/icons/?style=baseline
+Select for material-design-lite: https://github.com/CreativeIT/getmdl-select
