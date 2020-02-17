@@ -20,6 +20,7 @@ void HSDClock::begin() {
   
         ezt::setServer(m_config->getClockNTPServer());
         ezt::setInterval(m_config->getClockNTPInterval() * 60);
+        ezt::setDebug(INFO, Serial);
         m_local.setPosix(m_config->getClockTimeZone());
 
         m_tm1637->set(m_config->getClockBrightness());  // set brightness
