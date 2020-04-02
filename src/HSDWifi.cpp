@@ -12,15 +12,15 @@
 #define SOFT_AP_PSK   "statusdisplay"
 
 HSDWifi::HSDWifi(const HSDConfig* config, HSDLeds* leds, HSDWebserver* webserver) :
+    m_accessPointActive(false),
     m_config(config),
     m_connectFailure(false),
+    m_lastConnectStatus(false),
     m_leds(leds),
     m_maxConnectRetries(100),
+    m_millisLastConnectTry(0),
     m_numConnectRetriesDone(0),
     m_retryDelay(500),
-    m_millisLastConnectTry(0),
-    m_accessPointActive(false),
-    m_lastConnectStatus(false),
     m_wasConnected(false),
     m_webserver(webserver)
 {
@@ -100,7 +100,7 @@ void HSDWifi::handleConnection() {
         if (m_connectFailure) {
             startAccessPoint();
         } else {
-            if (first || ((millis() - m_millisLastConnectTry) >= m_retryDelay)) {
+            if (first || ((millis() - m_millisLastConnectTry) >= static_cast<unsigned long>(m_retryDelay))) {
                 first = false;
                 m_millisLastConnectTry = millis(); 
                 if (m_numConnectRetriesDone == 0) {

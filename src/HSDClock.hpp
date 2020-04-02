@@ -17,7 +17,6 @@ public:
 private:
     const HSDConfig* m_config;
     Timezone         m_local;
-    uint8_t          m_oldTime;
     TM1637*          m_tm1637;
 };
 

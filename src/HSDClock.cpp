@@ -43,8 +43,8 @@ void HSDClock::handle() {
 
         if (WiFi.isConnected()) {
             uint16_t new_time = m_local.hour() * 60 + m_local.minute();
-            if (new_time != m_oldTime) {
-                m_oldTime = new_time;
+            if (new_time != oldTime) {
+                oldTime = new_time;
                 int8_t TimeDisp[4];
                 TimeDisp[0] = m_local.hour() / 10;
                 TimeDisp[1] = m_local.hour() % 10;
@@ -54,8 +54,8 @@ void HSDClock::handle() {
                 m_tm1637->display(TimeDisp);
             }
         } else {
-            if (-1 != m_oldTime) {
-                m_oldTime = -1;
+            if (-1 != oldTime) {
+                oldTime = -1;
                 m_tm1637->clearDisplay();
             }
         }

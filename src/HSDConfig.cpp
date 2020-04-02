@@ -256,7 +256,7 @@ void HSDConfig::writeConfigFile() const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 uint8_t HSDConfig::getLedNumber(const String& deviceName) const {
-    for (int i = 0; i < m_cfgDeviceMapping.size(); i++) {
+    for (size_t i = 0; i < m_cfgDeviceMapping.size(); i++) {
         auto mapping = m_cfgDeviceMapping.at(i);
         if (deviceName.equals(mapping->device))
             return mapping->ledNumber;
@@ -267,7 +267,7 @@ uint8_t HSDConfig::getLedNumber(const String& deviceName) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 String HSDConfig::getDevice(int ledNumber) const {
-    for (int i = 0; i < m_cfgDeviceMapping.size(); i++) {
+    for (size_t i = 0; i < m_cfgDeviceMapping.size(); i++) {
         auto mapping = m_cfgDeviceMapping.at(i);
         if (ledNumber == mapping->ledNumber)
             return mapping->device;
