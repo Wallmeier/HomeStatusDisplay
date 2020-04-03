@@ -140,6 +140,10 @@ void HSDWebserver::begin() {
                     case HSDConfig::DataType::Word:
                         obj["value"] = *entry->value.word;
                         break;
+
+                    case HSDConfig::DataType::ColorMapping:
+                    case HSDConfig::DataType::DeviceMapping:
+                        break;
                 }
             }
         }
@@ -455,7 +459,7 @@ bool HSDWebserver::handleFileRead(String path) {
         }
 //        m_server.sendHeader("Cache-Control", "max-age=86400");
         File file = SPIFFS.open(filepath, "r");
-        size_t sent = m_server->streamFile(file, contentType);
+        m_server->streamFile(file, contentType);
         file.close();
         return true;
     }
@@ -638,6 +642,10 @@ void HSDWebserver::saveConfig(const JsonObject& config) const {
                         needSave = true;
                         *entry->value.boolean = config[key].as<bool>();
                     }
+                    break;
+
+                case HSDConfig::DataType::ColorMapping:
+                case HSDConfig::DataType::DeviceMapping:
                     break;
             }            
         }
