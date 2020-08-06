@@ -25,7 +25,14 @@ You also need a running MQTT broker (e.g. ioBroker, or https://mosquitto.org), t
 
 Used libraries for the web interface:
 - Material Design Lite V1.3.0: https://github.com/google/material-design-lite / https://getmdl.io/
-- Tabulator: http://tabulator.info/
+- Tabulator V4.7.2: http://tabulator.info/ with modules:
+  - Accessor
+  - Ajax
+  - Edit
+  - Format
+  - History
+  - MoveRows
+  - Validate
 - getmdl-select: https://github.com/CreativeIT/getmdl-select
 - ReconnectingWebSocket: https://github.com/joewalnes/reconnecting-websocket
 

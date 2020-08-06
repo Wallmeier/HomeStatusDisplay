@@ -9,14 +9,14 @@ function reboot() {
 
 function saveTable(table, tableName) {
     socket.send(JSON.stringify({method: "updateTable", table: tableName, data: table.getData()}));
-    console.log("Sent table " + tableName);
+    console.log("Sent table %s", tableName);
 };
 
 function saveConfig() {
     var formCfg = document.getElementById("formConfig");
     var inputs = document.getElementsByTagName('input');
     var result = {};
-    console.log("saveConfig() - " + inputs.length);
+    console.log("saveConfig() - %d", inputs.length);
     for (var i = 0; i < inputs.length; i++) {
         var input = inputs[i];
         if (input.form === formCfg) {
@@ -35,7 +35,7 @@ function uploadConfig(id) {
     var input = document.getElementById(id);
     if (input.files.length > 0) {
         var reader = new FileReader();
-        reader.onload = function(){
+        reader.onload = function() {
             socket.send(JSON.stringify({method: "importCfg", filename:input.files[0].name, data: reader.result}));
         };
         reader.readAsText(input.files[0]);
@@ -57,117 +57,69 @@ function updSlideValue(val, elemId) {
     document.getElementById(elemId).innerHTML = val;
 };
 
-function loadScript(url, callback) {
-    var script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = url;
-
-    // Then bind the event to the callback function. There are several events for cross browser compatibility.
-    script.onreadystatechange = callback;
-    script.onload = callback;
-
-    // Fire the loading
-    document.head.appendChild(script);
-};
-
-function loadCss(url, callback) {
-    var link = document.createElement('link');
-    link.type = 'text/css';
-    link.rel = 'stylesheet';
-    link.href = url;
-
-    // Then bind the event to the callback function. There are several events for cross browser compatibility.
-    link.onreadystatechange = callback;
-    link.onload = callback;
-
-    // Fire the loading
-    document.head.appendChild(link);
-};
-
 function onPageLoad() {
     console.log("onPageLoad()");
     var divSpinner = document.getElementById("status.spinner");
     divSpinner.classList.remove("hidden");
     divSpinner.classList.add("visible");
     divSpinner.classList.add("is-active");
-    // loadCss("css/file.css", function() {
-        // console.log("css/file.css loaded");
-    // });
-    // loadCss("css/getmdl-select.min.css", function() {
-        // console.log("css/getmdl-select.min.css loaded");
-        // loadScript("js/getmdl-select.min.js", function() {
-            // console.log("js/getmdl-select.min.js loaded");
-            // getmdlSelect.init('.getmdl-select');
-        // });
-    // });
-    // loadScript("js/tabulator_core.min.js", function() {
-        // console.log("js/tabulator_core.min.js loaded");
-        // loadScript("js/tabulator_mods.min.js", function() {
-            // console.log("js/tabulator_mods.min.js loaded");
-            // loadCss("css/tabulator-mat.min.css", function() {
-                // console.log("css/tabulator-mat.min.css loaded");
-                initColMapTable();
-                initDevMapTable();
-                initLedTable();
+    initColMapTable();
+    initDevMapTable();
+    initLedTable();
 
-                console.log("Requesting status page information");
-                var request = new XMLHttpRequest();
-                request.addEventListener('load', function(event) {
-                    divSpinner.classList.remove("is-active");
-                    divSpinner.classList.remove("visible");
-                    divSpinner.classList.add("hidden");
-                    if (request.status == 200) {
-                        console.log("Received: " + request.responseText);
-                        createStatusPage(JSON.parse(request.responseText));
+    console.log("Requesting status page information");
+    var request = new XMLHttpRequest();
+    request.addEventListener('load', function(event) {
+        divSpinner.classList.remove("is-active");
+        divSpinner.classList.remove("visible");
+        divSpinner.classList.add("hidden");
+        if (this.status == 200) {
+            console.log("Received: %s", this.responseText);
+            createStatusPage(JSON.parse(this.responseText));
 
-                        // loadScript("js/rec-websocket.min.js", function() {
-                            socket = new ReconnectingWebSocket("ws://" + location.host + ":81/ws", null, {debug: true, reconnectInterval: 3000});
-                            socket.onopen = function() {
-                                console.log("WebSocket connected");
-                            };
-                            socket.onclose = function() {
-                                console.log("WebSocket.closed");
-                            };
-                            socket.onmessage = function(event) {
-                                console.log("WebSocket message received: ", event);
+            socket = new ReconnectingWebSocket("ws://" + location.host + ":81/ws", null, {debug: true, reconnectInterval: 3000});
+            socket.onopen = function() {
+                console.log("WebSocket connected");
+            };
+            socket.onclose = function() {
+                console.log("WebSocket.closed");
+            };
+            socket.onmessage = function(event) {
+                console.log("WebSocket message received: ", event);
 
-                                // create a JSON object
-                                var jsonObject = JSON.parse(event.data);
-                                var method = jsonObject.method;
-                                if (method === "update") {
-                                    for (let key in jsonObject.fields) {
-                                        var elem = document.getElementById(key);
-                                        if (elem != undefined)
-                                            elem.textContent = jsonObject.fields[key];
-                                        else
-                                            console.warn("No document element with id '" + key + "'");
-                                    }
-                                } else if (method === "updLeds") {
-                                    updateLedTable(jsonObject.data);
-                                }
-                            };
-                        // });
-                    } else {
-                        console.warn(request.statusText, request.responseText);
+                // create a JSON object
+                var jsonObject = JSON.parse(event.data);
+                var method = jsonObject.method;
+                if (method === "update") {
+                    for (let key in jsonObject.fields) {
+                        var elem = document.getElementById(key);
+                        if (elem != undefined)
+                            elem.textContent = jsonObject.fields[key];
+                        else
+                            console.warn("No document element with id '%s'", key);
                     }
-                });
-                request.open("GET", "/ajax/status.json");
-                request.send();
-                
-                var request2 = new XMLHttpRequest();
-                request2.addEventListener('load', function(event) {
-                    if (request.status == 200) {
-                        console.log("Received: " + request2.responseText);
-                        createConfigPage(JSON.parse(request2.responseText));
-                    } else {
-                        console.warn(request.statusText, request2.responseText);
-                    }
-                });
-                request2.open("GET", "/ajax/config.json");
-                request2.send();
-            // });
-        // });
-    // });
+                } else if (method === "updLeds") {
+                    updateLedTable(jsonObject.data);
+                }
+            };
+        } else {
+            console.warn("Request /ajax/status.json failed: %d %s\n%s", this.status, this.statusText, this.responseText);
+        }
+    });
+    request.open("GET", "/ajax/status.json");
+    request.send();
+
+    var request2 = new XMLHttpRequest();
+    request2.addEventListener('load', function(event) {
+        if (request.status == 200) {
+            console.log("Received: %s", this.responseText);
+            createConfigPage(JSON.parse(this.responseText));
+        } else {
+            console.warn("Request /ajax/config.json failed %d %s\n%s", this.status, this.statusText, this.responseText);
+        }
+    });
+    request2.open("GET", "/ajax/config.json");
+    request2.send();
 };
 
 function initColMapTable() {
@@ -198,9 +150,12 @@ function initColMapTable() {
     };
 
     coltable = new Tabulator("#colmap-table", {
+        virtualDom: false, //disable virtual DOM rendering
+        movableRows: true, //enable user movable rows
         layout: "fitDataStretch",
         history: true,
         columns: [
+			{rowHandle:true, formatter:"handle", minWidth:50},
             {title:"No", field:"id", formatter:"rownum", align:"center"},
             {title:"Message", field:"msg", editor:"input", validator:["required", "unique"]},
             {title:"Color", field:"col", formatter:"color", editor:colorEditor},
@@ -226,9 +181,12 @@ function initColMapTable() {
 function initDevMapTable() {
     console.log("initDevMapTable()");
     devtable = new Tabulator("#devmap-table", {
+        virtualDom: false, //disable virtual DOM rendering
+        movableRows: true, //enable user movable rows
         layout: "fitDataStretch",
         history: true,
         columns: [
+			{rowHandle:true, formatter:"handle", minWidth:50},
             {title:"No", formatter:"rownum", align:"center"},
             {title:"Device", field:"device", editor:"input", validator:["required", "unique"]},
             {title:"LED", field:"led", editor:"number", editorParams:{ min:0, max:255, step:1, elementAttributes:{ maxlength:"3", }}, validator:["required", "max:255"]},
@@ -240,6 +198,7 @@ function initDevMapTable() {
 function initLedTable() {
     console.log("initLedTable()");
     ledTable = new Tabulator("#led-table", {
+        virtualDom: false, //disable virtual DOM rendering
         layout: "fitDataStretch",
         columns: [
             {title:"No", formatter:"rownum", align:"center"},
@@ -281,8 +240,8 @@ function createConfigPage(jsonRoot) {
             var lastDiv = false;
             var div = document.getElementById("tab-cfg" + json[idx].name);
             for (var child = div.firstElementChild; child != null; child = div.firstElementChild)
-                child.remove();            
-        
+                child.remove();
+
             for (var i = 0; i < json[idx].entries.length; i++) {
                 var fieldName = json[idx].name + "." + json[idx].entries[i].key;
                 var elem;
@@ -321,7 +280,7 @@ function createConfigPage(jsonRoot) {
                             elem.appendChild(msg);
                         }
                         break;
-                    
+
                     case 2: // Boolean
                         if (lastDiv)
                             div.appendChild(document.createElement("br"));
@@ -344,7 +303,7 @@ function createConfigPage(jsonRoot) {
                         label.textContent = json[idx].entries[i].label;
                         elem.appendChild(label);
                         break;
-                        
+
                     case 3: // Gpio
                         if (lastDiv)
                             div.appendChild(document.createElement("br"));
@@ -382,7 +341,7 @@ function createConfigPage(jsonRoot) {
                         list.classList.add("mdl-menu");
                         list.classList.add("mdl-menu--bottom-left");
                         list.classList.add("mdl-js-menu");
-                        
+
                         for (var j = 0; j < jsonRoot.gpios.length; j++) {
                             var item = document.createElement("li");
                             item.classList.add("mdl-menu__item");
@@ -391,10 +350,10 @@ function createConfigPage(jsonRoot) {
                                 item.setAttribute("data-selected", "true");
                             item.textContent = "GPIO-" + jsonRoot.gpios[j];
                             list.appendChild(item);
-                        }                        
+                        }
                         elem.appendChild(list);
                         break;
-                
+
                     case 4: // slider
                         lastDiv = false;
                         elem = document.createElement("p");
@@ -422,7 +381,7 @@ function createConfigPage(jsonRoot) {
                         elem.appendChild(input);
                         break;
                 }
-                if (elem != undefined) 
+                if (elem != undefined)
                     div.appendChild(elem);
             }
         }
