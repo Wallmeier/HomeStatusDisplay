@@ -86,7 +86,7 @@ void HomeStatusDisplay::begin() {
     }
 #endif
 #ifdef HSD_SENSOR_ENABLED
-    if (m_config->getSensorSonoffEnabled() || m_config->getSensorI2CEnabled()) {
+    if (m_config->getSensorSonoffEnabled() || m_config->getSensorI2CEnabled() || m_config->getSensorSonoffEnabled()) {
         m_sensor = new HSDSensor(m_config);
         m_sensor->begin(m_webServer);
     }

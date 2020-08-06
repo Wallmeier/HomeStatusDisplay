@@ -149,6 +149,8 @@ public:
     inline uint8_t                       getSensorInterval() const { return m_cfgSensorInterval; }
     inline uint8_t                       getSensorPin() const { return m_cfgSensorPin; }
     inline bool                          getSensorSonoffEnabled() const { return m_cfgSensorSonoffEnabled; }
+    inline bool                          getSensorPirEnabled() const { return m_cfgSensorPirEnabled; }
+    inline uint8_t                       getSensorPirPin() const { return m_cfgSensorPirPin; }
 #endif // HSD_SENSOR_ENABLED
     inline const String&                 getWifiPSK() const { return m_cfgWifiPSK; }
     inline const String&                 getWifiSSID() const { return m_cfgWifiSSID; }
@@ -194,6 +196,8 @@ private:
     uint8_t                m_cfgSensorPin;
     bool                   m_cfgSensorSonoffEnabled;
     uint16_t               m_cfgSensorAltitude;
+    bool                   m_cfgSensorPirEnabled;
+    uint8_t                m_cfgSensorPirPin;
 #endif // HSD_SENSOR_ENABLED
     String                 m_cfgWifiPSK;
     String                 m_cfgWifiSSID;

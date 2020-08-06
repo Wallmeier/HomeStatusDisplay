@@ -2,6 +2,17 @@
 
 #include <Wire.h>
 
+void IRAM_ATTR detectsMotion(void* arg) {
+    HSDSensor* sensor = reinterpret_cast<HSDSensor*>(arg);
+    portENTER_CRITICAL_ISR(&sensor->m_pirMux);
+    uint8_t val = digitalRead(sensor->m_pirPin);
+    if (sensor->m_pirValue != val) {
+        sensor->m_pirValue = val;
+        sensor->m_pirInterruptCounter++;
+    }
+    portEXIT_CRITICAL_ISR(&sensor->m_pirMux);
+}
+
 /*
 I also bought five ITEAD's Si7021 sensors and noticed that those don't work with Tasmota. So, I took my logic analyzer 
 and reverse engineered it. I can send more details later, if needed, but it looks their "one wire" protocol is quite 
@@ -23,6 +34,11 @@ HSDSensor::HSDSensor(const HSDConfig* config) :
     m_bmp(nullptr),
     m_config(config),
     m_maxCycles(microsecondsToClockCycles(1000)), // 1 millisecond timeout for reading pulses from DHT sensor.
+    m_pin(0),
+    m_pirInterruptCounter(0),
+    m_pirMux(portMUX_INITIALIZER_UNLOCKED),
+    m_pirPin(0),
+    m_pirValue(LOW),
     m_tsl(nullptr)
 {
 }
@@ -74,13 +90,39 @@ void HSDSensor::begin(HSDWebserver* webServer) {
             }
         }
     }
+    if (m_config->getSensorPirEnabled()) {
+        m_pirPin = m_config->getSensorPirPin();
+        pinMode(m_pirPin, INPUT_PULLUP);
+        attachInterruptArg(digitalPinToInterrupt(m_pirPin), detectsMotion, this, CHANGE);
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void HSDSensor::handle(HSDWebserver* webServer, const HSDMqtt* mqtt) const {
+void HSDSensor::handle(HSDWebserver* webServer, const HSDMqtt* mqtt) {
     static unsigned long lastTime = 0;
     static bool first = true;
+
+    portENTER_CRITICAL(&m_pirMux);
+    uint8_t cnt = m_pirInterruptCounter;
+    uint8_t val = m_pirValue;
+    m_pirInterruptCounter = 0;
+    portEXIT_CRITICAL(&m_pirMux);
+    if (cnt > 0) {
+        if (cnt > 1) {
+            Serial.print("PIR interrupt triggered more than once: ");
+            Serial.println(cnt);
+        }
+        String topic = m_config->getMqttOutTopic("motion");
+        if (val == LOW) {
+            Serial.println("Motion ended");
+            mqtt->publish(topic, "0");
+        } else if (val == HIGH) {
+            Serial.println("Motion detected");
+            mqtt->publish(topic, "1");
+        }
+    }    
+
     if (first || millis() - lastTime >= m_config->getSensorInterval() * 60000) {
         first = false;
         lastTime = millis();

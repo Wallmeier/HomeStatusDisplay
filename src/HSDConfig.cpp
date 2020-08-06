@@ -36,7 +36,9 @@ HSDConfig::HSDConfig() :
     m_cfgSensorInterval(2),
     m_cfgSensorPin(0),
     m_cfgSensorSonoffEnabled(false),
-    m_cfgSensorAltitude(0)
+    m_cfgSensorAltitude(0),
+    m_cfgSensorPirEnabled(false),
+    m_cfgSensorPirPin(0)
 #endif // HSD_SENSOR_ENABLED
 {
     m_entries.push_back(new ConfigEntry(Group::Wifi, "host", "Hostname", &m_cfgHost, "[A-Za-z0-9\\-]{1,15}", "Not a valid hostname - length must between 1 and 15")); // String
@@ -71,6 +73,8 @@ HSDConfig::HSDConfig() :
     m_entries.push_back(new ConfigEntry(Group::Sensors, "interval", "Sensor update interval (min.)", &m_cfgSensorInterval, 60)); // Slider
     m_entries.push_back(new ConfigEntry(Group::Sensors, "i2cEnabled", "I2C", &m_cfgSensorI2CEnabled)); // Bool - DONE
     m_entries.push_back(new ConfigEntry(Group::Sensors, "altitude", "Altitude", &m_cfgSensorAltitude, "[0-9]{1,4}", "0")); // Word -> InputField
+    m_entries.push_back(new ConfigEntry(Group::Sensors, "pirEnabled", "PIR", &m_cfgSensorPirEnabled)); // Bool
+    m_entries.push_back(new ConfigEntry(Group::Sensors, "pirPin", "Motion pin", &m_cfgSensorPirPin)); // Gpio
 #endif // HSD_SENSOR_ENABLED
 #if defined HSD_BLUETOOTH_ENABLED && defined ARDUINO_ARCH_ESP32
     m_entries.push_back(new ConfigEntry(Group::Bluetooth, "enabled", "Enabled", &m_cfgBluetoothEnabled)); // Bool

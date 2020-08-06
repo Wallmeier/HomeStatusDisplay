@@ -13,7 +13,7 @@ public:
     HSDSensor(const HSDConfig* config);
     
     void begin(HSDWebserver* webServer);
-    void handle(HSDWebserver* webServer, const HSDMqtt* mqtt) const;
+    void handle(HSDWebserver* webServer, const HSDMqtt* mqtt);
 
 private:
     int32_t expectPulse(bool level) const;
@@ -26,7 +26,13 @@ private:
     const HSDConfig*          m_config;
     uint32_t                  m_maxCycles;
     uint8_t                   m_pin;
+    volatile int              m_pirInterruptCounter;
+    portMUX_TYPE              m_pirMux;
+    uint8_t                   m_pirPin;
+    volatile uint8_t          m_pirValue;
     Adafruit_TSL2561_Unified* m_tsl;
+
+friend void IRAM_ATTR detectsMotion(void* arg);
 };
   
 #endif // HSDSENSOR_H
