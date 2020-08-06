@@ -23,6 +23,14 @@ All libraries can be installed using the library manager of the Arduino IDE.
 
 You also need a running MQTT broker (e.g. ioBroker, or https://mosquitto.org), to which the system you want to monitor pushes its status information. For example, in ioBroker the status information which you want to display, can be configured using the ioBroker modules `MQTT Broker/Client` and `MQTT client`.
 
+Used libraries for the web interface:
+- Material Design Lite V1.3.0: https://github.com/google/material-design-lite / https://getmdl.io/
+- Tabulator: http://tabulator.info/
+- getmdl-select: https://github.com/CreativeIT/getmdl-select
+- ReconnectingWebSocket: https://github.com/joewalnes/reconnecting-websocket
+
+
+
 ## How to use
 Upon first usage, the system will create an access point. Connect to this access point with any WiFi-capable device and open the page 192.168.4.1.
 There you will find a configuration page in which you have to enter your settings:
