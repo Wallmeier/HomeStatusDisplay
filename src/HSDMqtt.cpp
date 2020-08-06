@@ -55,7 +55,7 @@ bool HSDMqtt::reconnect() const {
     m_pubSubClient->disconnect();
     if (m_config->getMqttUser().length() == 0) {
         if (isTopicValid(willTopic))
-            connected = m_pubSubClient->connect(clientId, willTopic.c_str(), 0, true, "off");
+            connected = m_pubSubClient->connect(clientId, willTopic.c_str(), 0, true, "offline");
         else
             connected = m_pubSubClient->connect(clientId);
     } else {
@@ -67,7 +67,7 @@ bool HSDMqtt::reconnect() const {
     if (connected) {
         Serial.println("connected");
         if (isTopicValid(willTopic))
-            publish(willTopic, "on");
+            publish(willTopic, "online");
         String verTopic = m_config->getMqttOutTopic("versions");
         if (isTopicValid(verTopic)) {
             DynamicJsonBuffer jsonBuffer;
