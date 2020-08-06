@@ -88,8 +88,8 @@ void HSDWebserver::begin() {
         JsonObject& root = jsonBuffer.createObject();
         JsonArray& gpioArray = root.createNestedArray("gpios");
 #ifdef ARDUINO_ARCH_ESP32
-        const uint8_t maxGpio = 16;
-        const uint8_t gpios[maxGpio] = {4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 23, 25, 26, 27, 32, 33};
+        const uint8_t maxGpio = 17;
+        const uint8_t gpios[maxGpio] = {2, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 23, 25, 26, 27, 32, 33};
 #else    
         const uint8_t maxGpio = 11;
         const uint8_t gpios[maxGpio] = {0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16};
