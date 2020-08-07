@@ -337,21 +337,17 @@ String HSDConfig::groupDescription(Group group) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDConfig::setColorMap(vector<ColorMapping*>& values) {
-    ColorMapping* elem = nullptr;
-    while ((elem = m_cfgColorMapping.back())) {
-        delete elem;
-        m_cfgColorMapping.pop_back();
-    }
+    for (auto e : m_cfgColorMapping)
+        delete e;
+    m_cfgColorMapping.clear();
     m_cfgColorMapping.assign(values.begin(), values.end());
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDConfig::setDeviceMap(vector<DeviceMapping*>& values) {
-    DeviceMapping* elem = nullptr;
-    while ((elem = m_cfgDeviceMapping.back())) {
-        delete elem;
-        m_cfgDeviceMapping.pop_back();
-    }
+    for (auto e : m_cfgDeviceMapping)
+        delete e;
+    m_cfgDeviceMapping.clear();    
     m_cfgDeviceMapping.assign(values.begin(), values.end());
 }
