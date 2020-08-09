@@ -6,7 +6,7 @@ HSDLeds::HSDLeds(const HSDConfig* config) :
     m_config(config),
     m_numLeds(0),
     m_pLedState(nullptr),
-    m_stripe(new Adafruit_NeoPixel())
+    m_strip(nullptr)
 {
     for (uint8_t idx = 0; idx < 5; idx++)
         m_behaviorOn[idx] = true;
@@ -18,8 +18,8 @@ HSDLeds::HSDLeds(const HSDConfig* config) :
 HSDLeds::~HSDLeds() {
     if (m_pLedState)
         delete[] m_pLedState;
-    if (m_stripe)
-        delete m_stripe;
+    if (m_strip)
+        delete m_strip;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -28,13 +28,11 @@ void HSDLeds::begin() {
     m_numLeds = m_config->getNumberOfLeds();
     m_pLedState = new LedState[m_numLeds];
     Serial.printf("Starting LEDs on pin %d (length %d)\n", m_config->getLedDataPin(), m_numLeds);
-    m_stripe->setPin(m_config->getLedDataPin());
-    m_stripe->updateLength(m_numLeds);
-    m_stripe->updateType(NEO_GRB + NEO_KHZ800);
-    m_stripe->setBrightness(m_config->getLedBrightness());
+    m_strip = new Adafruit_NeoPixel(m_numLeds, m_config->getLedDataPin(), NEO_GRB + NEO_KHZ800);
+    m_strip->begin();
+    m_strip->setBrightness(m_config->getLedBrightness());
   
     clear();
-    m_stripe->begin();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -91,11 +89,11 @@ HSDConfig::Behavior HSDLeds::getBehavior(uint32_t ledNum) const {
 void HSDLeds::updateStripe() {
     for (uint8_t idx = 0; idx < m_numLeds; idx++) {
         if (m_behaviorOn[static_cast<uint8_t>(m_pLedState[idx].behavior)])
-            m_stripe->setPixelColor(idx, m_pLedState[idx].color);
+            m_strip->setPixelColor(idx, m_pLedState[idx].color);
         else
-            m_stripe->setPixelColor(idx, LED_COLOR_NONE);
+            m_strip->setPixelColor(idx, LED_COLOR_NONE);
     }
-    m_stripe->show();
+    m_strip->show();
     Serial.println("Stripe updated");
 }
 

@@ -41,7 +41,7 @@ private:
     const HSDConfig*   m_config;
     uint32_t           m_numLeds;
     LedState*          m_pLedState;
-    Adafruit_NeoPixel* m_stripe;
+    Adafruit_NeoPixel* m_strip;
 };
 
 #endif // HSDLEDS
