@@ -4,13 +4,17 @@
 
 void IRAM_ATTR detectsMotion(void* arg) {
     HSDSensor* sensor = reinterpret_cast<HSDSensor*>(arg);
+#ifdef ARDUINO_ARCH_ESP32
     portENTER_CRITICAL_ISR(&sensor->m_pirMux);
+#endif    
     uint8_t val = digitalRead(sensor->m_pirPin);
     if (sensor->m_pirValue != val) {
         sensor->m_pirValue = val;
         sensor->m_pirInterruptCounter++;
     }
+#ifdef ARDUINO_ARCH_ESP32
     portEXIT_CRITICAL_ISR(&sensor->m_pirMux);
+#endif    
 }
 
 /*
@@ -36,7 +40,9 @@ HSDSensor::HSDSensor(const HSDConfig* config) :
     m_maxCycles(microsecondsToClockCycles(1000)), // 1 millisecond timeout for reading pulses from DHT sensor.
     m_pin(0),
     m_pirInterruptCounter(0),
+#ifdef ARDUINO_ARCH_ESP32    
     m_pirMux(portMUX_INITIALIZER_UNLOCKED),
+#endif    
     m_pirPin(0),
     m_pirValue(LOW),
     m_tsl(nullptr)
@@ -103,11 +109,15 @@ void HSDSensor::handle(HSDWebserver* webServer, const HSDMqtt* mqtt) {
     static unsigned long lastTime = 0;
     static bool first = true;
 
+#ifdef ARDUINO_ARCH_ESP32
     portENTER_CRITICAL(&m_pirMux);
+#endif    
     uint8_t cnt = m_pirInterruptCounter;
     uint8_t val = m_pirValue;
     m_pirInterruptCounter = 0;
+#ifdef ARDUINO_ARCH_ESP32
     portEXIT_CRITICAL(&m_pirMux);
+#endif    
     if (cnt > 0) {
         if (cnt > 1) {
             Serial.print("PIR interrupt triggered more than once: ");

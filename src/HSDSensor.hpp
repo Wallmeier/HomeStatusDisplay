@@ -27,7 +27,9 @@ private:
     uint32_t                  m_maxCycles;
     uint8_t                   m_pin;
     volatile int              m_pirInterruptCounter;
+#ifdef ARDUINO_ARCH_ESP32    
     portMUX_TYPE              m_pirMux;
+#endif    
     uint8_t                   m_pirPin;
     volatile uint8_t          m_pirValue;
     Adafruit_TSL2561_Unified* m_tsl;
