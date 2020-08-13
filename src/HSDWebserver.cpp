@@ -1,4 +1,5 @@
 #include "HSDWebserver.hpp"
+#include "HSDLogger.hpp"
 
 #include <ArduinoJson.h>
 #include <StreamString.h>
@@ -26,7 +27,7 @@ HSDWebserver::HSDWebserver(HSDConfig* config, const HSDLeds* leds, const HSDMqtt
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::begin() {
-    Serial.println("Starting WebServer");
+    Logger.log("Starting WebServer");
     
     m_ws->onEvent(std::bind(&HSDWebserver::handleWebSocket, this, _1, _2, _3, _4));
     m_server->on("/", HTTP_GET, [=]() {
@@ -47,7 +48,7 @@ void HSDWebserver::begin() {
         if (upload.status == UPLOAD_FILE_START) {
             m_updaterError = String();
             Serial.setDebugOutput(true);
-            Serial.printf("Update: %s\n", upload.filename.c_str());
+            Logger.log("Update: %s", upload.filename.c_str());
             
             if (upload.name == "filesystem") {
 #ifndef ARDUINO_ARCH_ESP32
@@ -69,21 +70,23 @@ void HSDWebserver::begin() {
             if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
                 setUpdaterError();
         } else if (upload.status == UPLOAD_FILE_END && !m_updaterError.length()) {
-            if (Update.end(true))  //true to set the size to the current progress
-                Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-            else
+            if (Update.end(true)) { //true to set the size to the current progress
+                Logger.log("Update Success: %u", upload.totalSize);
+                Logger.log("Rebooting...");
+            } else {
                 setUpdaterError();
+            }
             Serial.setDebugOutput(false);
         } else if (upload.status == UPLOAD_FILE_ABORTED){
             Update.end();
-            Serial.println("Update was aborted");
+            Logger.log("Update was aborted");
         } else {
-            Serial.printf("Update Failed Unexpectedly (likely broken connection): status=%d\n", upload.status);
+            Logger.log("Update Failed Unexpectedly (likely broken connection): status=%d", upload.status);
         }
         delay(0);
     });
     m_server->on("/ajax/config.json", HTTP_GET, [=]() {
-        Serial.println("GET /ajax/config.json");
+        Logger.log("GET /ajax/config.json");
         DynamicJsonBuffer jsonBuffer;
         JsonObject& root = jsonBuffer.createObject();
         JsonArray& gpioArray = root.createNestedArray("gpios");
@@ -153,7 +156,7 @@ void HSDWebserver::begin() {
         m_server->send(200, "text/json;charset=utf-8", jsonStr);
     });
     m_server->on("/ajax/colormapping.json", HTTP_GET, [=]() {
-        Serial.println("GET /ajax/colormapping.json");
+        Logger.log("GET /ajax/colormapping.json");
         auto colMap = m_config->getColorMap();
         DynamicJsonBuffer jsonBuffer;
         JsonArray& colMapping = jsonBuffer.createArray();
@@ -170,7 +173,7 @@ void HSDWebserver::begin() {
         m_server->send(200, "text/json;charset=utf-8", json);
     });
     m_server->on("/ajax/devicemapping.json", HTTP_GET, [=]() {
-        Serial.println("GET /ajax/devicemapping.json");
+        Logger.log("GET /ajax/devicemapping.json");
         auto devMap = m_config->getDeviceMap();
         DynamicJsonBuffer jsonBuffer;
         JsonArray& devMapping = jsonBuffer.createArray();
@@ -186,7 +189,7 @@ void HSDWebserver::begin() {
         m_server->send(200, "text/json;charset=utf-8", json);
     });
     m_server->on("/ajax/status.json", HTTP_GET, [=]() {
-        Serial.println("GET /ajax/status.json");
+        Logger.log("GET /ajax/status.json");
         DynamicJsonBuffer jsonBuffer;
         JsonObject& rootObj = jsonBuffer.createObject();
         JsonArray& types = rootObj.createNestedArray("table");
@@ -314,10 +317,10 @@ void HSDWebserver::setUptime(unsigned long& deviceUptime) {
     
     if (m_ws->connectedClients()) {
         String res = createUpdateRequest();
-        Serial.printf("%u client: '%s'\n", m_ws->connectedClients(), res.c_str());
+        Logger.log("setUptime(%lu) - %u client: '%s'", deviceUptime, m_ws->connectedClients(), res.c_str());
         m_ws->broadcastTXT(res);
     } else {
-        Serial.println("no websocket connected");
+        Logger.log("setUptime(%lu) - no websocket connected", deviceUptime);
     }
 }
 
@@ -359,8 +362,7 @@ String HSDWebserver::createUpdateRequest() const {
 
 void HSDWebserver::deliverNotFoundPage() {
     if (!handleFileRead(m_server->uri())) {
-        Serial.print("File not found: ");
-        Serial.println(m_server->uri());
+        Logger.log("File not found: %s", m_server->uri().c_str());
         String html = "File Not Found\n\nURI: ";
         html += m_server->uri();
         html += "\nMethod: ";
@@ -437,10 +439,10 @@ String HSDWebserver::getUptimeString(unsigned long& uptime) const {
 bool HSDWebserver::handleFileRead(String path) {
     String filepath;
     if (SPIFFS.exists(path)) { 
-        Serial.println("handleFileRead: " + path);
+        Logger.log("handleFileRead: %s", path.c_str());
         filepath = path;
     } else if (SPIFFS.exists(path + ".gz")) {
-        Serial.println("handleFileRead: " + path + ".gz");
+        Logger.log("handleFileRead: %s.gz", path.c_str());
         // m_server.sendHeader("Content-Encoding", "gzip"); // automatically added by the framework
         filepath = path + ".gz";
     }   
@@ -471,35 +473,36 @@ bool HSDWebserver::handleFileRead(String path) {
 void HSDWebserver::handleWebSocket(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
     bool msgReceived(false);
     if (type == WStype_CONNECTED) {
-        Serial.printf("ws[%u] connect from %s\n", num, m_ws->remoteIP(num).toString().c_str());
+        Logger.log("ws[%u] connect from %s", num, m_ws->remoteIP(num).toString().c_str());
         m_ws->sendPing(num);
         String payload = createUpdateRequest();
         m_ws->sendTXT(num, payload);
+        Logger.send();
     } else if (type == WStype_DISCONNECTED) {
-        Serial.printf("ws[%u] disconnect\n", num);
+        Logger.log("ws[%u] disconnect", num);
     } else if (type == WStype_ERROR) {
-        Serial.printf("ws[%u] error: %s\n", num, length ? reinterpret_cast<const char*>(payload): "");
+        Logger.log("ws[%u] error: %s", num, length ? reinterpret_cast<const char*>(payload): "");
     } else if (type == WStype_PONG) {
         if (length)
-            Serial.printf("ws[%u] pong[%u]: %s\n", num, length, reinterpret_cast<const char*>(payload));
+            Logger.log("ws[%u] pong[%u]: %s", num, length, reinterpret_cast<const char*>(payload));
         else
-            Serial.printf("ws[%u] pong[%u]\n", num, length);
+            Logger.log("ws[%u] pong[%u]", num, length);
     } else if (type == WStype_TEXT) {
-        Serial.printf("ws[%u] text received: %s\n", num, reinterpret_cast<const char*>(payload));
+        Logger.log("ws[%u] text received: %s", num, reinterpret_cast<const char*>(payload));
         m_wsBuffer[num] = reinterpret_cast<const char*>(payload);
         msgReceived = true;
     } else if (type == WStype_FRAGMENT_TEXT_START) {
-        Serial.printf("ws[%u] text fragment start: %s\n", num, reinterpret_cast<const char*>(payload));
+        Logger.log("ws[%u] text fragment start: %s", num, reinterpret_cast<const char*>(payload));
         m_wsBuffer[num] = reinterpret_cast<const char*>(payload);
     } else if (type == WStype_FRAGMENT) {
-        Serial.printf("ws[%u] text fragment: %s\n", num, reinterpret_cast<const char*>(payload));
+        Logger.log("ws[%u] text fragment: %s", num, reinterpret_cast<const char*>(payload));
         m_wsBuffer[num] += reinterpret_cast<const char*>(payload);
     } else if (type == WStype_FRAGMENT_FIN) {
-        Serial.printf("ws[%u] text fragment: %s\n", num, reinterpret_cast<const char*>(payload));
+        Logger.log("ws[%u] text fragment: %s", num, reinterpret_cast<const char*>(payload));
         m_wsBuffer[num] += reinterpret_cast<const char*>(payload);
         msgReceived = true;
     } else {
-        Serial.printf("ws[%u] - event %u", num, type);
+        Logger.log("ws[%u] - event %u", num, type);
     }
     
     if (msgReceived) {
@@ -509,7 +512,7 @@ void HSDWebserver::handleWebSocket(uint8_t num, WStype_t type, uint8_t * payload
         if (method == "importCfg") {
             importConfig(reqObj["filename"], reqObj["data"]);
         } else if (method == "reboot") {
-            Serial.println("Rebooting ESP...");
+            Logger.log("Rebooting ESP...");
             ESP.restart();
         } else if (method == "saveCfg") {
             saveConfig(reqObj["data"].as<const JsonObject&>());
@@ -520,9 +523,9 @@ void HSDWebserver::handleWebSocket(uint8_t num, WStype_t type, uint8_t * payload
             else if (table == "colorMapping")
                 saveColorMapping(reqObj["data"].as<const JsonArray&>());
             else
-                Serial.printf("Unknown table to update: %s\n", table.c_str());
+                Logger.log("Unknown table to update: %s", table.c_str());
         } else {
-            Serial.printf("Unknown webSocket method: %s\n", method.c_str());
+            Logger.log("Unknown webSocket method: %s", method.c_str());
         }
         m_wsBuffer[num] = ""; // cleanup memory
     }
@@ -531,17 +534,17 @@ void HSDWebserver::handleWebSocket(uint8_t num, WStype_t type, uint8_t * payload
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::importConfig(const String& filename, const String& content) const {
-    Serial.printf("Import config: %s\n", filename.c_str());
+    Logger.log("Import config: %s", filename.c_str());
     File file = SPIFFS.open(FILENAME_MAINCONFIG, "w+");
     if (!file) {
-        Serial.printf("Failed to open %s\n", FILENAME_MAINCONFIG);
+        Logger.log("Failed to open %s", FILENAME_MAINCONFIG);
     } else {
 #ifdef ESP8266
         if (file.write(content.c_str()) != content.length())
 #elif defined(ESP32)
         if (file.write(reinterpret_cast<const uint8_t*>(content.c_str()), content.length()) != content.length())
 #endif            
-            Serial.println("Failed to write file");
+            Logger.log("Failed to write file");
         file.close();
         m_config->readConfigFile();
     }
@@ -564,8 +567,27 @@ void HSDWebserver::ledChange() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+bool HSDWebserver::log(vector<String> lines) {
+    if (m_ws->connectedClients()) {
+        DynamicJsonBuffer jsonBuffer;
+        JsonObject& json = jsonBuffer.createObject();
+        json["method"] = "log";
+        JsonArray& linesJson = json.createNestedArray("lines");
+        for (String line : lines)
+            linesJson.add(line);
+        
+        String res;
+        json.printTo(res);
+        m_ws->broadcastTXT(res);
+        return true;
+    }
+    return false;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
 String HSDWebserver::processTemplates(const String& key) const {
-    Serial.printf("processTemplates(%s)\n", key.c_str());
+    Logger.log("processTemplates(%s)", key.c_str());
     if (key == "CONFIG") {
         return getConfig();
     } else if (key == "VERSION") {
@@ -579,9 +601,9 @@ String HSDWebserver::processTemplates(const String& key) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::saveColorMapping(const JsonArray& colMapping) const {
-    Serial.print("Received colormapping: ");
-    colMapping.printTo(Serial);
-    Serial.println("");
+    Logger.print("Received colormapping: ");
+    colMapping.printTo(Logger);
+    Logger.println();
     vector<HSDConfig::ColorMapping*> colMap;
     for (size_t i = 0; i < colMapping.size(); i++) {
         const JsonObject& elem = colMapping.get<JsonVariant>(i).as<JsonObject>();
@@ -596,12 +618,12 @@ void HSDWebserver::saveColorMapping(const JsonArray& colMapping) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::saveConfig(const JsonObject& config) const {
-    Serial.print("Received configuration: ");
-    config.printTo(Serial);
-    Serial.println("");
+    Logger.print("Received configuration: ");
+    config.printTo(Logger);
+    Logger.println();
     
     auto entries = m_config->cfgEntries();
-    Serial.printf("Config has %u entries\n", entries.size());
+    Logger.log("Config has %u entries", entries.size());
     bool needSave(false);
     String key;
     for (size_t idx = 0; idx < entries.size(); idx++) {
@@ -609,9 +631,9 @@ void HSDWebserver::saveConfig(const JsonObject& config) const {
         if (entry->type == HSDConfig::DataType::ColorMapping || entry->type == HSDConfig::DataType::DeviceMapping)
             continue;
         key = m_config->groupDescription(entry->group) + "." + entry->key;
-        Serial.printf("Checking config entry %d - key: %s\n", idx, key.c_str());
+        Logger.log("Checking config entry %d - key: %s", idx, key.c_str());
         if (!config.containsKey(key)) {
-            Serial.printf("Missing key in configuration: %s\n", key.c_str());
+            Logger.log("Missing key in configuration: %s", key.c_str());
         } else {
             switch (entry->type) {
                 case HSDConfig::DataType::String:
@@ -651,7 +673,7 @@ void HSDWebserver::saveConfig(const JsonObject& config) const {
         }
     }
     if (needSave) {
-        Serial.println("Main config has changed, storing it.");
+        Logger.log("Main config has changed, storing it.");
         m_config->writeConfigFile();
     }
 }
@@ -659,9 +681,9 @@ void HSDWebserver::saveConfig(const JsonObject& config) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWebserver::saveDeviceMapping(const JsonArray& devMapping) const {
-    Serial.print("Received devicemapping: ");
-    devMapping.printTo(Serial);
-    Serial.println("");
+    Logger.print("Received devicemapping: ");
+    devMapping.printTo(Logger);
+    Logger.println();
     vector<HSDConfig::DeviceMapping*> devMap;
     for (size_t i = 0; i < devMapping.size(); i++) {
         const JsonObject& elem = devMapping.get<JsonVariant>(i).as<JsonObject>();
@@ -676,12 +698,12 @@ void HSDWebserver::saveDeviceMapping(const JsonArray& devMapping) const {
 
 void HSDWebserver::sendAndProcessTemplate(const String& filePath) {
     if (!SPIFFS.exists(filePath)) {
-        Serial.printf("Cannot process %s: file does not exist\n", filePath.c_str());
+        Logger.log("Cannot process %s: file does not exist", filePath.c_str());
         deliverNotFoundPage();
     } else {
         File file = SPIFFS.open(filePath, "r");
         if (!file) {
-            Serial.printf("Cannot process %s: file does not exist\n", filePath.c_str());
+            Logger.log("Cannot process %s: file does not exist", filePath.c_str());
             deliverNotFoundPage();
         } else {
             m_server->setContentLength(CONTENT_LENGTH_UNKNOWN); // Chunked transfer
@@ -716,11 +738,11 @@ void HSDWebserver::sendAndProcessTemplate(const String& filePath) {
                     }          
                     
                     if (val == -1 && !found) // Check for bad exit.
-                        Serial.printf("Cannot process %s: unable to parse\n", filePath.c_str());
+                        Logger.log("Cannot process %s: unable to parse", filePath.c_str());
 
                     // Get substitution
                     String processed = processTemplates(keyBuffer);
-                    // Serial.printf("Lookup '%s' received: %s\n", keyBuffer.c_str(), processed.c_str());
+                    // Logger.log("Lookup '%s' received: %s", keyBuffer.c_str(), processed.c_str());
                     if (processed.length() < MAX)
                         buffer = processed;
                     else

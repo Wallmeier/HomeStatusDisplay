@@ -1,4 +1,5 @@
 #include "HSDWifi.hpp"
+#include "HSDLogger.hpp"
 
 #include <ArduinoOTA.h>
 
@@ -42,16 +43,16 @@ void HSDWifi::begin() {
         WiFi.setSleepMode(WIFI_NONE_SLEEP);
         if (!WiFi.hostname(m_config->getHost()))
 #endif // ARDUINO_ARCH_ESP32
-            Serial.printf("Failed to set hostname: %s\n", m_config->getHost().c_str());
-        Serial.println("WiFi settings");
-        Serial.printf("  • AutoConnect: %s\n", WiFi.getAutoConnect() ? "true" : "false");
-        Serial.printf("  • AutoReconnect: %s\n", WiFi.getAutoReconnect() ? "true" : "false");
+            Logger.log("Failed to set hostname: %s", m_config->getHost().c_str());
+        Logger.log("WiFi settings");
+        Logger.log("  • AutoConnect: %s", WiFi.getAutoConnect() ? "true" : "false");
+        Logger.log("  • AutoReconnect: %s", WiFi.getAutoReconnect() ? "true" : "false");
 #ifdef ESP8266
-        Serial.printf("  • Hostname: %s\n", WiFi.hostname().c_str());
-        Serial.printf("  • PhyMode: %d\n", WiFi.getPhyMode());
-        Serial.printf("  • SleepMode: %d\n", WiFi.getSleepMode());
+        Logger.log("  • Hostname: %s", WiFi.hostname().c_str());
+        Logger.log("  • PhyMode: %d", WiFi.getPhyMode());
+        Logger.log("  • SleepMode: %d", WiFi.getSleepMode());
 #elif defined(ESP32)
-        Serial.printf("  • Hostname: %s\n", WiFi.getHostname());
+        Logger.log("  • Hostname: %s", WiFi.getHostname());
 #endif    
 #ifdef ESP8266
         m_evOnConnect = WiFi.onStationModeConnected([=](const WiFiEventStationModeConnected& event) {
@@ -63,8 +64,8 @@ void HSDWifi::begin() {
         m_evOnGotIP = WiFi.onStationModeGotIP([=](const WiFiEventStationModeGotIP& event) {
             onGotIP(event.ip.toString(), event.mask.toString(), event.gw.toString());
         });
-        m_evOnDhcpTimeout = WiFi.onStationModeDHCPTimeout([]() {
-            Serial.println("DHCP timeout");
+        m_evOnDhcpTimeout = WiFi.onStationModeDHCPTimeout([=]() {
+            Logger.log("DHCP timeout");
         });
 #elif defined(ESP32)    
         m_evOnConnect = WiFi.onEvent([=](WiFiEvent_t event, WiFiEventInfo_t info) {
@@ -104,8 +105,7 @@ void HSDWifi::handleConnection() {
                 first = false;
                 m_millisLastConnectTry = millis(); 
                 if (m_numConnectRetriesDone == 0) {
-                    Serial.print("Starting Wifi connection to ");
-                    Serial.println(m_config->getWifiSSID());
+                    Logger.log("Starting Wifi connection to %s", m_config->getWifiSSID().c_str());
 
                     WiFi.reconnect();
 
@@ -113,7 +113,7 @@ void HSDWifi::handleConnection() {
                 } else if (m_numConnectRetriesDone < m_maxConnectRetries) {
                     m_numConnectRetriesDone++;
                 } else {
-                    Serial.println("Failed to connect WiFi.");
+                    Logger.log("Failed to connect WiFi.");
 
                     // if successfully connected before reboot otherwise start access point
                     if (m_wasConnected) {
@@ -131,7 +131,7 @@ void HSDWifi::handleConnection() {
 
 void HSDWifi::onConnect(const String& ssid, const String& bssid, uint8_t channel) const {
     static bool initialConnect = true;
-    Serial.printf("Connected to WiFi '%s' on AP %s with channel %d\n", ssid.c_str(), bssid.c_str(), channel);
+    Logger.log("Connected to WiFi '%s' on AP %s with channel %d", ssid.c_str(), bssid.c_str(), channel);
     m_webserver->updateStatusEntry("ssid", ssid);
     m_webserver->updateStatusEntry("bssid", bssid);
     m_webserver->updateStatusEntry("channel", String(channel));
@@ -147,14 +147,14 @@ void HSDWifi::onConnect(const String& ssid, const String& bssid, uint8_t channel
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWifi::onDisconnect(const String& ssid, const String& bssid, uint8_t reason) const {
-    Serial.printf("Disconnected from WiFi '%s' on AP %s: reason %d\n",  ssid.c_str(), bssid.c_str(), reason);
+    Logger.log("Disconnected from WiFi '%s' on AP %s: reason %d",  ssid.c_str(), bssid.c_str(), reason);
     m_leds->setAllOn(LED_COLOR_RED);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWifi::onGotIP(const String& ip, const String& netMask, const String& gw) const {
-    Serial.printf("Got ip address %s, net mask %s, gateway %s\n", ip.c_str(), netMask.c_str(), gw.c_str());
+    Logger.log("Got ip address %s, net mask %s, gateway %s", ip.c_str(), netMask.c_str(), gw.c_str());
     m_webserver->updateStatusEntry("gateway", gw);
     m_webserver->updateStatusEntry("ip", ip);
     m_webserver->updateStatusEntry("subnetMask", netMask);
@@ -180,16 +180,16 @@ String HSDWifi::printMac(const uint8_t mac[6]) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDWifi::startAccessPoint() {
-    Serial.println("");
-    Serial.println("Starting access point.");
+    Logger.log();
+    Logger.log("Starting access point.");
 
     WiFi.mode(WIFI_AP);
 
     if (WiFi.softAP(String(SOFT_AP_SSID).c_str(), String(SOFT_AP_PSK).c_str())) {
         m_accessPointActive = true;
-        Serial.print("AccessPoint SSID is "); Serial.println(SOFT_AP_SSID); 
-        Serial.print("IP: "); Serial.println(WiFi.softAPIP());
+        Logger.log("AccessPoint SSID is %s", SOFT_AP_SSID); 
+        Logger.log("IP: %s", WiFi.softAPIP().toString().c_str());
     } else {
-        Serial.println("Error starting access point.");
+        Logger.log("Error starting access point.");
     }
 }

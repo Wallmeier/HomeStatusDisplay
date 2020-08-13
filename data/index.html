@@ -38,6 +38,7 @@
           <a href="#scroll-tab-config" id="tabCfg"  class="mdl-layout__tab">Configuration</a>
           <a href="#scroll-tab-colmap" id="tabCol"  class="mdl-layout__tab" onclick="coltable.setData('/ajax/colormapping.json')">Color Mapping</a>
           <a href="#scroll-tab-devmap" id="tabDev"  class="mdl-layout__tab" onclick="devtable.setData('/ajax/devicemapping.json')">Device Mapping</a>
+          <a href="#scroll-tab-log"   id="tabLog"  class="mdl-layout__tab">Log</a>
           <a href="#scroll-tab-update" id="tabUpd"  class="mdl-layout__tab">Firmware Update</a>
         </div>
       </header>
@@ -49,6 +50,7 @@
           <a class="mdl-navigation__link" onclick="document.getElementById('tabCfg').click()">Configuration</a>
           <a class="mdl-navigation__link" onclick="document.getElementById('tabCol').click()">Color Mapping</a>
           <a class="mdl-navigation__link" onclick="document.getElementById('tabDev').click()">Device Mapping</a>
+          <a class="mdl-navigation__link" onclick="document.getElementById('tabLog').click()">Log</a>
           <a class="mdl-navigation__link" onclick="document.getElementById('tabUpd').click()">Firmware Update</a>
           <a class="mdl-navigation__link" onclick="reboot()">Reboot</a>
         </nav>      
@@ -158,6 +160,28 @@
               <div class="mdl-tooltip" for="devtable.undo">Undo</div>
               <div class="mdl-tooltip" for="devtable.save">Save changes</div>
             </p>
+          </div>
+        </section>
+
+        <section class="mdl-layout__tab-panel" id="scroll-tab-log">
+          <div class="page-content">
+            <div class="mdl-grid">
+              <div class="mdl-cell mdl-cell--1-col">
+                <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switchScroll">
+                  <input type="checkbox" id="switchScroll" class="mdl-switch__input" checked>
+                  <span class="mdl-switch__label">Scroll&nbsp;</span>
+                </label>
+              </div>
+              <div class="mdl-cell mdl-cell--1-col"><span id='logRowCount'></span></div>
+              <div class="mdl-cell mdl-cell--1-col mdl-layout-spacer"></div>
+              <div class="mdl-cell mdl-cell--1-col">
+                <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" id="log.clear" onclick="document.getElementById('logDiv').innerHTML = ''; document.getElementById('logRowCount').innerHTML = '';">
+                  <i class="material-icons">clear</i>
+                </button>
+                <div class="mdl-tooltip" for="log.clear">Clear</div>
+              </div>
+            </div>
+            <div id='logDiv' style='border:1px solid black; overflow:auto; height:250px'></div>
           </div>
         </section>
         

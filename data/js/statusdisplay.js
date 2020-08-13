@@ -100,6 +100,16 @@ function onPageLoad() {
                     }
                 } else if (method === "updLeds") {
                     updateLedTable(jsonObject.data);
+                } else if (method == "log") {
+                    var lines = jsonObject.lines;
+                    var targetDiv = document.getElementById('logDiv');
+                    for (var idx = 0; idx < lines.length; idx++) {
+                        var txt = new Date().toLocaleTimeString('de-DE') + ': ' + lines[idx];
+                        targetDiv.innerHTML += "<div class='logLine'>" + txt + "</div>";
+                        if (document.getElementById('switchScroll').checked == true)
+                            targetDiv.scrollTop = targetDiv.scrollHeight;
+                    }
+                    document.getElementById('logRowCount').innerHTML = document.getElementsByClassName('logLine').length + " rows";
                 }
             };
         } else {

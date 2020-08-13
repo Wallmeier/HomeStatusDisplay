@@ -1,4 +1,5 @@
 #include "HSDLeds.hpp"
+#include "HSDLogger.hpp"
 
 #define NUMBER_OF_ELEMENTS(array)  (sizeof(array) / sizeof(array[0]))
 
@@ -27,7 +28,7 @@ HSDLeds::~HSDLeds() {
 void HSDLeds::begin() {
     m_numLeds = m_config->getNumberOfLeds();
     m_pLedState = new LedState[m_numLeds];
-    Serial.printf("Starting LEDs on pin %d (length %d)\n", m_config->getLedDataPin(), m_numLeds);
+    Logger.log("Starting LEDs on pin %d (length %d)", m_config->getLedDataPin(), m_numLeds);
     m_strip = new Adafruit_NeoPixel(m_numLeds, m_config->getLedDataPin(), NEO_GRB + NEO_KHZ800);
     m_strip->begin();
     m_strip->setBrightness(m_config->getLedBrightness());
@@ -94,7 +95,7 @@ void HSDLeds::updateStripe() {
             m_strip->setPixelColor(idx, LED_COLOR_NONE);
     }
     m_strip->show();
-    Serial.println("Stripe updated");
+    Logger.log("Stripe updated");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

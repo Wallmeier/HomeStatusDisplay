@@ -1,4 +1,5 @@
 #include "HSDMqtt.hpp"
+#include "HSDLogger.hpp"
 
 HSDMqtt::HSDMqtt(const HSDConfig* config, MQTT_CALLBACK_SIGNATURE) :
     m_config(config),
@@ -26,10 +27,10 @@ void HSDMqtt::handle() {
     if (WiFi.isConnected()) {
         if (m_pubSubClient->connected()) {
             if (!m_pubSubClient->loop()) 
-                Serial.printf("Mqtt disconnected - state=%d\n", m_pubSubClient->state());
+                Logger.log("Mqtt disconnected - state=%d", m_pubSubClient->state());
         } else {
             if (first || ((millis() - millisLastConnectTry) >= 10000)) { // alle 10 Sekunden testen
-                Serial.printf("Mqtt not connected (state=%d)\n", m_pubSubClient->state());
+                Logger.log("Mqtt not connected (state=%d)", m_pubSubClient->state());
                 first = false;
                 millisLastConnectTry = millis();
                 reconnect();
@@ -48,8 +49,6 @@ bool HSDMqtt::reconnect() const {
     mac.replace(":", "");
     char clientId[24];
     snprintf(clientId, 24, "%s-%s", m_config->getHost().c_str(), mac.substring(6).c_str());
-    Serial.printf("Connecting to MQTT broker %s:%d with clientId %s...(free Heap %u)", m_config->getMqttServer().c_str(), 
-                  m_config->getMqttPort(), clientId, ESP.getFreeHeap());
 
     const String& willTopic = m_config->getMqttOutTopic("status");
     m_pubSubClient->disconnect();
@@ -65,7 +64,8 @@ bool HSDMqtt::reconnect() const {
             connected = m_pubSubClient->connect(clientId, m_config->getMqttUser().c_str(), m_config->getMqttPassword().c_str());
     }
     if (connected) {
-        Serial.println("connected");
+        Logger.log("Connected to MQTT broker %s:%d with clientId %s", m_config->getMqttServer().c_str(), 
+                   m_config->getMqttPort(), clientId);
         if (isTopicValid(willTopic))
             publish(willTopic, "online");
         String verTopic = m_config->getMqttOutTopic("versions");
@@ -85,7 +85,8 @@ bool HSDMqtt::reconnect() const {
 #endif // MQTT_TEST_TOPIC  
         retval = true;
     } else {
-        Serial.printf("failed, rc = %d (free RAM %u)\n", m_pubSubClient->state(), ESP.getFreeHeap());
+        Logger.log("Failed to connect to MQTT broker %s:%d, rc=%d", m_config->getMqttServer().c_str(), 
+                   m_config->getMqttPort(), m_pubSubClient->state());
     }
     return retval;
 }
@@ -95,10 +96,9 @@ bool HSDMqtt::reconnect() const {
 void HSDMqtt::subscribe(const String& topic) const {
     if (isTopicValid(topic)) {
         if (!m_pubSubClient->subscribe(topic.c_str()))
-            Serial.print("Failed to subscribe to topic ");
+            Logger.log("Failed to subscribe to topic %s", topic.c_str());
         else
-            Serial.print("Subscribed to topic ");
-        Serial.println(topic);
+            Logger.log("Subscribed to topic %s", topic.c_str());
     }
 }
 
@@ -107,12 +107,12 @@ void HSDMqtt::subscribe(const String& topic) const {
 void HSDMqtt::publish(const String& topic, String msg) const {
     if (connected()) {
         if (m_pubSubClient->publish(topic.c_str(), msg.c_str()))
-            Serial.printf("Published msg %s for topic %s (free RAM %u)\n", msg.c_str(), topic.c_str(), ESP.getFreeHeap());
+            Logger.log("Published msg %s for topic %s (free RAM %u)", msg.c_str(), topic.c_str(), ESP.getFreeHeap());
         else
-            Serial.printf("Error publishing msg %s for topic %s (free RAM %u) - rc: %d\n", 
-                          msg.c_str(), topic.c_str(), ESP.getFreeHeap(), m_pubSubClient->state());
+            Logger.log("Error publishing msg %s for topic %s (free RAM %u) - rc: %d", msg.c_str(), topic.c_str(), 
+                       ESP.getFreeHeap(), m_pubSubClient->state());
     } else {
-        Serial.println("Not connected - failed to publish msg " + msg + " for topic " + topic);
+        Logger.log("Not connected - failed to publish msg %s for topic %s", msg.c_str(), topic.c_str());
     }
 }
 

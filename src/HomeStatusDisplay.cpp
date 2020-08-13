@@ -1,4 +1,5 @@
 #include "HomeStatusDisplay.hpp"
+#include "HSDLogger.hpp"
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
@@ -35,6 +36,7 @@ void HomeStatusDisplay::begin() {
     Serial.begin(115200);
     Serial.println("");
 
+    Logger.setWebServer(m_webServer);
     m_config->begin();
     ArduinoOTA.setHostname(m_config->getHost().c_str());
     ArduinoOTA.onStart([=]() {
@@ -46,33 +48,34 @@ void HomeStatusDisplay::begin() {
             type = "filesystem";
             SPIFFS.end();
         }
-        Serial.println("ArduinoOTA: start updating " + type);
+        Logger.log("ArduinoOTA: start updating %s", type.c_str());
         m_leds->setAllOn(LED_COLOR_BLUE);
     });
     ArduinoOTA.onEnd([=]() {
-        Serial.println("ArduinoOTA: end");
+        Logger.log("ArduinoOTA: end");
         m_leds->clear();
     });
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    ArduinoOTA.onProgress([=](unsigned int progress, unsigned int total) {
         static int val = 0;
         int newVal = progress / (total / 100);
         if (newVal != val) {
-            Serial.printf("ArduinoOTA: progress: %u%%\n", newVal);
+            Logger.log("ArduinoOTA: progress: %u%%", newVal);
             val = newVal;
         }
     });
     ArduinoOTA.onError([=](ota_error_t error) {
-        Serial.printf("ArduinoOTA: error[%u]: ", error);
+        const char* reason = nullptr;
         if (error == OTA_AUTH_ERROR)
-            Serial.println("Auth Failed");
+            reason = "Auth Failed";
         else if (error == OTA_BEGIN_ERROR)
-            Serial.println("Begin Failed");
+            reason = "Begin Failed";
         else if (error == OTA_CONNECT_ERROR)
-            Serial.println("Connect Failed");
+            reason = "Connect Failed";
         else if (error == OTA_RECEIVE_ERROR)
-            Serial.println("Receive Failed");
+            reason = "Receive Failed";
         else if (error == OTA_END_ERROR)
-            Serial.println("End Failed");
+            reason = "End Failed";
+        Logger.log("ArduinoOTA: error[%u]: %s", error, reason);
         m_leds->clear();
     });    
     m_leds->begin();
@@ -97,7 +100,7 @@ void HomeStatusDisplay::begin() {
         m_bluetooth->begin();
     }
 #endif
-    Serial.printf("Free RAM: %u Bytes\n", ESP.getFreeHeap());
+    Logger.log("Free RAM: %u Bytes", ESP.getFreeHeap());
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -170,7 +173,7 @@ void HomeStatusDisplay::mqttCallback(char* topic, byte* payload, unsigned int le
     for (unsigned int idx = 0; idx < length; idx++)
         mqttMsgString += (char)payload[idx];
   
-    Serial.printf("Received an MQTT message for topic %s: %s\n", topic, mqttMsgString.c_str());
+    Logger.log("Received an MQTT message for topic %s: %s", topic, mqttMsgString.c_str());
 
     if (isStatusTopic(mqttTopicString)) {
         if (handleStatus(getDevice(mqttTopicString), mqttMsgString))
@@ -204,7 +207,7 @@ String HomeStatusDisplay::getDevice(const String& statusTopic) const {
 void HomeStatusDisplay::handleTest(const String& msg) {
     int type(msg.toInt());
     if (type > 0) {
-        Serial.printf("Showing testpattern %d\n", type); 
+        Logger.log("Showing testpattern %d", type);
         m_leds->test(type);
     } else if (type == 0) {
         m_leds->clear();
@@ -222,18 +225,18 @@ bool HomeStatusDisplay::handleStatus(const String& device, const String& msg) {
         if (colorMapIndex != -1) {
             auto behavior = m_config->getLedBehavior(colorMapIndex);
             uint32_t color = m_config->getLedColor(colorMapIndex);
-            Serial.printf("Set LED number %d to behaviour %u with color #%06X\n", ledNumber, static_cast<uint8_t>(behavior), color);
+            Logger.log("Set LED number %d to behaviour %u with color #%06X", ledNumber, static_cast<uint8_t>(behavior), color);
             update = m_leds->set(ledNumber, behavior, color);
         } else if (msg.length() > 3 && msg[0] == '#') {  // allow MQTT broker to directly set LED color with HEX strings
             uint32_t color = m_config->string2hex(msg);
-            Serial.printf("Received HEX %s and set led number %d with this color ON\n", msg.c_str(), ledNumber);
+            Logger.log("Received HEX %s and set led number %d with this color ON", msg.c_str(), ledNumber);
             update = m_leds->set(ledNumber, HSDConfig::Behavior::On, color);
         } else {
-            Serial.printf("Unknown message %s for led number %d, set to OFF\n", msg.c_str(), ledNumber);
+            Logger.log("Unknown message %s for led number %d, set to OFF", msg.c_str(), ledNumber);
             update = m_leds->set(ledNumber, HSDConfig::Behavior::Off, LED_COLOR_NONE);
         }
     } else {
-        Serial.printf("No LED defined for device %s, ignoring it\n", device.c_str());
+        Logger.log("No LED defined for device %s, ignoring it", device.c_str());
     }
     return update;
 }

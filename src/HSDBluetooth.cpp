@@ -1,11 +1,12 @@
 #ifdef ESP32
 
 #include "HSDBluetooth.hpp"
+#include "HSDLogger.hpp"
 
 #include <BLEDevice.h>
 
 void onScanResult(BLEScanResults result) {
-    Serial.print("Scan finished: "); Serial.println(result.getCount());
+    Logger.log("Scan finished: %d", result.getCount());
 }
 
 HSDBluetooth::HSDBluetooth(const HSDConfig* config, const HSDMqtt* mqtt) :
@@ -18,7 +19,7 @@ HSDBluetooth::HSDBluetooth(const HSDConfig* config, const HSDMqtt* mqtt) :
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDBluetooth::begin() {
-    Serial.println("Starting Bluetooth LE support...");
+    Logger.log("Starting Bluetooth LE support...");
     BLEDevice::init("");
     m_BLEScan = BLEDevice::getScan(); //create new scan
     m_BLEScan->setAdvertisedDeviceCallbacks(this);
@@ -33,10 +34,10 @@ void HSDBluetooth::handle() {
     if (first || ((millis() - millisLastScan) >= 65555)) { // 10100
         first = false;
         millisLastScan = millis();
-        Serial.println("Starting Bluetooth scan");
+        Logger.log("Starting Bluetooth scan");
         m_BLEScan->clearResults();   // delete results fromBLEScan buffer to release memory
         if (!m_BLEScan->start(10, onScanResult, true))
-            Serial.println("Failed to start Bluetooth Scan");
+            Logger.log("Failed to start Bluetooth Scan");
     }    
 }
 
@@ -52,7 +53,7 @@ int strpos(const char* haystack, const char* needle) { //from @miere https://sta
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDBluetooth::onResult(BLEAdvertisedDevice advertisedDevice) {
-    Serial.print("Advertised Device: "); Serial.println(advertisedDevice.toString().c_str());
+    Logger.log("Advertised Device: %s", advertisedDevice.toString().c_str());
     if (advertisedDevice.haveServiceData()) {
         if (strstr(advertisedDevice.getServiceDataUUID().toString().c_str(), "fe95") != nullptr) {
             std::string serviceData = advertisedDevice.getServiceData();
@@ -71,7 +72,7 @@ void HSDBluetooth::onResult(BLEAdvertisedDevice advertisedDevice) {
             if (pos != -1) {             
                 DynamicJsonBuffer jsonBuffer;
                 JsonObject& json = jsonBuffer.createObject();
-                Serial.println("mi flora data reading");
+                Logger.log("mi flora data reading");
                 if (process_data(json, pos - 24, service_data)) {
                     String id = advertisedDevice.getAddress().toString().c_str();
                     json["id"] = id;
@@ -105,7 +106,7 @@ bool HSDBluetooth::process_data(JsonObject& json, int offset, const char* rest_d
             data_length = ((rest_data[51 + offset] - '0') * 2) + 1;
             break;
         default:
-            Serial.println("Can't read data length");
+            Logger.log("Can't read data length");
             return false;
     }
     
@@ -161,8 +162,9 @@ bool HSDBluetooth::process_data(JsonObject& json, int offset, const char* rest_d
                 value = value - 65535;
             json.set("tem", (double)value / 10);
             break;
+
         default:
-            Serial.println("can't read values");
+            Logger.log("can't read values");
             return false;
     }
     return true;

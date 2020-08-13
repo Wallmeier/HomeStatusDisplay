@@ -1,4 +1,5 @@
 #include "HSDClock.hpp"
+#include "HSDLogger.hpp"
 
 #ifdef ESP32
 #include <WiFi.h>
@@ -20,7 +21,7 @@ void HSDClock::begin() {
   
         ezt::setServer(m_config->getClockNTPServer());
         ezt::setInterval(m_config->getClockNTPInterval() * 60);
-        ezt::setDebug(INFO, Serial);
+        ezt::setDebug(INFO, Logger);
         m_local.setPosix(m_config->getClockTimeZone());
 
         m_tm1637->set(m_config->getClockBrightness());  // set brightness

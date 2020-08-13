@@ -46,6 +46,7 @@ public:
 
     void        begin();
     void        ledChange();
+    bool        log(vector<String> lines);
     inline void handle() { m_server->handleClient(); m_ws->loop(); }
     inline void registerStatusEntry(StatusClass type, const char* label, const String& value, const char* unit = "", const char* id = "") { m_statusEntries.push_back(new StatusEntry(type, label, value, unit, id)); }
     void        setUptime(unsigned long& deviceUptime);

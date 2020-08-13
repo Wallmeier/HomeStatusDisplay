@@ -1,4 +1,5 @@
 #include "HSDSensor.hpp"
+#include "HSDLogger.hpp"
 
 #include <Wire.h>
 
@@ -56,8 +57,7 @@ void HSDSensor::begin(HSDWebserver* webServer) {
     if (m_config->getSensorSonoffEnabled()) {
         sensorCnt += 2;
         m_pin = m_config->getSensorPin();
-        Serial.print("Starting Sonoff Si7021 sensor on pin ");
-        Serial.println(m_pin);
+        Logger.log("Starting Sonoff Si7021 sensor on pin %u", m_pin);
         pinMode(m_pin, INPUT_PULLUP);
         webServer->registerStatusEntry(HSDWebserver::StatusClass::Sensor, "Temperature", String(), "°C", "temperature");
         webServer->registerStatusEntry(HSDWebserver::StatusClass::Sensor, "Humidity", String(), "%", "humidity");
@@ -70,7 +70,7 @@ void HSDSensor::begin(HSDWebserver* webServer) {
             m_bmp = new Adafruit_BMP085_Unified(sensorCnt++);
             if (!m_bmp->begin()) {
                 /* There was a problem detecting the BMP085 ... check your connections */
-                Serial.println("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
+                Logger.log("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
             } else {
                 webServer->registerStatusEntry(HSDWebserver::StatusClass::Sensor, "Pressure", String(), "hPa", "pressure");
                 sensor_t sensor;
@@ -82,7 +82,7 @@ void HSDSensor::begin(HSDWebserver* webServer) {
             m_tsl = new Adafruit_TSL2561_Unified(0x39, sensorCnt++);
             if (!m_tsl->begin()) {
                 /* There was a problem detecting the TSL2561 ... check your connections */
-                Serial.print("Ooops, no TSL2561 detected ... Check your wiring or I2C ADDR!");
+                Logger.log("Ooops, no TSL2561 detected ... Check your wiring or I2C ADDR!");
             } else {
                 webServer->registerStatusEntry(HSDWebserver::StatusClass::Sensor, "Light", String(), "lux", "lux");
                 sensor_t sensor;
@@ -120,15 +120,14 @@ void HSDSensor::handle(HSDWebserver* webServer, const HSDMqtt* mqtt) {
 #endif    
     if (cnt > 0) {
         if (cnt > 1) {
-            Serial.print("PIR interrupt triggered more than once: ");
-            Serial.println(cnt);
+            Logger.log("PIR interrupt triggered more than once: %u", cnt);
         }
         String topic = m_config->getMqttOutTopic("motion");
         if (val == LOW) {
-            Serial.println("Motion ended");
+            Logger.log("Motion ended");
             mqtt->publish(topic, "0");
         } else if (val == HIGH) {
-            Serial.println("Motion detected");
+            Logger.log("Motion detected");
             mqtt->publish(topic, "1");
         }
     }    
@@ -142,11 +141,11 @@ void HSDSensor::handle(HSDWebserver* webServer, const HSDMqtt* mqtt) {
         if (m_config->getSensorSonoffEnabled()) {
             float temp, hum;
             if (readSensor(temp, hum)) {
-                Serial.print("Sonoff SI7021: Temp ");
-                Serial.print(temp, 1);
-                Serial.print("°C, Hum ");
-                Serial.print(hum, 1);
-                Serial.println("%");
+                Logger.print("Sonoff SI7021: Temp ");
+                Logger.print(temp, 1);
+                Logger.print("°C, Hum ");
+                Logger.print(hum, 1);
+                Logger.println("%");
                 
                 webServer->updateStatusEntry("temperature", String(temp, 1));
                 webServer->updateStatusEntry("humidity", String(hum, 1));
@@ -154,7 +153,7 @@ void HSDSensor::handle(HSDWebserver* webServer, const HSDMqtt* mqtt) {
                 json["Temp"] = temp;
                 json["Hum"] = hum;
             } else {
-                Serial.println("Sonoff SI7021 failed");
+                Logger.log("Sonoff SI7021 failed");
             }
         }
         if (m_bmp) {
@@ -163,15 +162,15 @@ void HSDSensor::handle(HSDWebserver* webServer, const HSDMqtt* mqtt) {
             if (event.pressure) {
                 float press = round(m_bmp->seaLevelForAltitude(m_config->getSensorAltitude(), event.pressure) * 10) / 10.0;
                 /* Display atmospheric pressue in hPa */
-                Serial.print("BMP180: Pressure ");
-                Serial.print(press, 1);
-                Serial.println(" hPa");
+                Logger.print("BMP180: Pressure ");
+                Logger.print(press, 1);
+                Logger.println(" hPa");
                 
                 webServer->updateStatusEntry("pressure", String(press, 1));
                 
                 json["Pressure"] = press;
             } else {
-                Serial.println("BMP180: Sensor error");
+                Logger.log("BMP180: Sensor error");
             }
         }
         if (m_tsl) {
@@ -179,13 +178,13 @@ void HSDSensor::handle(HSDWebserver* webServer, const HSDMqtt* mqtt) {
             m_tsl->getEvent(&event);
             if (event.light) {
                 /* Display the results (light is measured in lux) */
-                Serial.print("TSL2561: "); Serial.print(event.light, 0); Serial.println(" lux");
+                Logger.print("TSL2561: "); Logger.print(event.light, 0); Logger.println(" lux");
                 
                 webServer->updateStatusEntry("lux", String(event.light, 0));
                 
                 json["Lux"] = event.light;
             } else {
-                Serial.println("TSL2561: Sensor error");
+                Logger.log("TSL2561: Sensor error");
             }            
         }
           
@@ -226,10 +225,10 @@ bool HSDSensor::read(uint8_t* data) const {
     pinMode(m_pin, INPUT_PULLUP);
     delayMicroseconds(10);
     if (-1 == expectPulse(LOW)) {
-        Serial.println("Sensor: timeout waiting for start signal low pulse");
+        Logger.log("Sensor: timeout waiting for start signal low pulse");
         error = 1;
     } else if (-1 == expectPulse(HIGH)) {
-        Serial.println("Sensor: timeout waiting for start signal high pulse");
+        Logger.log("Sensor: timeout waiting for start signal high pulse");
         error = 1;
     } else {
         for (uint32_t i = 0; i < 80; i += 2) {
@@ -245,7 +244,7 @@ bool HSDSensor::read(uint8_t* data) const {
         int32_t lowCycles  = cycles[2 * i];
         int32_t highCycles = cycles[2 * i + 1];
         if ((-1 == lowCycles) || (-1 == highCycles)) {
-            Serial.println("Sensor: timeout waiting for pulse");
+            Logger.log("Sensor: timeout waiting for pulse");
             return false;
         }
         data[i/8] <<= 1;
@@ -255,10 +254,7 @@ bool HSDSensor::read(uint8_t* data) const {
 
     uint8_t checksum = (data[0] + data[1] + data[2] + data[3]) & 0xFF;
     if (data[4] != checksum) {
-        Serial.print("Sensor: checksum failure - exptected: ");
-        Serial.print(checksum, HEX);
-        Serial.print(", but got: ");
-        Serial.println(data[4], HEX);
+        Logger.log("Sensor: checksum failure - exptected: %02x, but got %02x", checksum & 0xff, data[4] & 0xff);
         return false;
     }
 
@@ -287,22 +283,17 @@ bool HSDSensor::readSensor(float& temp, float& hum) const {
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDSensor::i2cscan(bool& hasBmp, bool& hasTsl) const {
-    Serial.println("Starting i2c search");
-    Serial.println("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f");
-    Serial.print(  "00:         ");
+    String msg = "Starting i2c search\r\n     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f\r\n00:         ";
     for (byte address = 3; address <= 119; address++) {
-        if (address % 16 == 0) { // new line
-            Serial.print("\n");
-            Serial.print(String(address / 16));
-            Serial.print("0:");
-        }
+        if (address % 16 == 0)  // new line
+            msg += "\n" + String(address / 16) + "0:";
         Wire.beginTransmission(address);
         switch (Wire.endTransmission()) {
             case 0:
-                Serial.print(" ");
+                msg += " ";
                 if (address < 16)
-                    Serial.print("0");
-                Serial.print(address, HEX);
+                    msg += "0";
+                msg += String(address, HEX);
                 if (address == 0x39)
                     hasTsl = true;
                 else if (address == 0x77)
@@ -310,31 +301,32 @@ void HSDSensor::i2cscan(bool& hasBmp, bool& hasTsl) const {
                 break;
 
             case 4: 
-                Serial.print(" XX");
+                msg += " XX";
                 break;
                 
             default:
-                Serial.print(" --");
+                msg += " --";
                 break;
         }
     }
-    Serial.println("");
+    Logger.log(msg);
+    Logger.log();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDSensor::printSensorDetails(sensor_t& sensor) const {
-    Serial.print("Using ");
-    Serial.print(sensor.name);
-    Serial.print(" (driver ver: ");
-    Serial.print(sensor.version);
-    Serial.print(", id: ");
-    Serial.print(sensor.sensor_id);
-    Serial.print(", minVal: ");
-    Serial.print(sensor.min_value); 
-    Serial.print(", maxVal: ");
-    Serial.print(sensor.max_value);
-    Serial.print(", res: ");
-    Serial.print(sensor.resolution);
-    Serial.println(")");
+    Logger.print("Using ");
+    Logger.print(sensor.name);
+    Logger.print(" (driver ver: ");
+    Logger.print(sensor.version);
+    Logger.print(", id: ");
+    Logger.print(sensor.sensor_id);
+    Logger.print(", minVal: ");
+    Logger.print(sensor.min_value); 
+    Logger.print(", maxVal: ");
+    Logger.print(sensor.max_value);
+    Logger.print(", res: ");
+    Logger.print(sensor.resolution);
+    Logger.println(")");
 }

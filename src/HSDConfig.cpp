@@ -1,4 +1,5 @@
 #include "HSDConfig.hpp"
+#include "HSDLogger.hpp"
 
 #include <ArduinoJson.h>
 #ifdef ARDUINO_ARCH_ESP32
@@ -84,12 +85,13 @@ HSDConfig::HSDConfig() :
 // ---------------------------------------------------------------------------------------------------------------------
 
 void HSDConfig::begin() {
-    Serial.printf("\nInitializing config (%u entries) - using ArduinoJson version %s\n", m_entries.size(), ARDUINOJSON_VERSION);
+    Logger.log();
+    Logger.log("Initializing config (%u entries) - using ArduinoJson version %s", m_entries.size(), ARDUINOJSON_VERSION);
     if (SPIFFS.begin()) {
-        Serial.println("Mounted file system.");
+        Logger.log("Mounted file system.");
         readConfigFile();
     } else {
-        Serial.println("Failed to mount file system");
+        Logger.log("Failed to mount file system");
     }
 }
 
@@ -99,12 +101,12 @@ bool HSDConfig::readConfigFile() {
     bool success(false);
     String fileBuffer;
 
-    Serial.printf("Reading config file %s: ", FILENAME_MAINCONFIG);
+    Logger.printf("Reading config file %s: ", FILENAME_MAINCONFIG);
     if (SPIFFS.exists(FILENAME_MAINCONFIG)) {
         File configFile = SPIFFS.open(FILENAME_MAINCONFIG, "r");
         if (configFile) {
             size_t size = configFile.size();
-            Serial.printf("file size is %u bytes\n", size);
+            Logger.printf("file size is %u bytes\n", size);
             char* buffer = new char[size + 1];
             buffer[size] = 0;
             configFile.readBytes(buffer, size);
@@ -115,7 +117,7 @@ bool HSDConfig::readConfigFile() {
             DynamicJsonBuffer jsonBuffer(fileBuffer.length() + 1);
             JsonObject& root = jsonBuffer.parseObject(fileBuffer);
             if (root.success()) {
-                Serial.println("Config data successfully parsed.");
+                Logger.log("Config data successfully parsed.");
                 int maxLen(0), len(0);
                 for (size_t idx = 0; idx < m_entries.size(); idx++) {
                     len = m_entries[idx]->key.length() + groupDescription(m_entries[idx]->group).length() + 1;
@@ -138,16 +140,16 @@ bool HSDConfig::readConfigFile() {
                             json = nullptr;
                     }
 
-                    Serial.printf("  • %s.%s", groupName.c_str(), entry->key.c_str());
+                    Logger.printf("  • %s.%s", groupName.c_str(), entry->key.c_str());
                     for (int i = groupName.length() + 1 + entry->key.length(); i < maxLen; i++)
-                        Serial.print(" ");
-                    Serial.print(": ");
+                        Logger.print(" ");
+                    Logger.print(": ");
                     if (entry->type == DataType::Password)
-                        Serial.println("not shown");
+                        Logger.println("not shown");
                     else if (json)
-                        Serial.println((*json)[entry->key].as<String>());
+                        Logger.println((*json)[entry->key].as<String>());
                     else
-                        Serial.println("");
+                        Logger.println("");
                     if (json && json->containsKey(entry->key)) {
                         switch (entry->type) {
                             case DataType::Password:
@@ -185,16 +187,16 @@ bool HSDConfig::readConfigFile() {
                 } 
                 success = true;
             } else {
-                Serial.println("Could not parse config data.");
+                Logger.log("Could not parse config data.");
             }
         } else {
-            Serial.println("file open failed");
+            Logger.println("file open failed");
         }
     } else {
-        Serial.println("File does not exist");
+        Logger.println("File does not exist");
     }
     if (!success) {
-        Serial.println("File does not exist - creating default main config file.");
+        Logger.log("File does not exist - creating default main config file.");
         writeConfigFile();
     }
     return success;
@@ -245,15 +247,15 @@ void HSDConfig::writeConfigFile() const {
             }
         }
     }
-    Serial.printf("Writing config file %s\n", FILENAME_MAINCONFIG);
+    Logger.log("Writing config file %s", FILENAME_MAINCONFIG);
     File configFile = SPIFFS.open(FILENAME_MAINCONFIG, "w+");
     if (configFile) {
         root.prettyPrintTo(configFile);
         configFile.close();
     } else {
-        Serial.println("Failed to write file, formatting file system.");
+        Logger.log("Failed to write file, formatting file system.");
         SPIFFS.format();
-        Serial.println("Done.");
+        Logger.log("Done.");
     }
 }
 
@@ -329,7 +331,7 @@ String HSDConfig::groupDescription(Group group) const {
         case Group::Sensors:   return "Sensors";
         case Group::Bluetooth: return "Bluetooth";
         default:
-            Serial.printf("groupDescription: Group %u UNKNOWN\n", static_cast<uint8_t>(group));
+            Logger.log("groupDescription: Group %u UNKNOWN", static_cast<uint8_t>(group));
             return "";
     }
 }
