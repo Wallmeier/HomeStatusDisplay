@@ -13,11 +13,15 @@ This code was tested on a Wemos D1 mini ESP8266 board. It *should* run on any ES
 
 ### Software
 The code was developed using the Arduino IDE and the ESP8266 library. You need to install the following additional libraries to compile the code:
- - Adafruit_NeoPixel: https://github.com/adafruit/Adafruit_NeoPixel
- - PubSubClient: https://github.com/knolleary/pubsubclient
+ - Adafruit Unified BMP085/BMP180 Driver: https://github.com/adafruit/Adafruit_BMP085_Unified
+ - Adafruit TSL2561 Light Sensor Driver: https://github.com/adafruit/Adafruit_TSL2561
+ - Adafruit Unified Sensor Driver: https://github.com/adafruit/Adafruit_Sensor
  - ArduinoJson (currently working version is 5.xx): https://github.com/bblanchon/ArduinoJson
- - TM1637: https://github.com/Seeed-Studio/Grove_4Digital_Display
  - ezTime: https://github.com/ropg/ezTime
+ - NeoPixelBus: https://github.com/Makuna/NeoPixelBus/
+ - PubSubClient: https://github.com/knolleary/pubsubclient
+ - TM1637: https://github.com/Seeed-Studio/Grove_4Digital_Display
+ - WebSockets: https://github.com/Links2004/arduinoWebSockets
  
 All libraries can be installed using the library manager of the Arduino IDE.
 
