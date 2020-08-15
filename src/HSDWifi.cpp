@@ -35,6 +35,7 @@ void HSDWifi::begin() {
         WiFi.setAutoConnect(false);
         WiFi.persistent(false);
         WiFi.mode(WIFI_STA);
+        WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // call is only a workaround for bug in WiFi class for setting hostname
         WiFi.begin(m_config->getWifiSSID().c_str(), m_config->getWifiPSK().c_str(), 0, nullptr, false);
     
 #ifdef ESP32    
@@ -138,7 +139,18 @@ void HSDWifi::onConnect(const String& ssid, const String& bssid, uint8_t channel
 
     if (initialConnect) {
         initialConnect = false;
+
+#ifdef ESP32
+        ArduinoOTA.setPort(3232);
+#elif defined(ESP8266)
+        ArduinoOTA.setPort(8266);
+#endif
+        ArduinoOTA.setHostname(m_config->getHost().c_str());
         ArduinoOTA.begin();
+        Logger.log("ArduinoOTA started");
+
+        if (!MDNS.begin(m_config->getHost().c_str())) 
+            Logger.log("Failed to start MDNS");
         MDNS.addService("http", "tcp", 80);
         m_leds->setAllOn(LED_COLOR_YELLOW);
     }
