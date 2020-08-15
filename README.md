@@ -59,4 +59,4 @@ You can leave it as is, but you can edit or add new colors to the configuration.
 ### The HomeStatusDisplay logic
 The StatusDisplay subscribes to the MQTT broker (e.g. ioBroker) and checks incoming messages with help of the device mapping which LED should have which color (with help of the color mapping).
  
-Thanks to Bernd Schubart who developed the code base for this project: https://github.com/MTJoker/HomeStatusDisplay
+Thanks to Bernd Schubart and Gieskanne who developed the code base for this project: https://github.com/MTJoker/HomeStatusDisplay and https://github.com/Gieskanne/HomeStatusDisplay
